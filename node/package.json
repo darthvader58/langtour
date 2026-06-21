@@ -6,12 +6,16 @@
   "scripts": {
     "test": "node --test 'test/**/*.test.js'",
     "dev": "node server.js",
+    "start": "node server.js",
     "migrate:sqlite": "node scripts/migrateSqliteToSupabase.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
+  "engines": {
+    "node": ">=22.12"
+  },
   "dependencies": {
     "@ai-sdk/google": "^3.0.83",
     "@supabase/supabase-js": "^2.108.2",
@@ -21,8 +25,5 @@
     "express": "^5.2.1",
     "fsrs.js": "^1.2.2",
     "ws": "^8.21.0"
-  },
-  "devDependencies": {
-    "better-sqlite3": "^12.11.1"
   }
 }

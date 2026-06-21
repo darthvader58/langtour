@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "concurrently \"npm run dev --prefix node\" \"npm run dev --prefix client\""
+    "dev": "concurrently \"npm run dev --prefix node\" \"npm run dev --prefix client\"",
+    "build": "npm ci --prefix client && npm ci --prefix node --omit=dev && npm run build --prefix client",
+    "start": "npm start --prefix node"
   },
   "repository": {
     "type": "git",
@@ -15,6 +17,9 @@
   "author": "",
   "license": "ISC",
   "type": "commonjs",
+  "engines": {
+    "node": ">=22.12"
+  },
   "bugs": {
     "url": "https://github.com/darthvader58/langtour/issues"
   },
