@@ -9,8 +9,10 @@ const CLOUDS_TEXTURE_URL =
 const SPECULAR_TEXTURE_URL =
   'https://threejs.org/examples/textures/planets/earth_specular_2048.jpg'
 
+const CHINA = { name: 'China', flag: '\u{1F1E8}\u{1F1F3}', lat: 35.8617, lng: 104.1954, unlocked: true }
+
 const COUNTRIES = [
-  { name: 'China', flag: '\u{1F1E8}\u{1F1F3}', lat: 35.8617, lng: 104.1954, unlocked: true },
+  CHINA,
   { name: 'Japan', flag: '\u{1F1EF}\u{1F1F5}', lat: 36.2048, lng: 138.2529, unlocked: false },
   { name: 'France', flag: '\u{1F1EB}\u{1F1F7}', lat: 46.2276, lng: 2.2137, unlocked: false },
   { name: 'Mexico', flag: '\u{1F1F2}\u{1F1FD}', lat: 23.6345, lng: -102.5528, unlocked: false },
@@ -97,6 +99,46 @@ function createNebulaField() {
   return group
 }
 
+function createChinaMarker() {
+  const group = new THREE.Group()
+  const direction = latLngToDirection(CHINA.lat, CHINA.lng).normalize()
+  group.position.copy(direction.multiplyScalar(GLOBE_RADIUS * 1.01))
+
+  const hitMesh = new THREE.Mesh(
+    new THREE.SphereGeometry(0.2, 12, 12),
+    new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }),
+  )
+  group.add(hitMesh)
+
+  const dot = new THREE.Sprite(
+    new THREE.SpriteMaterial({
+      map: createRadialTexture('rgba(110,231,183,0.95)'),
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    }),
+  )
+  dot.scale.set(0.4, 0.4, 1)
+  group.add(dot)
+
+  const ringTexture = createRadialTexture('rgba(74,222,128,0.7)')
+  const rings = [0, 1].map(() => {
+    const ring = new THREE.Sprite(
+      new THREE.SpriteMaterial({
+        map: ringTexture,
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      }),
+    )
+    ring.scale.set(0.4, 0.4, 1)
+    group.add(ring)
+    return ring
+  })
+
+  return { group, hitMesh, dot, rings }
+}
+
 function LockIcon() {
   return (
     <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
@@ -121,6 +163,7 @@ export default function LandingPage({ onCountrySelect }) {
   const mountRef = useRef(null)
   const triggerTravelRef = useRef(() => {})
   const onCountrySelectRef = useRef(onCountrySelect)
+  const onChinaMarkerClickRef = useRef(() => {})
 
   const [tokens, setTokens] = useState(100)
   const [pendingCountry, setPendingCountry] = useState(null)
@@ -129,6 +172,15 @@ export default function LandingPage({ onCountrySelect }) {
   useEffect(() => {
     onCountrySelectRef.current = onCountrySelect
   }, [onCountrySelect])
+
+  function handleSelectCountry(country) {
+    if (!country.unlocked || isTraveling || tokens < UNLOCK_COST) return
+    setPendingCountry(country)
+  }
+
+  useEffect(() => {
+    onChinaMarkerClickRef.current = () => handleSelectCountry(CHINA)
+  })
 
   useEffect(() => {
     const mount = mountRef.current
@@ -238,6 +290,39 @@ export default function LandingPage({ onCountrySelect }) {
     const atmosphere = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial)
     scene.add(atmosphere)
 
+    const { group: chinaMarkerGroup, hitMesh, dot, rings } = createChinaMarker()
+    planetGroup.add(chinaMarkerGroup)
+
+    const raycaster = new THREE.Raycaster()
+    const pointerNdc = new THREE.Vector2()
+    let hovered = false
+
+    function updatePointer(event) {
+      const rect = renderer.domElement.getBoundingClientRect()
+      pointerNdc.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
+      pointerNdc.y = -((event.clientY - rect.top) / rect.height) * 2 + 1
+    }
+
+    function handlePointerMove(event) {
+      if (travel) return
+      updatePointer(event)
+      raycaster.setFromCamera(pointerNdc, camera)
+      hovered = raycaster.intersectObject(hitMesh).length > 0
+      renderer.domElement.style.cursor = hovered ? 'pointer' : 'auto'
+    }
+
+    function handleClick(event) {
+      if (travel) return
+      updatePointer(event)
+      raycaster.setFromCamera(pointerNdc, camera)
+      if (raycaster.intersectObject(hitMesh).length > 0) {
+        onChinaMarkerClickRef.current()
+      }
+    }
+
+    renderer.domElement.addEventListener('pointermove', handlePointerMove)
+    renderer.domElement.addEventListener('click', handleClick)
+
     let travel = null
     let spinPaused = false
 
@@ -298,6 +383,16 @@ export default function LandingPage({ onCountrySelect }) {
       clouds.rotation.y += CLOUD_SPIN_SPEED
       deepSpace.rotation.y += 0.00012
       deepSpace.rotation.x += 0.00004
+
+      const t = performance.now() * 0.001
+      dot.scale.setScalar(hovered ? 0.52 : 0.4 + Math.sin(t * 3) * 0.05)
+      dot.material.opacity = hovered ? 1 : 0.7 + Math.sin(t * 3) * 0.2
+      rings.forEach((ring, i) => {
+        const phase = (t * 0.5 + i * 0.5) % 1
+        ring.scale.setScalar(0.4 + phase * (hovered ? 2.6 : 1.8))
+        ring.material.opacity = (1 - phase) * (hovered ? 0.85 : 0.45)
+      })
+
       if (travel) {
         stepTravel(performance.now())
       } else {
@@ -310,6 +405,8 @@ export default function LandingPage({ onCountrySelect }) {
     return () => {
       cancelAnimationFrame(frameId)
       window.removeEventListener('resize', handleResize)
+      renderer.domElement.removeEventListener('pointermove', handlePointerMove)
+      renderer.domElement.removeEventListener('click', handleClick)
       controls.dispose()
       renderer.dispose()
       globeGeometry.dispose()
@@ -321,11 +418,6 @@ export default function LandingPage({ onCountrySelect }) {
       mount.removeChild(renderer.domElement)
     }
   }, [])
-
-  function handleSelectCountry(country) {
-    if (!country.unlocked || isTraveling || tokens < UNLOCK_COST) return
-    setPendingCountry(country)
-  }
 
   function handleConfirmUnlock() {
     const country = pendingCountry
