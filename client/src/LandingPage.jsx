@@ -138,10 +138,20 @@ function CoinIcon() {
   )
 }
 
+const HEAT_ZONE_COLORS = {
+  China:  [239,  68,  68],
+  Japan:  [139,  92, 246],
+  France: [ 59, 130, 246],
+  Mexico: [249, 115,  22],
+  Egypt:  [250, 204,  21],
+  Brazil: [ 34, 197,  94],
+}
+
 export default function LandingPage({
   tokens,
   unlockedCountries,
   glowCountry,
+  progressByCountry = {},
   onUnlockCountry,
   onCountrySelect,
 }) {
@@ -149,6 +159,8 @@ export default function LandingPage({
   const triggerTravelRef = useRef(() => {})
   const onCountrySelectRef = useRef(onCountrySelect)
   const onChinaMarkerClickRef = useRef(() => {})
+  const heatZoneSpritesRef = useRef({})
+  const heatZonePropsRef   = useRef({})
 
   const triggerDiveRef = useRef(() => {})
 
@@ -194,6 +206,19 @@ export default function LandingPage({
     onChinaMarkerClickRef.current = () =>
       handleSelectCountry({ ...CHINA, unlocked: unlockedCountries.includes(CHINA.name) })
   })
+
+  // Keep heat zone proficiency data current without recreating the Three.js scene
+  useEffect(() => {
+    const props = {}
+    COUNTRIES.forEach((country) => {
+      const prog = progressByCountry[country.name]
+      const proficiency = prog?.length
+        ? prog.reduce((s, p) => s + p, 0) / (prog.length * 100)
+        : 0
+      props[country.name] = { proficiency }
+    })
+    heatZonePropsRef.current = props
+  }, [progressByCountry])
 
   useEffect(() => {
     const mount = mountRef.current
@@ -304,6 +329,22 @@ export default function LandingPage({
 
     const { group: chinaMarkerGroup, hitMesh, dot, rings } = createChinaMarker()
     planetGroup.add(chinaMarkerGroup)
+
+    // Heat zone glow sprites for all countries
+    COUNTRIES.forEach((country) => {
+      const [r, g, b] = HEAT_ZONE_COLORS[country.name] ?? [255, 100, 0]
+      const tex = createRadialTexture(`rgba(${r},${g},${b},0.9)`)
+      const mat = new THREE.SpriteMaterial({
+        map: tex, transparent: true, opacity: 0,
+        depthWrite: false, blending: THREE.AdditiveBlending,
+      })
+      const sprite = new THREE.Sprite(mat)
+      const dir = latLngToDirection(country.lat, country.lng).normalize()
+      sprite.position.copy(dir.clone().multiplyScalar(GLOBE_RADIUS * 1.01))
+      sprite.scale.set(0.9, 0.9, 1)
+      planetGroup.add(sprite)
+      heatZoneSpritesRef.current[country.name] = sprite
+    })
 
     const raycaster = new THREE.Raycaster()
     const pointerNdc = new THREE.Vector2()
@@ -435,6 +476,18 @@ export default function LandingPage({
         const phase = (t * 0.5 + i * 0.5) % 1
         ring.scale.setScalar(0.4 + phase * (hovered ? 2.6 : 1.8))
         ring.material.opacity = (1 - phase) * (hovered ? 0.85 : 0.45)
+      })
+
+      // Animate heat zone glows
+      Object.entries(heatZoneSpritesRef.current).forEach(([name, sprite], i) => {
+        const props = heatZonePropsRef.current[name]
+        if (!props) return
+        const p = props.proficiency
+        const targetOpacity = p <= 0 ? 0 : 0.18 + p * 0.55
+        const pulse = Math.sin(t * 1.6 + i * 1.05) * 0.06 * p
+        sprite.material.opacity += (targetOpacity - sprite.material.opacity) * 0.04
+        const targetScale = 0.7 + p * 0.8 + pulse
+        sprite.scale.setScalar(targetScale)
       })
 
       if (travel) stepTravel(performance.now())
