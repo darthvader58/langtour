@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { REWARD_TOKENS, CHARACTERS } from '../gameData'
 
 const STAMP_COLORS = {
   China:  '#ef4444',
@@ -10,9 +9,8 @@ const STAMP_COLORS = {
   Brazil: '#22c55e',
 }
 
-function PassportPage({ country, flag, completedCount, topVocab, stampVisible }) {
+function PassportPage({ country, flag, character, completedCount, topVocab, stampVisible }) {
   const color = STAMP_COLORS[country] ?? '#58CC02'
-  const character = CHARACTERS[country]
 
   return (
     <div className="relative w-full h-full rounded-r-2xl bg-[#f5f0e8] flex flex-col overflow-hidden">
@@ -80,7 +78,7 @@ function PassportPage({ country, flag, completedCount, topVocab, stampVisible })
   )
 }
 
-export default function PassportStamp({ country, flag, progress, scenarios, onClaim }) {
+export default function PassportStamp({ country, flag, character, rewardTokens, progress, scenarios, onClaim }) {
   const [open, setOpen]       = useState(false)
   const [stamp, setStamp]     = useState(false)
   const [canClaim, setCanClaim] = useState(false)
@@ -132,6 +130,7 @@ export default function PassportStamp({ country, flag, progress, scenarios, onCl
           <PassportPage
             country={country}
             flag={flag}
+            character={character}
             completedCount={completedCount}
             topVocab={topVocab}
             stampVisible={stamp}
@@ -147,7 +146,7 @@ export default function PassportStamp({ country, flag, progress, scenarios, onCl
         className="absolute bottom-14 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 transition-all duration-500"
         style={{ opacity: canClaim ? 1 : 0, transform: `translateX(-50%) translateY(${canClaim ? 0 : 16}px)` }}
       >
-        <p className="text-gray-500 text-sm font-medium">+{REWARD_TOKENS} tokens awarded</p>
+        <p className="text-gray-500 text-sm font-medium">+{rewardTokens} tokens awarded</p>
         <button
           type="button"
           onClick={onClaim}

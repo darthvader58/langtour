@@ -1,7 +1,5 @@
 import { useState } from 'react'
 
-import { SCENARIOS_BY_COUNTRY, SPECIAL_SCENARIO_BY_COUNTRY } from './gameData'
-
 function LockIcon({ className = 'w-6 h-6' }) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2">
@@ -70,8 +68,7 @@ function ScenarioCard({ scenario, unlocked, progress, completed, index, onClick 
               : 'border-[#37464F] cursor-not-allowed'))
       }
     >
-      {!isSpecial && <div className={`scenario-bg scenario-bg--${scenario.id}`} />}
-      <div className={unlocked ? 'relative z-10' : 'relative z-10 opacity-40 grayscale'}>
+      <div className={unlocked ? '' : 'opacity-40 grayscale'}>
         <div
           className={
             'flex h-12 w-12 items-center justify-center rounded-2xl text-3xl mb-4 ' +
@@ -167,9 +164,7 @@ function LessonModal({ scenario, onClose, onStart }) {
   )
 }
 
-export default function ScenariosPage({ country = 'China', flag = '', completedScenarios = [], onBack, onScenarioStart }) {
-  const scenarios = SCENARIOS_BY_COUNTRY[country] || [];
-  const specialScenario = SPECIAL_SCENARIO_BY_COUNTRY[country];
+export default function ScenariosPage({ country = 'China', flag = '', completedScenarios = [], scenarios, specialScenario, onBack, onScenarioStart }) {
   const progress = scenarios.map(sc => completedScenarios.includes(sc.id) ? 100 : 0)
   const [activeScenario, setActiveScenario] = useState(null)
 
@@ -189,12 +184,6 @@ export default function ScenariosPage({ country = 'China', flag = '', completedS
     const scenario = activeScenario
     if (!scenario) return
     setActiveScenario(null)
-    setMissionScenario(scenario)
-  }
-
-  function handleAcceptMission() {
-    const scenario = missionScenario
-    setMissionScenario(null)
     onScenarioStart?.(scenario)
   }
 
@@ -260,15 +249,6 @@ export default function ScenariosPage({ country = 'China', flag = '', completedS
           scenario={activeScenario}
           onClose={() => setActiveScenario(null)}
           onStart={handleStartScenario}
-        />
-      )}
-
-      {missionScenario && (
-        <MissionBriefing
-          scenario={missionScenario}
-          country={country}
-          onAccept={handleAcceptMission}
-          onCancel={() => setMissionScenario(null)}
         />
       )}
     </div>

@@ -1,120 +1,97 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import LandingPage from './LandingPage'
 import ScenariosPage from './ScenariosPage'
 import VoiceTestPage from './pages/VoiceTestPage'
 import ScenarioRunner from './components/ScenarioRunner'
 import CharacterStoryPopup from './CharacterStoryPopup'
 import CompletionScreen from './CompletionScreen'
-import { COUNTRIES, SCENARIOS_BY_COUNTRY, REWARD_TOKENS } from './gameData'
+import AuthModal from './components/AuthModal'
 import { API } from './api'
+import { useProfile } from './hooks/useProfile'
 
 function App() {
+  const profile = useProfile()
   const [selectedCountry, setSelectedCountry] = useState(null)
   const [activeScenario, setActiveScenario] = useState(null)
-  const [completedScenarios, setCompletedScenarios] = useState([])
-  const [tokens, setTokens] = useState(0)
-  const [unlockedCountries, setUnlockedCountries] = useState([])
   const [hash, setHash] = useState(window.location.hash)
   const [storySeen, setStorySeen] = useState([])
   const [completionCountry, setCompletionCountry] = useState(null)
   const [glowCountry, setGlowCountry] = useState(null)
+  const [catalog, setCatalog] = useState(null)
+  const [catalogError, setCatalogError] = useState('')
 
   useEffect(() => {
-    fetch(`${API}/api/user/state`)
-      .then(res => res.json())
-      .then(data => {
-        setTokens(data.tokens || 0);
-        setUnlockedCountries(data.unlockedCountries || []);
-        setCompletedScenarios(data.completedScenarios || []);
+    fetch(`${API}/api/catalog`)
+      .then((res) => {
+        if (!res.ok) throw new Error('Unable to load game catalog')
+        return res.json()
       })
-      .catch(e => console.error(e));
-  }, []);
-
-  const handleSpendTokens = async (amount) => {
-    try {
-      await fetch(`${API}/api/user/spend`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount })
-      });
-      setTokens(prev => prev - amount);
-      return true;
-    } catch (e) {
-      console.error(e);
-      return false;
-    }
-  }
-
-  const handleUnlockCountry = async (countryName, cost) => {
-    try {
-      const res = await fetch(`${API}/api/user/unlock-country`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ countryName, cost })
-      });
-      const data = await res.json();
-      if (data.success) {
-        setTokens(data.tokens);
-        setUnlockedCountries(data.unlockedCountries);
-        setGlowCountry(countryName);
-        return true;
-      }
-      return false;
-    } catch (e) {
-      console.error(e);
-      return false;
-    }
-  }
-
-  useEffect(() => {
-    const onHashChange = () => setHash(window.location.hash)
-    window.addEventListener('hashchange', onHashChange)
-    return () => window.removeEventListener('hashchange', onHashChange)
+      .then(setCatalog)
+      .catch((error) => setCatalogError(error.message))
   }, [])
 
-  // Simulate cognitive load changing during gameplay
   useEffect(() => {
-    if (!activeScenario) return
-    const interval = setInterval(() => {
-      setCogScore(s => Math.max(10, Math.min(90, s + (Math.random() - 0.48) * 8)))
-    }, 2500)
-    return () => clearInterval(interval)
-  }, [activeScenario])
+    const onHashChange = () => setHash(window.location.hash);
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
 
-  const syncedProgressByCountry = useMemo(() => Object.fromEntries(
-    Object.entries(SCENARIOS_BY_COUNTRY).map(([country, scenarios]) => [
-      country,
-      scenarios.map((scenario) => completedScenarios.some((completion) =>
-        completion.country_code === country.toLowerCase()
-          && completion.scenario_id === scenario.id
-      ) ? 100 : 0),
-    ]),
-  ), [completedScenarios])
+  if (hash === '#test') {
+    return <VoiceTestPage />
+  }
 
-  const progressByCountry = user ? syncedProgressByCountry : localProgressByCountry
+  if (catalogError) {
+    return <div className="flex h-screen items-center justify-center bg-[#0F1418] text-red-200">{catalogError}</div>
+  }
 
-  if (hash === '#test') return <VoiceTestPage />
+  if (!catalog || profile.authLoading) {
+    return <div className="flex h-screen items-center justify-center bg-[#0F1418] text-white">Loading Langtour…</div>
+  }
+
+  if (!profile.user) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-[#0F1418] text-white">
+        <AuthModal
+          loading={profile.authLoading}
+          error={profile.authError}
+          message={profile.authMessage}
+          onGoogle={profile.signInWithGoogle}
+          onEmailSignIn={profile.signInWithEmail}
+          onEmailSignUp={profile.signUpWithEmail}
+        />
+      </div>
+    )
+  }
+
+  const {
+    characters,
+    countries,
+    scenariosByCountry,
+    specialScenarioByCountry,
+    rewardTokens,
+    unlockCost,
+  } = catalog
+
+  const handleUnlockCountry = async (countryName, cost) => {
+    const code = countryName.toLowerCase()
+    const result = await profile.unlockCountry(code, cost)
+    if (!result) return false
+    setGlowCountry(countryName)
+    return true
+  }
 
   if (completionCountry) {
-    const flag = COUNTRIES.find((c) => c.name === completionCountry)?.flag ?? ''
+    const flag = countries.find((c) => c.name === completionCountry)?.flag ?? ''
     return (
       <CompletionScreen
         country={completionCountry}
         flag={flag}
+        character={characters[completionCountry]}
+        rewardTokens={rewardTokens}
         onReturn={async () => {
           setCompletionCountry(null);
           setSelectedCountry(null);
-          try {
-            const res = await fetch(`${API}/api/user/earn`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ amount: REWARD_TOKENS })
-            });
-            const data = await res.json();
-            if (data.success) setTokens(data.tokens);
-          } catch (e) {
-            console.error(e);
-          }
+          await profile.awardTokens(rewardTokens)
         }}
       />
     )
@@ -122,29 +99,21 @@ function App() {
 
   if (activeScenario) {
     return (
-      <ScenarioRunner 
+      <ScenarioRunner
         scenario={activeScenario}
         onEndScenario={async (result) => {
-          let updatedCompleted = completedScenarios;
-          if (result?.completed && result?.id && !completedScenarios.includes(result.id)) {
-            updatedCompleted = [...completedScenarios, result.id];
-            setCompletedScenarios(updatedCompleted);
-            try {
-              await fetch(`${API}/api/user/complete-scenario`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ scenarioId: result.id })
-              });
-            } catch (e) {
-              console.error(e);
-            }
+          if (result?.completed && result?.id && !profile.completedScenarios.includes(result.id) && selectedCountry) {
+            await profile.completeScenario(selectedCountry.toLowerCase(), result.id)
           }
           setActiveScenario(null);
 
           if (selectedCountry) {
-            const allScenarios = SCENARIOS_BY_COUNTRY[selectedCountry] || [];
+            const allScenarios = scenariosByCountry[selectedCountry] || [];
             const allIds = allScenarios.map(s => s.id);
-            if (allIds.length > 0 && allIds.every(id => updatedCompleted.includes(id))) {
+            const completedAfter = result?.completed && result?.id
+              ? [...profile.completedScenarios, result.id]
+              : profile.completedScenarios
+            if (allIds.length > 0 && allIds.every(id => completedAfter.includes(id))) {
               setCompletionCountry(selectedCountry);
             }
           }
@@ -157,33 +126,41 @@ function App() {
     return (
       <CharacterStoryPopup
         country={selectedCountry}
+        character={characters[selectedCountry]}
         onBeginMission={() => setStorySeen([...storySeen, selectedCountry])}
       />
     )
   }
 
   if (selectedCountry) {
-    const flag = COUNTRIES.find(c => c.name === selectedCountry)?.flag ?? ''
+    const flag = countries.find((c) => c.name === selectedCountry)?.flag ?? ''
     return (
       <ScenariosPage
         country={selectedCountry}
         flag={flag}
-        completedScenarios={completedScenarios}
+        completedScenarios={profile.completedScenarios}
+        scenarios={scenariosByCountry[selectedCountry] ?? []}
+        specialScenario={specialScenarioByCountry[selectedCountry] ?? null}
         onBack={() => setSelectedCountry(null)}
-        onScenarioStart={scenario => setActiveScenario(scenario)}
+        onScenarioStart={(scenario) => setActiveScenario(scenario)}
       />
     )
   }
 
-  return <LandingPage 
-           tokens={tokens} 
-           unlockedCountries={unlockedCountries}
+  return <LandingPage
+           tokens={profile.tokens}
+           unlockedCountries={profile.unlockedCountries}
            glowCountry={glowCountry}
-           onUnlockCountry={handleUnlockCountry} 
+           level={profile.level}
+           rank={profile.rank}
+           auth={profile}
+           countries={countries}
+           unlockCost={unlockCost}
+           onUnlockCountry={handleUnlockCountry}
            onCountrySelect={(country) => {
              setGlowCountry(current => current === country ? null : current);
              setSelectedCountry(country);
-           }} 
+           }}
          />
 }
 
