@@ -66,7 +66,14 @@ async function startServer() {
   app.post('/api/user/complete-scenario', (req, res) => {
     try {
       const { scenarioId } = req.body;
-      db.prepare("UPDATE scenarios SET status = 'completed', completed_at = CURRENT_TIMESTAMP WHERE id = ?").run(scenarioId);
+      // Upsert: the scenarios table is only pre-seeded with a few ids, so a
+      // plain UPDATE would silently no-op for every other scenario. Insert the
+      // row if it does not exist yet, otherwise mark it completed.
+      db.prepare(`
+        INSERT INTO scenarios (id, status, completed_at)
+        VALUES (?, 'completed', CURRENT_TIMESTAMP)
+        ON CONFLICT(id) DO UPDATE SET status = 'completed', completed_at = CURRENT_TIMESTAMP
+      `).run(scenarioId);
       res.json({ success: true });
     } catch (e) {
       res.status(500).json({ error: e.message });

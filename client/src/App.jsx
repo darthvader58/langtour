@@ -7,26 +7,52 @@ import CharacterStoryPopup from './CharacterStoryPopup'
 import LevelUpAnimation from './components/LevelUpAnimation'
 import PassportStamp from './components/PassportStamp'
 import AmbientParticles from './components/AmbientParticles'
+import { API } from './api'
 import {
   CHARACTERS, COUNTRIES, SCENARIOS_BY_COUNTRY, UNLOCK_COST, REWARD_TOKENS, levelForCompleted,
 } from './gameData'
 
-const STARTING_TOKENS = 100
+// China is the starting sector and is always playable, even though the backend
+// seeds the unlocked list empty.
+const ALWAYS_UNLOCKED = 'China'
+
+function ensureChina(list) {
+  const arr = Array.isArray(list) ? list : []
+  return arr.includes(ALWAYS_UNLOCKED) ? arr : [ALWAYS_UNLOCKED, ...arr]
+}
 
 function App() {
   const [selectedCountry,    setSelectedCountry]    = useState(null)
   const [activeScenario,     setActiveScenario]      = useState(null)
   const [hash,               setHash]                = useState(window.location.hash)
-  const [tokens,             setTokens]              = useState(STARTING_TOKENS)
-  const [unlockedCountries,  setUnlockedCountries]   = useState(['China'])
+
+  // Persisted via the node backend (/api/user/state)
+  const [tokens,             setTokens]              = useState(0)
+  const [unlockedCountries,  setUnlockedCountries]   = useState([ALWAYS_UNLOCKED])
+  const [completedScenarios, setCompletedScenarios]  = useState([])
+
   const [glowCountry,        setGlowCountry]         = useState(null)
-  const [progressByCountry,  setProgressByCountry]   = useState({})
   const [storySeen,          setStorySeen]           = useState([])
 
   // Post-scenario screen sequencing
   const [levelUpData,   setLevelUpData]   = useState(null) // { oldLevel, newLevel, character }
   const [passportData,  setPassportData]  = useState(null) // { country, flag, progress, scenarios }
-  const [postQueue,     setPostQueue]     = useState([])    // remaining screens to show, e.g. ['levelup', 'passport']
+  const [postQueue,     setPostQueue]     = useState([])    // remaining screens to show
+
+  // Load persisted progress from the backend on first mount
+  useEffect(() => {
+    let cancelled = false
+    fetch(`${API}/api/user/state`)
+      .then(res => res.json())
+      .then(data => {
+        if (cancelled) return
+        if (typeof data.tokens === 'number') setTokens(data.tokens)
+        setUnlockedCountries(ensureChina(data.unlockedCountries))
+        setCompletedScenarios(Array.isArray(data.completedScenarios) ? data.completedScenarios : [])
+      })
+      .catch(err => console.error('Failed to load user state from backend:', err))
+    return () => { cancelled = true }
+  }, [])
 
   useEffect(() => {
     const onHashChange = () => setHash(window.location.hash)
@@ -36,12 +62,40 @@ function App() {
 
   if (hash === '#test') return <VoiceTestPage />
 
+  // Derive per-scenario progress (0/100) for a country from the completed list
   function getProgress(country) {
     const scenarios = SCENARIOS_BY_COUNTRY[country] ?? []
-    return progressByCountry[country] ?? scenarios.map(() => 0)
+    return scenarios.map(s => completedScenarios.includes(s.id) ? 100 : 0)
   }
 
-  function handleUnlockCountry(country) {
+  // Progress map for every country (used by the globe heat zones)
+  function buildProgressByCountry() {
+    const map = {}
+    COUNTRIES.forEach(c => {
+      const scenarios = SCENARIOS_BY_COUNTRY[c.name] ?? []
+      map[c.name] = scenarios.map(s => completedScenarios.includes(s.id) ? 100 : 0)
+    })
+    return map
+  }
+
+  async function handleUnlockCountry(country) {
+    try {
+      const res  = await fetch(`${API}/api/user/unlock-country`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ countryName: country.name, cost: UNLOCK_COST }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setTokens(data.tokens)
+        setUnlockedCountries(ensureChina(data.unlockedCountries))
+        return
+      }
+      console.error('Unlock rejected by backend:', data.error)
+    } catch (err) {
+      console.error('Unlock request failed:', err)
+    }
+    // Fallback so the UI still reflects the unlock if the backend is unreachable
     setTokens(t => t - UNLOCK_COST)
     setUnlockedCountries(list => list.includes(country.name) ? list : [...list, country.name])
   }
@@ -59,43 +113,48 @@ function App() {
     if (next.type === 'passport') setPassportData(next.data)
   }
 
-  function handleCompleteScenario(scenario) {
-    const country = selectedCountry
-    if (!country || !scenario) return
-
-    const scenarios = SCENARIOS_BY_COUNTRY[country] ?? []
-    const index     = scenarios.findIndex(s => s.id === scenario.id)
-    if (index === -1) return
-
-    const prevProgress = getProgress(country)
-    const updated      = prevProgress.map((p, i) => i === index ? 100 : p)
-    setProgressByCountry(map => ({ ...map, [country]: updated }))
-
-    const oldLevel    = levelForCompleted(prevProgress.filter(p => p >= 100).length)
-    const newLevel    = levelForCompleted(updated.filter(p => p >= 100).length)
-    const leveledUp   = newLevel > oldLevel
-    const allComplete = scenarios.length > 0 && updated.every(p => p >= 100)
-
-    // Queue up any celebration screens earned by this completion
-    const queue = []
-    if (leveledUp)   queue.push({ type: 'levelup',  data: { oldLevel, newLevel, character: CHARACTERS[country] } })
-    if (allComplete) queue.push({ type: 'passport', data: { country, flag: COUNTRIES.find(c => c.name === country)?.flag ?? '', progress: updated, scenarios } })
-
-    showNextPostScreen(queue)
-  }
-
   // Launch a scenario into the ScenarioRunner gameplay (from feat/lessons)
   function handleScenarioStart(scenario) {
     setActiveScenario(scenario)
   }
 
-  // Called by ScenarioRunner/GameplayPhase when the mission ends
-  function handleEndScenario(result) {
+  // Called by ScenarioRunner/GameplayPhase when a mission ends
+  async function handleEndScenario(result) {
+    const country  = selectedCountry
     const scenario = activeScenario
     setActiveScenario(null)
-    if (scenario && result?.completed) {
-      handleCompleteScenario(scenario)
+    if (!country || !scenario || !result?.completed) return
+
+    const scenarios     = SCENARIOS_BY_COUNTRY[country] ?? []
+    const alreadyDone   = completedScenarios.includes(scenario.id)
+    const newCompleted  = alreadyDone ? completedScenarios : [...completedScenarios, scenario.id]
+
+    if (!alreadyDone) {
+      setCompletedScenarios(newCompleted)
+      try {
+        await fetch(`${API}/api/user/complete-scenario`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ scenarioId: scenario.id }),
+        })
+      } catch (err) {
+        console.error('Failed to persist scenario completion:', err)
+      }
     }
+
+    const countDone   = list => scenarios.filter(s => list.includes(s.id)).length
+    const oldLevel    = levelForCompleted(countDone(completedScenarios))
+    const newLevel    = levelForCompleted(countDone(newCompleted))
+    const leveledUp   = newLevel > oldLevel
+    const allComplete = scenarios.length > 0 && scenarios.every(s => newCompleted.includes(s.id))
+    const progress    = scenarios.map(s => newCompleted.includes(s.id) ? 100 : 0)
+
+    // Queue up any celebration screens earned by this completion
+    const queue = []
+    if (leveledUp)   queue.push({ type: 'levelup',  data: { oldLevel, newLevel, character: CHARACTERS[country] } })
+    if (allComplete) queue.push({ type: 'passport', data: { country, flag: COUNTRIES.find(c => c.name === country)?.flag ?? '', progress, scenarios } })
+
+    showNextPostScreen(queue)
   }
 
   function handleLevelUpDone() {
@@ -103,10 +162,22 @@ function App() {
     showNextPostScreen(postQueue)
   }
 
-  function handlePassportClaim() {
+  async function handlePassportClaim() {
     setPassportData(null)
     setSelectedCountry(null)
-    setTokens(t => t + REWARD_TOKENS)
+    try {
+      const res  = await fetch(`${API}/api/user/earn`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ amount: REWARD_TOKENS }),
+      })
+      const data = await res.json()
+      if (data.success && typeof data.tokens === 'number') setTokens(data.tokens)
+      else setTokens(t => t + REWARD_TOKENS)
+    } catch (err) {
+      console.error('Failed to award reward tokens:', err)
+      setTokens(t => t + REWARD_TOKENS)
+    }
     const next = COUNTRIES.find(c => !unlockedCountries.includes(c.name))
     if (next) setGlowCountry(next.name)
   }
@@ -171,7 +242,7 @@ function App() {
         tokens={tokens}
         unlockedCountries={unlockedCountries}
         glowCountry={glowCountry}
-        progressByCountry={progressByCountry}
+        progressByCountry={buildProgressByCountry()}
         onUnlockCountry={handleUnlockCountry}
         onCountrySelect={handleSelectCountry}
       />
