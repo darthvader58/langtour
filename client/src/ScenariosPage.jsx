@@ -201,25 +201,27 @@ function ScenarioCard({ scenario, unlocked, progress, completed, index, onClick 
             (unlocked ? 'pulse-glow-cyan hover:scale-[1.03] hover:border-cyan-300/40' : ''))
       }
     >
-      <div
-        className={
-          'flex h-12 w-12 items-center justify-center rounded-xl text-3xl mb-4 ' +
-          (isSpecial ? 'bg-yellow-400/10' : 'bg-white/10')
-        }
-      >
-        {isSpecial ? <CrownIcon /> : <span>{scenario.icon}</span>}
-      </div>
+      <div className={unlocked ? '' : 'opacity-20 grayscale'}>
+        <div
+          className={
+            'flex h-12 w-12 items-center justify-center rounded-xl text-3xl mb-4 ' +
+            (isSpecial ? 'bg-yellow-400/10' : 'bg-white/10')
+          }
+        >
+          {isSpecial ? <CrownIcon /> : <span>{scenario.icon}</span>}
+        </div>
 
-      <h3 className={'font-display text-lg font-semibold mb-1.5 ' + (isSpecial ? 'text-yellow-200' : 'text-white')}>
-        {scenario.title}
-      </h3>
-      <p className="text-sm text-white/55 leading-snug mb-4 min-h-[2.5rem]">
-        {scenario.description}
-      </p>
+        <h3 className={'font-display text-lg font-semibold mb-1.5 ' + (isSpecial ? 'text-yellow-200' : 'text-white')}>
+          {scenario.title}
+        </h3>
+        <p className="text-sm text-white/55 leading-snug mb-4 min-h-[2.5rem]">
+          {scenario.description}
+        </p>
 
-      <div className="flex items-center justify-between gap-3">
-        <ProgressBar progress={progress} gold={isSpecial} />
-        <span className="text-[11px] tabular-nums text-white/40 shrink-0">{progress}%</span>
+        <div className="flex items-center justify-between gap-3">
+          <ProgressBar progress={progress} gold={isSpecial} />
+          <span className="text-[11px] tabular-nums text-white/40 shrink-0">{progress}%</span>
+        </div>
       </div>
 
       {completed && (
@@ -229,7 +231,7 @@ function ScenarioCard({ scenario, unlocked, progress, completed, index, onClick 
       )}
 
       {!unlocked && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-2xl bg-black/75 backdrop-blur-sm cursor-not-allowed">
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-2xl bg-black/85 backdrop-blur-md cursor-not-allowed">
           <LockIcon className={'w-7 h-7 ' + (isSpecial ? 'text-yellow-300/70' : 'text-white/50')} />
           <span className={'text-[11px] uppercase tracking-widest ' + (isSpecial ? 'text-yellow-300/60' : 'text-white/40')}>
             {isSpecial ? 'Complete all scenarios' : 'Locked'}
