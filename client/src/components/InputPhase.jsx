@@ -27,21 +27,23 @@ export default function InputPhase({ words, langCode, onComplete }) {
   if (!currentWord) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#40DF01]"></div>
+        <div className="animate-spin rounded-2xl h-12 w-12 border-2 border-[var(--accent)] border-t-transparent"></div>
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-md mx-auto p-6 bg-[#1F2937] rounded-3xl border-2 border-[#37464F] flex flex-col items-center animate-fade-in-up">
-      <h2 className="text-gray-400 font-display font-bold uppercase tracking-widest text-sm mb-6">
-        New Vocabulary ({currentIndex + 1} / {words.length})
-      </h2>
+    <div className="relative mx-auto flex w-full max-w-lg flex-col items-center overflow-hidden rounded-[1.5rem] border border-white/10 bg-[#0b1727]/92 p-4 shadow-[0_30px_100px_rgba(0,0,0,.45)] animate-fade-in-up sm:rounded-[2rem] sm:p-7 [@media(max-height:650px)]:p-3">
+      <div className="mb-4 flex w-full items-center justify-between gap-3 sm:mb-6">
+        <div><p className="font-display text-[9px] font-extrabold uppercase tracking-[.3em] text-[var(--accent)]">Mission vocabulary</p><h2 className="mt-1 font-display text-xl font-extrabold text-white">Pack your phrasebook</h2></div>
+        <span className="rounded-xl border border-white/10 bg-[#07101d] px-3 py-2 text-xs font-extrabold tabular-nums text-slate-400">{currentIndex + 1} / {words.length}</span>
+      </div>
+      <div className="mb-4 flex w-full gap-2 sm:mb-6">{words.map((word, index) => <span key={`${word.expression ?? word.zh}-${index}`} className={'h-1.5 flex-1 rounded-full transition-colors ' + (index <= currentIndex ? 'bg-[var(--accent)]' : 'bg-white/10')} />)}</div>
       
-      <div className="w-full bg-[#0F1418] rounded-2xl p-8 flex flex-col items-center justify-center min-h-[250px] mb-8 relative">
+      <div className="relative mb-4 flex min-h-[230px] w-full flex-col items-center justify-center rounded-[1.4rem] border border-white/[.08] bg-[#07101d] p-5 shadow-inner sm:mb-7 sm:min-h-[280px] sm:rounded-[1.6rem] sm:p-8 [@media(max-height:650px)]:min-h-[180px]">
         <button 
           onClick={playAudio}
-          className="absolute top-4 right-4 w-10 h-10 rounded-full bg-[#1F2937] hover:bg-[#28323c] flex items-center justify-center text-[#1CB0F6] transition-colors"
+          className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--accent-25)] bg-[var(--accent-10)] text-[var(--accent-soft)] transition-colors hover:bg-[var(--accent-20)]"
           aria-label="Play audio"
         >
           <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -49,10 +51,10 @@ export default function InputPhase({ words, langCode, onComplete }) {
           </svg>
         </button>
 
-        <span className="text-6xl font-display font-extrabold text-white mb-4">
+        <span className="mb-3 max-w-full break-words text-center font-display text-4xl font-extrabold text-white sm:mb-4 sm:text-6xl">
           {currentWord.zh}
         </span>
-        <span className="text-xl text-[#1CB0F6] font-bold italic mb-6">
+        <span className="mb-4 text-center text-lg font-bold italic text-[#52b9db] sm:mb-6 sm:text-xl">
           {currentWord.pinyin}
         </span>
         <span className="text-lg text-gray-300 font-medium text-center">
@@ -63,7 +65,7 @@ export default function InputPhase({ words, langCode, onComplete }) {
       <button
         type="button"
         onClick={handleNext}
-        className="w-full py-3.5 rounded-2xl bg-[#40DF01] hover:bg-[#61D908] border-2 border-[#46A302] border-b-4 active:border-b-2 active:translate-y-0.5 transition-all text-white font-display font-extrabold uppercase tracking-wide text-lg"
+        className="w-full rounded-2xl border border-[var(--accent-30)] bg-[var(--accent)] py-3.5 font-display text-base font-extrabold uppercase tracking-widest text-[var(--accent-ink)] transition-all hover:brightness-110 active:translate-y-0.5"
       >
         {currentIndex < words.length - 1 ? 'Continue' : 'Start Scenario'}
       </button>

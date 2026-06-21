@@ -31,8 +31,8 @@ export default function AuthModal({
   }
 
   return (
-    <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/70 px-4 backdrop-blur-md">
-      <div className="relative w-full max-w-md rounded-3xl border border-white/15 bg-[#10131c]/95 p-7 shadow-[0_24px_80px_rgba(0,0,0,0.65)]">
+    <div className="absolute inset-0 z-30 flex items-start justify-center overflow-y-auto bg-black/70 px-3 py-3 backdrop-blur-md sm:items-center sm:px-4 sm:py-6">
+      <div className="relative w-full max-w-md rounded-[1.5rem] border border-white/15 bg-[#10131c]/95 p-5 shadow-[0_24px_80px_rgba(0,0,0,0.65)] sm:rounded-3xl sm:p-7">
         {onClose && (
           <button
             type="button"

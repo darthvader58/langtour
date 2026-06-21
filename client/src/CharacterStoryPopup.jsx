@@ -1,35 +1,39 @@
+import { getCountryThemeStyle } from './countryTheme'
+
 export default function CharacterStoryPopup({ country, character, onBeginMission }) {
   const words = character.story.split(' ')
   const buttonDelay = 0.7 + words.length * 0.055 + 0.4
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden text-white font-sans animate-overlay-fade">
+    <div style={getCountryThemeStyle(country)} className="relative min-h-dvh w-screen overflow-x-hidden overflow-y-auto text-white font-sans animate-overlay-fade">
       <div className={`absolute inset-0 bg-gradient-to-b ${character.gradient}`} />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_25%,_rgba(0,0,0,0.78)_100%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(68,130,166,.22),transparent_28%),radial-gradient(ellipse_at_center,transparent_20%,rgba(0,0,0,.85)_100%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(91,135,170,.05)_1px,transparent_1px),linear-gradient(90deg,rgba(91,135,170,.05)_1px,transparent_1px)] bg-[size:72px_72px]" />
 
-      <div className="relative z-10 flex flex-col items-center justify-center text-center h-full max-w-xl mx-auto px-8">
+      <div className="relative z-10 mx-auto flex min-h-dvh max-w-3xl flex-col items-center justify-center px-4 py-[max(2rem,env(safe-area-inset-top))] text-center sm:px-8 sm:py-10">
+        <div className="mb-3 rounded-full border border-[var(--accent-25)] bg-[var(--accent-10)] px-4 py-1.5 font-display text-[9px] font-extrabold uppercase tracking-[.24em] text-[var(--accent-soft)] animate-fade-in-up sm:mb-5 sm:tracking-[.32em]">Identity assigned</div>
         <div
-          className="text-8xl mb-6 animate-fade-in-up"
+          className="relative mb-4 flex h-28 w-28 rotate-[-2deg] items-center justify-center rounded-[2rem] border border-[var(--accent-30)] bg-gradient-to-br from-[#17304a] to-[#07101d] text-7xl shadow-[0_28px_90px_rgba(0,0,0,.55)] animate-fade-in-up after:absolute after:inset-2 after:rounded-[1.5rem] after:border after:border-white/[.07] sm:mb-7 sm:h-44 sm:w-44 sm:rounded-[2.5rem] sm:text-[6.5rem] sm:after:inset-3 sm:after:rounded-[2rem] [@media(max-height:680px)]:h-24 [@media(max-height:680px)]:w-24 [@media(max-height:680px)]:text-6xl"
           style={{ animationDelay: '0.15s' }}
         >
-          {character.icon}
+          <span className="drop-shadow-[0_15px_18px_rgba(0,0,0,.45)]">{character.icon}</span>
         </div>
 
         <div
-          className="font-display text-[11px] font-extrabold uppercase tracking-[0.35em] text-white/40 mb-3 animate-fade-in-up"
+          className="mb-2 font-display text-[9px] font-extrabold uppercase tracking-[0.24em] text-white/40 animate-fade-in-up sm:mb-3 sm:text-[11px] sm:tracking-[0.35em]"
           style={{ animationDelay: '0.3s' }}
         >
           {country} — Mission Briefing
         </div>
 
         <h2
-          className="font-display text-4xl font-extrabold text-white mb-8 animate-fade-in-up"
+          className="mb-4 font-display text-3xl font-extrabold text-white animate-fade-in-up sm:mb-7 sm:text-5xl"
           style={{ animationDelay: '0.45s' }}
         >
-          You are a <span className="text-[#40DF01]">{character.type}</span>
+          You are a <span className="text-[var(--accent-soft)]">{character.type}</span>
         </h2>
 
-        <p className="text-xl text-gray-300 font-medium leading-relaxed mb-14">
+        <p className="mb-6 max-w-2xl text-sm font-medium leading-relaxed text-slate-300 sm:mb-11 sm:text-lg">
           {words.map((word, i) => (
             <span
               key={i}
@@ -44,7 +48,7 @@ export default function CharacterStoryPopup({ country, character, onBeginMission
         <button
           type="button"
           onClick={onBeginMission}
-          className="animate-fade-in-up px-10 py-4 rounded-2xl bg-[#40DF01] hover:bg-[#61D908] border-2 border-[#46A302] border-b-4 active:border-b-2 active:translate-y-0.5 transition-all text-white font-display font-extrabold text-lg uppercase tracking-widest shadow-2xl"
+          className="animate-fade-in-up w-full max-w-sm rounded-2xl border border-[var(--accent-30)] bg-[var(--accent)] px-6 py-3.5 font-display text-sm font-extrabold uppercase tracking-widest text-[var(--accent-ink)] shadow-2xl transition-all hover:brightness-110 active:translate-y-0.5 sm:w-auto sm:px-10 sm:py-4 sm:text-lg"
           style={{ animationDelay: `${buttonDelay}s` }}
         >
           Begin Mission
