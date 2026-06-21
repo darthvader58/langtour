@@ -1,15 +1,39 @@
-# Langtour
+# Langtour: Speak the World
 
-This project is a bilingual Speech-to-Text (STT) and translation web application. It uses a **React (Vite)** frontend and an **Express (Node.js)** backend, powered by the **Deepgram API** for live transcription and the **Google Gemini API** for translation.
+Langtour is a story-mode language learning game where players travel across the globe, completing real-life scenarios to master new languages. It is a bilingual Speech-to-Text (STT) and translation web application powered by a modern stack including React, Express, Deepgram API, and Google Gemini API.
 
-## Prerequisites
-- Node.js installed
-- A Deepgram API Key
-- A Google Gemini API Key
+## Inspiration
+The inspiration for Langtour was born out of frustration with traditional language apps. Rote memorization and highly scripted lessons often strip away the most crucial part of language: human connection and context. We wanted to build something that bridges the gap between studying vocabulary and actually speaking it. By dynamically generating real life scenarios, we aim to transform language learning into an interactive and practical adventure.
+
+## What it does
+Langtour gamifies language learning by immersing players in a global storyline. Players begin on an interactive 3D globe displaying the target language. Starting with an initial balance of tokens, players unlock their first country, causing the globe to rotate to that location. Upon entering a new country, a story pop-up assigns the player a unique role, such as an undercover spy, adding narrative stakes to the lessons. 
+
+As players navigate a country, they face multiple scenarios presented in a grid. Each scenario acts as a distinct level representing a real life situation, like ordering at a restaurant or decoding a local newspaper. Before tackling a scenario, players are equipped with customized lessons tailored to their current vocabulary. Scenarios must be unlocked sequentially, with an adaptive AI dynamically dictating progression based on the player's improvements. 
+
+Inside a scenario, the core interaction is entirely voice powered using speech-to-text (STT). Players speak directly into the microphone in response to dynamic NPC prompts. An AI agent provides real time, forgiving feedback and pronunciation improvements. User progress is saved as an expanding conceptual word graph. Mastering vocabulary in one scenario automatically unlocks related scenarios with overlapping terminology. The capstone of every country is the "Boss Level," an unscripted, real life conversation created on the fly by the AI. Conquering it finishes the country and awards the tokens necessary to unlock the next destination.
+
+## How we built it
+Under the hood, Langtour uses a modern stack (React/Vite/Three.js frontend, Node.js/Express/SQLite backend) to drive an adaptive procedural loop:
+- **Scenario Initialization & Vocabulary Selection**: When a player starts a scenario, the backend dynamically calculates the optimal target vocabulary. It queries the SQLite database via `fsrs.js` (Free Spaced Repetition Scheduler) to inject words that are due for review. Simultaneously, `@ai-sdk/google` (`gemini-embedding-2`) embeds the scenario topic and calculates cosine similarity against unknown vocabulary, selecting new words that are highly relevant to the context and anchored to words the user already knows well.
+- **Contextual Dialog Generation**: With the target vocabulary selected, the backend uses the Vercel AI SDK to prompt `gemini-2.5-flash`. The prompt includes the scenario context and the chosen target words, instructing the AI to generate the next NPC dialogue line specifically designed to elicit those words from the user naturally.
+- **Speech-to-Text & Real-Time Evaluation**: The user speaks their reply into the microphone, which is transcribed in real time via the **Deepgram STT API**. The transcribed response is sent back to the backend, where a secondary AI prompt acts as an evaluator. It checks the transcription to ensure the user appropriately utilized at least one target word in context, while forgiving minor grammatical mistakes.
+- **Memory Tracking & Progression Updates**: If the evaluator marks the response as successful, the backend automatically updates the `fsrs.js` stability and difficulty metrics for the successfully used target word. This transaction is saved to the local `better-sqlite3` database, adjusting the expanding word graph and influencing which scenarios and review words will appear next.
+
+## Challenges we ran into
+The most formidable hurdle was minimizing latency within our voice and AI pipelines. In order for the conversation to be immersive, the dialogue must mimic the natural cadence of a real conversation. We leveraged Deepgram to ensure our system could efficiently process audio, transcribe it, analyze grammar, and generate a contextual response. Their ultra-low latency API solved our biggest bottleneck, allowing us to focus our optimization efforts purely on the LLM prompt engineering. Balancing the strictness of the Spaced Repetition System with the leniency needed for flowing conversation also took meticulous tuning.
+
+## Accomplishments that we're proud of
+We are proud of our app's integration with Deepgram, which serves as the lightning-fast, highly accurate backbone for all of our voice-powered interactions. Building a seamless, real time conversational interface wouldn't have been possible without it. Additionally, constructing the dynamic vocabulary discovery engine from scratch was a major achievement. We learned how to correctly manage our backend and SQLite database to seamlessly bridge a complex Spaced Repetition System with a semantic word graph.
+
+## What we learned
+Building Langtour taught us how to orchestrate multi-agent AI workflows. We learned how to coordinate specialized agents, assigning one to handle narrative dialogue and another to act as a linguistic evaluator. We also gained a deep appreciation for the complexities of memory tracking algorithms like FSRS, and learned how to apply semantic vector embeddings to create interconnected learning paths.
+
+## What's next for Langtour
+Moving forward, we plan to expand the interactive globe, unlocking dozens of new countries and introducing a wider array of languages. We aim to deepen the multi-agent scenarios, introducing branching narratives and more complex situations. Finally, we want to bring this experience to mobile devices, allowing users to practice their language skills seamlessly on the go.
 
 ## Setup & Installation
 
-If you are cloning this project from GitHub on a completely fresh machine, follow these steps to get everything working:
+You must have Node.js installed and provide your own Deepgram API key and Google Gemini API key. If you are cloning this project from GitHub on a completely fresh machine, follow these steps to get everything working:
 
 ### 1. Install Dependencies
 Because this project is structured with a separate frontend (`client/`) and backend (`node/`), you must install the dependencies in three different folders:
@@ -30,8 +54,8 @@ npm install
 cd ..
 ```
 
-### 2. Configure Environment Variables
-You need to manually create a `.env` file in the root directory of the project to store your backend API keys securely:
+### 3. Configure Environment Variables
+You need to manually create a `.env` file in the root directory of the project to store your API keys securely:
 
 ```bash
 # Create the .env file and add the required API keys
@@ -40,40 +64,7 @@ echo "GEMINI_API_KEY=your_gemini_key_here" >> .env
 ```
 *(Make sure to replace `your_deepgram_key_here` and `your_gemini_key_here` with your actual API keys).*
 
-Copy `.env.example` to `.env.local` and add the URL and publishable key from your Supabase project settings. Only variables prefixed with `NEXT_PUBLIC_` are exposed to the frontend; backend API keys remain server-only.
-
-### 3. Create the Supabase tables
-
-Run `supabase db push` if this project is linked with the Supabase CLI. Otherwise, run these files in the Supabase SQL editor in order:
-
-1. `supabase/migrations/20260620000000_user_profiles.sql`
-2. `supabase/migrations/20260621000000_progression.sql`
-3. `supabase/migrations/20260622000000_backend_data.sql`
-
-This creates user profiles with a starting balance of 100 tokens, automatic login history, persisted scenario completion, seeded levels/ranks, vocabulary/FSRS storage, embeddings, and the country/scenario catalog. Row-level security keeps backend data server-only. Token spending and unlocks use atomic database functions.
-
-Add `SUPABASE_SERVICE_ROLE_KEY` to the root `.env`. Find it in **Supabase Dashboard → Project Settings → API Keys**. This key is server-only: never prefix it with `NEXT_PUBLIC_`, place it in `client/`, or commit it.
-
-To copy an existing local SQLite database into Supabase once, run:
-
-```bash
-npm run migrate:sqlite --prefix node
-```
-
-After migration, the runtime reads and writes Supabase only; SQLite is retained solely as the source for this optional one-time import.
-
-### 4. Enable Google sign-in
-
-1. In Google Cloud Console, configure the OAuth consent screen, then create an OAuth 2.0 Client ID for a **Web application**.
-2. Add the callback URL shown under **Supabase Dashboard → Authentication → Providers → Google** as an authorized redirect URI in Google Cloud. It has the form `https://<project-ref>.supabase.co/auth/v1/callback`.
-3. Paste the Google client ID and client secret into that Supabase Google provider screen and enable the provider.
-4. Under **Supabase Dashboard → Authentication → URL Configuration**, set the Site URL to `http://localhost:5173` for local development and add your production origin to Redirect URLs before deploying.
-
-The frontend redirects through Supabase for Google authentication. The database trigger creates a profile with 100 tokens for each new user and appends later sign-ins to `login_history`.
-
-Email/password authentication is also available through Supabase Auth. Ensure **Authentication → Providers → Email** is enabled. If email confirmation is enabled, add each local or production app origin to **Authentication → URL Configuration → Redirect URLs** so confirmation links can return to the app.
-
-### 5. Start the Application
+### 4. Start the Application
 Once the dependencies are installed and the keys are provided, you can spin up both the Vite frontend and Express backend simultaneously from the root folder using `concurrently`:
 
 ```bash
