@@ -531,34 +531,33 @@ export default function LandingPage({ onCountrySelect }) {
       </aside>
 
       {isTraveling && !showFlash && (
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 px-5 py-2 rounded-full bg-white/10 border border-white/15 backdrop-blur-md text-sm tracking-wide font-display animate-pulse pointer-events-none">
+        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 px-5 py-2 rounded-full bg-[#1F2937] border-2 border-[#37464F] shadow-md text-sm font-extrabold tracking-wide font-display text-white animate-pulse pointer-events-none">
           {travelLabel}
         </div>
       )}
 
       {pendingCountry && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-md pointer-events-auto animate-overlay-fade">
-          <div className="animate-modal-pop w-80 rounded-3xl bg-gradient-to-b from-white/10 to-white/[0.02] border border-white/15 backdrop-blur-2xl shadow-[0_20px_60px_rgba(0,0,0,0.6)] p-7 text-center">
-            <div className="text-4xl mb-3 drop-shadow-lg">{pendingCountry.flag}</div>
-            <h3 className="font-display text-xl font-semibold mb-2">
+        <div className="absolute inset-0 flex items-center justify-center bg-black/50 pointer-events-auto animate-overlay-fade">
+          <div className="animate-modal-pop w-80 rounded-3xl bg-[#1F2937] border-2 border-[#37464F] p-7 text-center shadow-2xl">
+            <div className="text-4xl mb-3">{pendingCountry.flag}</div>
+            <h3 className="font-display text-xl font-extrabold mb-2 text-white">
               Unlock {pendingCountry.name}?
             </h3>
-            <p className="text-sm text-white/60 mb-6">
-              This will cost{' '}
-              <span className="text-yellow-300 font-semibold">{UNLOCK_COST} tokens</span>.
+            <p className="text-sm text-gray-400 font-medium mb-6">
+              This will cost <span className="text-white font-extrabold">{UNLOCK_COST} tokens</span>.
             </p>
             <div className="flex gap-3">
               <button
                 type="button"
                 onClick={() => setPendingCountry(null)}
-                className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-colors font-medium"
+                className="flex-1 py-2.5 rounded-2xl bg-[#1F2937] hover:bg-[#28323c] border-2 border-[#37464F] border-b-4 active:border-b-2 active:translate-y-0.5 transition-all font-display font-extrabold uppercase tracking-wide text-gray-400"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleConfirmUnlock}
-                className="animate-confirm-glow flex-1 py-2.5 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-black font-semibold transition-colors"
+                className="flex-1 py-2.5 rounded-2xl bg-[#58CC02] hover:bg-[#61D908] border-2 border-[#46A302] border-b-4 active:border-b-2 active:translate-y-0.5 transition-all text-white font-display font-extrabold uppercase tracking-wide"
               >
                 Confirm
               </button>
