@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import { useProfile } from './hooks/useProfile'
+import AuthModal from './components/AuthModal'
 
 const EARTH_TEXTURE_URL =
   'https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg'
@@ -180,7 +182,19 @@ export default function LandingPage({ onCountrySelect }) {
 
   const triggerDiveRef = useRef(() => {})
 
-  const [tokens, setTokens] = useState(100)
+  const {
+    user,
+    tokens,
+    authLoading,
+    authError,
+    authMessage,
+    signInWithGoogle,
+    signInWithEmail,
+    signUpWithEmail,
+    signOut,
+    spendTokens,
+  } = useProfile()
+  const [showAuth, setShowAuth] = useState(false)
   const [pendingCountry, setPendingCountry] = useState(null)
   const [isTraveling, setIsTraveling] = useState(false)
   const [travelLabel, setTravelLabel] = useState('')
@@ -467,10 +481,11 @@ export default function LandingPage({ onCountrySelect }) {
     }
   }, [])
 
-  function handleConfirmUnlock() {
+  async function handleConfirmUnlock() {
     const country = pendingCountry
     if (!country) return
-    setTokens((t) => t - UNLOCK_COST)
+    const spent = await spendTokens(UNLOCK_COST)
+    if (!spent) return
     setPendingCountry(null)
     setIsTraveling(true)
     setTravelLabel(`Flying to ${country.name}…`)
@@ -501,16 +516,66 @@ export default function LandingPage({ onCountrySelect }) {
           </p>
         </div>
 
-        <div className="pointer-events-auto flex items-center gap-2.5 rounded-full bg-gradient-to-br from-white/10 to-white/[0.03] border border-yellow-300/20 backdrop-blur-xl px-5 py-2.5 shadow-[0_0_25px_-5px_rgba(250,204,21,0.4)]">
-          <CoinIcon />
-          <span className="font-display text-xl font-bold tabular-nums text-yellow-200">
-            {tokens}
-          </span>
-          <span className="text-[10px] text-white/45 uppercase tracking-widest">
-            tokens
-          </span>
+        <div className="pointer-events-auto flex items-center gap-3">
+          <div className="flex items-center gap-2.5 rounded-full bg-gradient-to-br from-white/10 to-white/[0.03] border border-yellow-300/20 backdrop-blur-xl px-5 py-2.5 shadow-[0_0_25px_-5px_rgba(250,204,21,0.4)]">
+            <CoinIcon />
+            <span className="font-display text-xl font-bold tabular-nums text-yellow-200">
+              {tokens}
+            </span>
+            <span className="text-[10px] text-white/45 uppercase tracking-widest">
+              tokens
+            </span>
+          </div>
+
+          {user ? (
+            <button
+              type="button"
+              onClick={() => {
+                setShowAuth(false)
+                signOut()
+              }}
+              disabled={authLoading}
+              title={`Signed in as ${user.email}. Click to sign out.`}
+              className="flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.08] px-3 py-2 text-sm backdrop-blur-xl transition-colors hover:bg-white/[0.14] disabled:opacity-50"
+            >
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-cyan-300 font-semibold text-black">
+                {(user.user_metadata?.full_name || user.email || '?').charAt(0).toUpperCase()}
+              </span>
+              <span className="max-w-32 truncate">
+                {user.user_metadata?.full_name || user.email}
+              </span>
+              <span className="text-xs text-white/45">Sign out</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowAuth(true)}
+              disabled={authLoading}
+              className="rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-slate-900 shadow-lg transition-colors hover:bg-slate-100 disabled:cursor-wait disabled:opacity-60"
+            >
+              {authLoading ? 'Connecting…' : 'Sign in'}
+            </button>
+          )}
         </div>
       </header>
+
+      {authError && (
+        <div className="absolute right-6 top-24 max-w-sm rounded-xl border border-red-400/30 bg-red-950/80 px-4 py-3 text-sm text-red-100 backdrop-blur-xl">
+          {authError}
+        </div>
+      )}
+
+      {showAuth && !user && (
+        <AuthModal
+          loading={authLoading}
+          error={authError}
+          message={authMessage}
+          onClose={() => setShowAuth(false)}
+          onGoogle={signInWithGoogle}
+          onEmailSignIn={signInWithEmail}
+          onEmailSignUp={signUpWithEmail}
+        />
+      )}
 
       <aside className="absolute top-1/2 left-6 -translate-y-1/2 w-64 rounded-2xl bg-white/[0.06] border border-white/15 backdrop-blur-2xl shadow-[0_8px_40px_rgba(0,0,0,0.5)] p-4 pointer-events-auto">
         <h2 className="font-display text-sm uppercase tracking-widest text-white/50 mb-3 px-1">
