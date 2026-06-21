@@ -4,13 +4,13 @@ import VisualCluster from './VisualCluster';
 import InputPhase from './InputPhase';
 import GameplayPhase from './GameplayPhase';
 
-export default function ScenarioRunner({ scenario, onEndScenario }) {
+export default function ScenarioRunner({ scenario, langCode, onEndScenario }) {
   const [phase, setPhase] = useState('loading'); // loading -> input -> gameplay
   const [targetWords, setTargetWords] = useState([]);
 
   useEffect(() => {
     // 1. Fetch optimal dynamic vocabulary for this scenario
-    authFetch(`/api/scenario/discovery?scenarioId=${scenario.id}&topic=${scenario.title}`)
+    authFetch(`/api/scenario/discovery?scenarioId=${scenario.id}&topic=${scenario.title}&langCode=${langCode}`)
       .then(res => {
         if (!res.ok) throw new Error("API error");
         return res.json();
@@ -36,7 +36,7 @@ export default function ScenarioRunner({ scenario, onEndScenario }) {
   if (phase === 'input') {
     return (
       <div className="w-screen h-screen flex flex-col items-center justify-center gap-4 bg-[#0F1418] text-white font-sans animate-fade-in-up">
-        <InputPhase words={targetWords} onComplete={() => setPhase('gameplay')} />
+        <InputPhase words={targetWords} langCode={langCode} onComplete={() => setPhase('gameplay')} />
       </div>
     );
   }
@@ -46,6 +46,7 @@ export default function ScenarioRunner({ scenario, onEndScenario }) {
       <GameplayPhase 
         scenario={scenario} 
         targetWords={targetWords} 
+        langCode={langCode}
         onEndScenario={onEndScenario} 
       />
     </div>

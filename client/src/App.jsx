@@ -8,6 +8,7 @@ import CompletionScreen from './CompletionScreen'
 import AuthModal from './components/AuthModal'
 import { API } from './api'
 import { useProfile } from './hooks/useProfile'
+import { COUNTRIES as LOCAL_COUNTRIES } from './gameData'
 
 function App() {
   const profile = useProfile()
@@ -105,9 +106,11 @@ function App() {
   }
 
   if (activeScenario) {
+    const langCode = LOCAL_COUNTRIES.find((c) => c.name === selectedCountry)?.langCode || 'zh'
     return (
       <ScenarioRunner
         scenario={activeScenario}
+        langCode={langCode}
         onEndScenario={async (result) => {
           if (result?.completed && result?.id && !profile.completedScenarios.includes(result.id) && selectedCountry) {
             await profile.completeScenario(selectedCountry.toLowerCase(), result.id)

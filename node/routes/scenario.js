@@ -15,8 +15,8 @@ export function mountScenarioRoutes(app) {
   // Endpoint to discover optimal words for a scenario
   app.get('/api/scenario/discovery', requireUser, async (req, res) => {
     try {
-      const { scenarioId, topic } = req.query;
-      const dbWords = await getDiscoveryWords(req.userId, topic || scenarioId, 4);
+      const { scenarioId, topic, langCode } = req.query;
+      const dbWords = await getDiscoveryWords(req.userId, topic || scenarioId, langCode || 'zh', 4);
       const words = dbWords.map(w => ({
         ...w,
         zh: w.expression,
@@ -34,19 +34,22 @@ export function mountScenarioRoutes(app) {
   // Endpoint to generate an NPC line based on target words
   app.post('/api/scenario/generate', requireUser, async (req, res) => {
     try {
-      const { scenarioContext, targetWords, previousTurns } = req.body;
+      const { scenarioContext, targetWords, previousTurns, langCode } = req.body;
+      
+      const languages = { hi: 'Hindi', fr: 'French', es: 'Spanish', zh: 'Mandarin' };
+      const languageName = languages[langCode] || 'Mandarin';
       
       const prompt = `
-You are an NPC in a ${scenarioContext} scenario. The user is a Mandarin language learner.
+You are an NPC in a ${scenarioContext} scenario. The user is a ${languageName} language learner.
 Your goal is to generate the NEXT line of dialogue for the NPC.
-Keep it under 15 Chinese characters. It should prompt the user to respond using one of these target words:
+Keep it short (under 15 words/characters). It should prompt the user to respond using one of these target words:
 ${targetWords.map(w => w.expression + ' (' + w.meaning + ')').join(', ')}
 
 Previous conversation:
 ${previousTurns ? previousTurns.map(t => t.speaker + ': ' + t.text).join('\n') : 'None'}
 
 Return ONLY a JSON object:
-{ "zh": "Chinese text", "pinyin": "pinyin text", "en": "English translation" }
+{ "zh": "Text in ${languageName}", "pinyin": "Pronunciation/romanization of the text", "en": "English translation" }
 `;
       
       const { text } = await generateText({
@@ -67,10 +70,13 @@ Return ONLY a JSON object:
   // Evaluator endpoint to check user's STT response
   app.post('/api/scenario/evaluate', requireUser, async (req, res) => {
     try {
-      const { scenarioContext, targetWords, npcLine, userResponse } = req.body;
+      const { scenarioContext, targetWords, npcLine, userResponse, langCode } = req.body;
+
+      const languages = { hi: 'Hindi', fr: 'French', es: 'Spanish', zh: 'Mandarin' };
+      const languageName = languages[langCode] || 'Mandarin';
 
       const prompt = `
-You are a strict but helpful Mandarin teacher.
+You are a strict but helpful ${languageName} teacher.
 The user is in a ${scenarioContext} scenario.
 The NPC just said: "${npcLine.zh}" (${npcLine.en})
 The user responded with: "${userResponse}" (transcribed via Speech-to-Text).
