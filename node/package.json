@@ -16,13 +16,12 @@
     "@ai-sdk/google": "^3.0.83",
     "@supabase/supabase-js": "^2.108.2",
     "ai": "^6.0.208",
+    "better-sqlite3": "^12.11.1",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "fsrs.js": "^1.2.2",
     "ws": "^8.21.0"
   },
-  "devDependencies": {
-    "better-sqlite3": "^12.11.1"
-  }
+  "devDependencies": {}
 }

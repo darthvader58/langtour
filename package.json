@@ -20,7 +20,8 @@
   },
   "homepage": "https://github.com/darthvader58/langtour#readme",
   "devDependencies": {
-    "concurrently": "^10.0.3"
+    "concurrently": "^10.0.3",
+    "playwright": "^1.61.0"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",

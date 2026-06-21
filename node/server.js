@@ -3,6 +3,8 @@ import cors from 'cors';
 import { PORT } from './lib/config.js';
 import { mountVoiceRoutes } from './routes/voice.js';
 import { mountScenarioRoutes } from './routes/scenario.js';
+import { mountGraphRoutes } from './routes/graph.js';
+import { mountStatsRoutes } from './routes/stats.js';
 import { getCatalog, initializeDatabase } from './lib/db/db.js';
 
 const app = express();
@@ -18,6 +20,15 @@ async function startServer() {
 
   mountVoiceRoutes(app, httpServer);
   mountScenarioRoutes(app);
+  mountGraphRoutes(app);
+  mountStatsRoutes(app);
+
+  app.get('/api/settings', (req, res) => {
+    res.json({ dayStartHour: 0 });
+  });
+  app.post('/api/settings', (req, res) => {
+    res.json({ ok: true });
+  });
 
   app.get('/api/catalog', async (req, res) => {
     try {

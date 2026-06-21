@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import LandingPage from './LandingPage'
 import ScenariosPage from './ScenariosPage'
 import VoiceTestPage from './pages/VoiceTestPage'
@@ -9,6 +9,9 @@ import AuthModal from './components/AuthModal'
 import { API } from './api'
 import { useProfile } from './hooks/useProfile'
 import { COUNTRIES as LOCAL_COUNTRIES } from './gameData'
+
+const Dashboard = lazy(() => import('./pages/Dashboard'))
+const GraphView = lazy(() => import('./pages/GraphView'))
 
 function App() {
   const profile = useProfile()
@@ -39,6 +42,14 @@ function App() {
 
   if (hash === '#test') {
     return <VoiceTestPage />
+  }
+
+  if (hash === '#dashboard') {
+    return <Suspense fallback={<div className="flex h-screen items-center justify-center bg-[#0F1418] text-white">Loading…</div>}><Dashboard /></Suspense>
+  }
+
+  if (hash === '#graph') {
+    return <Suspense fallback={<div className="flex h-screen items-center justify-center bg-[#0F1418] text-white">Loading…</div>}><GraphView /></Suspense>
   }
 
   if (catalogError) {

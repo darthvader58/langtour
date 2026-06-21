@@ -7,9 +7,10 @@ export default defineConfig({
   envDir: '..',
   envPrefix: ['VITE_', 'NEXT_PUBLIC_'],
   server: {
+    port: 4000,
     proxy: {
       '/api': {
-        target: 'http://localhost:8765',
+        target: 'http://localhost:4001',
         changeOrigin: true,
         ws: true,
       },

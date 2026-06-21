@@ -505,7 +505,19 @@ export default function LandingPage({ tokens, unlockedCountries, glowCountry, le
           </p>
         </div>
 
-        <div className="pointer-events-auto flex flex-wrap justify-end items-center gap-4">
+        <div className="pointer-events-auto flex flex-wrap justify-end items-center gap-2">
+          <a
+            href="#dashboard"
+            className="flex h-[46px] items-center justify-center rounded-2xl border-2 border-[#37464F] bg-[#1F2937] hover:bg-[#28323c] px-3 font-display text-xs font-extrabold uppercase tracking-widest text-[#40DF01] transition-all shadow-md no-underline"
+          >
+            Dashboard
+          </a>
+          <a
+            href="#graph"
+            className="flex h-[46px] items-center justify-center rounded-2xl border-2 border-[#37464F] bg-[#1F2937] hover:bg-[#28323c] px-3 font-display text-xs font-extrabold uppercase tracking-widest text-[#40DF01] transition-all shadow-md no-underline"
+          >
+            Graph
+          </a>
           <div className="flex h-[46px] items-center justify-center gap-2 rounded-2xl border-2 border-[#37464F] bg-[#1F2937] px-4 font-display text-sm font-extrabold uppercase tracking-widest text-white shadow-md">
             <span>
               Level {level?.display_order ?? unlockedCountries.length}
