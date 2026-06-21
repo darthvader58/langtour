@@ -4,7 +4,9 @@ import VisualCluster from './VisualCluster';
 import InputPhase from './InputPhase';
 import GameplayPhase from './GameplayPhase';
 
-export default function ScenarioRunner({ scenario, onEndScenario }) {
+const PLAYGROUND_BG = 'radial-gradient(ellipse 90% 60% at 50% 0%, #1E2C5A 0%, #131D3B 60%, #0D1530 100%)'
+
+export default function ScenarioRunner({ scenario, country = 'China', onEndScenario }) {
   const [phase, setPhase] = useState('loading'); // loading -> input -> gameplay
   const [targetWords, setTargetWords] = useState([]);
 
@@ -35,18 +37,22 @@ export default function ScenarioRunner({ scenario, onEndScenario }) {
 
   if (phase === 'input') {
     return (
-      <div className="w-screen h-screen flex flex-col items-center justify-center gap-4 bg-[#0F1418] text-white font-sans animate-fade-in-up">
-        <InputPhase words={targetWords} onComplete={() => setPhase('gameplay')} />
+      <div
+        className="w-screen h-screen flex flex-col items-center justify-center gap-4 text-white font-sans animate-fade-in-up"
+        style={{ background: PLAYGROUND_BG }}
+      >
+        <InputPhase words={targetWords} country={country} onComplete={() => setPhase('gameplay')} />
       </div>
     );
   }
 
   return (
-    <div className="w-screen h-screen bg-[#0F1418] font-sans">
-      <GameplayPhase 
-        scenario={scenario} 
-        targetWords={targetWords} 
-        onEndScenario={onEndScenario} 
+    <div className="w-screen h-screen font-sans" style={{ background: PLAYGROUND_BG }}>
+      <GameplayPhase
+        scenario={scenario}
+        country={country}
+        targetWords={targetWords}
+        onEndScenario={onEndScenario}
       />
     </div>
   );

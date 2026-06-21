@@ -228,7 +228,9 @@ export default function SackboyCharacter({
   country = 'China',
   state = 'idle',           // idle | wave | dance | locked
   size = 72,
-  hoverDance = false,
+  hoverDance = false,       // whole body dances when an ancestor .group is hovered
+  hoverJump = false,        // whole body jumps when an ancestor .group is hovered
+  hoverWave = false,        // just the arm waves when an ancestor .group is hovered
   className = '',
 }) {
   const p = PALETTE[country] ?? PALETTE.China
@@ -245,7 +247,13 @@ export default function SackboyCharacter({
 
   return (
     <div
-      className={`sackboy ${wrapAnim} ${hoverDance && !locked ? 'sackboy-hover' : ''} ${className}`}
+      className={[
+        'sackboy',
+        wrapAnim,
+        hoverDance && !locked ? 'sackboy-hover' : '',
+        hoverJump && !locked ? 'sackboy-hoverjump' : '',
+        className,
+      ].filter(Boolean).join(' ')}
       style={{ width: size, height: size * (140 / 120), filter: locked ? 'grayscale(1) brightness(0.55)' : 'none' }}
     >
       <svg viewBox="0 0 120 140" width="100%" height="100%" style={{ overflow: 'visible' }}>
@@ -316,7 +324,10 @@ export default function SackboyCharacter({
 
         {/* right arm — the waving one */}
         <g
-          className={waving ? 'sackboy-arm-wave' : ''}
+          className={[
+            waving ? 'sackboy-arm-wave' : '',
+            hoverWave && !locked ? 'sackboy-arm-hoverwave' : '',
+          ].filter(Boolean).join(' ')}
           style={{ transformBox: 'view-box', transformOrigin: '92px 80px' }}
         >
           <g style={{ transform: locked ? 'rotate(-6deg)' : waving ? 'none' : 'rotate(-4deg)', transformBox: 'view-box', transformOrigin: '92px 80px' }}>

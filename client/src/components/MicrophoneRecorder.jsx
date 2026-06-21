@@ -155,13 +155,13 @@ export default function MicrophoneRecorder({ onRecordingComplete, disabled }) {
           </span>
         )}
         {status === 'transcribing' && (
-          <span className="text-gray-400 font-display font-bold text-lg truncate animate-pulse">
-            Transcribing...
+          <span className="text-sky-200/70 font-display font-bold text-lg truncate animate-pulse">
+            Transcribing…
           </span>
         )}
         {status === 'initializing' && (
-          <span className="text-gray-400 font-display font-bold text-lg truncate animate-pulse">
-            Connecting...
+          <span className="text-sky-200/70 font-display font-bold text-lg truncate animate-pulse">
+            Connecting…
           </span>
         )}
       </div>
@@ -181,10 +181,10 @@ export default function MicrophoneRecorder({ onRecordingComplete, disabled }) {
           onTouchEnd={() => stopRecording()}
           disabled={disabled || status === 'transcribing' || status === 'initializing'}
           className={`relative w-20 h-20 rounded-full flex items-center justify-center transition-all touch-none ${
-            disabled ? 'bg-[#37464F] opacity-50 cursor-not-allowed' :
-            isRecording 
-              ? 'bg-[#1CB0F6] shadow-[0_0_20px_rgba(28,176,246,0.6)] scale-110' 
-              : 'bg-[#1F2937] border-2 border-[#37464F] border-b-4 hover:bg-[#28323c] active:border-b-2 active:translate-y-0.5'
+            disabled ? 'bg-[#34457C] opacity-50 cursor-not-allowed' :
+            isRecording
+              ? 'bg-[#1CB0F6] shadow-[0_0_20px_rgba(28,176,246,0.6)] scale-110'
+              : 'bg-white border-4 border-slate-300 shadow-[0_5px_0_0_rgba(203,213,225,1)] hover:-translate-y-0.5 active:translate-y-0.5 active:shadow-[0_2px_0_0_rgba(203,213,225,1)]'
           }`}
         >
           <svg className={`w-8 h-8 ${isRecording ? 'text-white' : 'text-[#1CB0F6]'}`} fill="currentColor" viewBox="0 0 20 20">
@@ -192,8 +192,8 @@ export default function MicrophoneRecorder({ onRecordingComplete, disabled }) {
           </svg>
         </button>
       </div>
-      <span className="text-gray-500 font-bold text-xs uppercase tracking-widest mt-2">
-        {isRecording ? 'Release to Send' : 'Hold to Speak'}
+      <span className="text-sky-200/60 font-display font-extrabold text-xs uppercase tracking-wide mt-2">
+        {isRecording ? 'Release to send' : '🎙️ Hold to speak'}
       </span>
     </div>
   );

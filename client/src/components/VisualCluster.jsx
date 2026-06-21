@@ -77,24 +77,27 @@ export default function VisualCluster({ targetWords }) {
   }, []);
 
   return (
-    <div className="w-full h-full relative bg-[#0F1418] flex flex-col items-center justify-center overflow-hidden">
+    <div
+      className="w-full h-full relative flex flex-col items-center justify-center overflow-hidden"
+      style={{ background: 'radial-gradient(ellipse 90% 60% at 50% 0%, #1E2C5A 0%, #131D3B 60%, #0D1530 100%)' }}
+    >
       <div ref={mountRef} className="absolute inset-0 z-0" />
-      <div className="z-10 flex flex-col items-center animate-fade-in-up bg-black/40 px-8 py-6 rounded-3xl backdrop-blur-sm border-2 border-[#37464F]">
+      <div className="z-10 flex flex-col items-center animate-fade-in-up bg-[#22305C]/80 px-8 py-7 rounded-[2rem] backdrop-blur-sm border-4 border-[#34457C] shadow-[0_8px_0_0_rgba(0,0,0,0.3)]">
         <div className="w-16 h-16 mb-4 relative">
-          <div className="absolute inset-0 rounded-full border-4 border-[#1F2937]"></div>
-          <div className="absolute inset-0 rounded-full border-4 border-[#1CB0F6] border-t-transparent animate-spin"></div>
+          <div className="absolute inset-0 rounded-full border-4 border-[#34457C]"></div>
+          <div className="absolute inset-0 rounded-full border-4 border-[#FFC93C] border-t-transparent animate-spin"></div>
         </div>
-        <h2 className="text-2xl font-display font-extrabold text-white mb-2 text-center">
-          {targetWords.length > 0 ? "Vocab Found!" : "Discovering Optimal Vocab..."}
+        <h2 className="text-2xl font-display font-black text-white mb-2 text-center">
+          {targetWords.length > 0 ? "Words ready! 🎒" : "Packing your words…"}
         </h2>
-        <div className="text-xs font-bold text-[#1CB0F6] uppercase tracking-[0.2em] animate-pulse">
-          {targetWords.length > 0 ? "Preparing scenario" : "Intersecting Semantic Clusters"}
+        <div className="font-display text-xs font-extrabold text-[#FFC93C] uppercase tracking-wide animate-pulse">
+          {targetWords.length > 0 ? "Setting up your adventure" : "Picking the perfect phrases"}
         </div>
-        
+
         {targetWords.length > 0 && (
           <div className="mt-6 flex flex-wrap gap-2 justify-center">
             {targetWords.map(w => (
-              <span key={w.en} className="bg-[#1F2937] text-gray-300 px-3 py-1 rounded-full text-sm font-bold border border-[#37464F]">
+              <span key={w.en} className="bg-[#2C3A63] text-sky-100 px-3.5 py-1.5 rounded-full text-sm font-display font-black border-[3px] border-[#34457C]">
                 {w.zh}
               </span>
             ))}

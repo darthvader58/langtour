@@ -1,154 +1,81 @@
 import { useEffect, useRef, useState } from 'react'
-import { CHARACTERS, COUNTRY_THEMES, SCENARIOS_BY_COUNTRY, SPECIAL_SCENARIO_BY_COUNTRY, levelForCompleted } from './gameData'
+import { AGENT_AVATARS, CHARACTERS, COUNTRY_THEMES, SCENARIOS_BY_COUNTRY, SPECIAL_SCENARIO_BY_COUNTRY, levelForCompleted } from './gameData'
 import MissionBriefing from './components/MissionBriefing'
-import SackboyCharacter from './components/SackboyCharacter'
 
-function LockIcon({ className = 'w-5 h-5' }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="5" y="11" width="14" height="9" rx="2" />
-      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-    </svg>
-  )
-}
+const GOLD = '#FFC93C'
 
-function BackIcon() {
+function ProgressBar({ progress, accent }) {
   return (
-    <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5">
-      <path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
-}
-
-function CrownIcon({ className = 'w-8 h-8' }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="none">
-      <defs>
-        <linearGradient id="crownGold" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#E8C547" />
-          <stop offset="55%" stopColor="#C9A84C" />
-          <stop offset="100%" stopColor="#8B6914" />
-        </linearGradient>
-      </defs>
-      <path
-        d="M3 8l3.5 3L12 4l5.5 7L21 8l-2 10H5L3 8z"
-        fill="url(#crownGold)"
-        stroke="#6B4C0A"
-        strokeWidth="0.75"
-        strokeLinejoin="round"
-      />
-    </svg>
-  )
-}
-
-function HudProgressBar({ progress, gold, accent = '#C9A84C' }) {
-  return (
-    <div className="relative h-1 w-full bg-[#1A1208] border border-[#3D2E0D]/50 overflow-hidden">
+    <div className="relative h-2.5 w-full bg-[#15203F] rounded-full overflow-hidden">
       <div
-        className="h-full transition-all duration-500"
-        style={{
-          width: `${progress}%`,
-          background: gold
-            ? 'linear-gradient(90deg, #8B6914, #C9A84C, #E8C547)'
-            : `linear-gradient(90deg, ${accent}77, ${accent})`,
-          boxShadow: `0 0 5px ${gold ? 'rgba(201,168,76,0.7)' : accent + '99'}`,
-        }}
+        className="h-full rounded-full transition-all duration-500"
+        style={{ width: `${progress}%`, background: accent, boxShadow: progress > 0 ? `0 0 8px ${accent}aa` : 'none' }}
       />
     </div>
   )
 }
 
-const CARD_ROTATIONS = ['-0.8deg', '0.6deg', '-0.4deg', '0.9deg', '-0.5deg', '0.3deg', '-0.7deg', '0.5deg']
+const CARD_ROTATIONS = ['-1deg', '0.8deg', '-0.6deg', '1deg', '-0.7deg', '0.5deg', '-0.9deg', '0.7deg']
 
-function ScenarioCard({ scenario, unlocked, progress, completed, index, onClick, accent = '#C9A84C' }) {
+function ScenarioCard({ scenario, unlocked, progress, completed, index, onClick, accent = GOLD }) {
   const isSpecial = Boolean(scenario.special)
   const rotation = isSpecial ? '0deg' : CARD_ROTATIONS[index % CARD_ROTATIONS.length]
+  const borderColor = isSpecial ? GOLD : (unlocked ? accent : '#2A3760')
 
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={!unlocked}
-      style={{ animationDelay: `${index * 70}ms`, transform: `rotate(${rotation})` }}
+      style={{
+        animationDelay: `${index * 60}ms`,
+        transform: `rotate(${rotation})`,
+        borderColor,
+        boxShadow: unlocked ? '0 7px 0 0 rgba(0,0,0,0.32)' : 'none',
+      }}
       className={
-        'group relative animate-fade-in-up text-left transition-all duration-200 overflow-hidden rounded-[22px] ' +
-        'bg-[linear-gradient(160deg,_#1A1408_0%,_#100D06_65%,_#0D0A04_100%)] ' +
-        (isSpecial
-          ? 'border-[2.5px] border-[#C9A84C]/45 shadow-[2px_5px_16px_rgba(0,0,0,0.7),_inset_0_1px_0_rgba(201,168,76,0.08)] '
-            + (unlocked ? 'hover:scale-[1.03] hover:[transform:rotate(0deg)_scale(1.03)] cursor-pointer' : '')
-          : 'border-[2.5px] border-[#3D2E0D]/55 shadow-[2px_5px_16px_rgba(0,0,0,0.6)] '
-            + (unlocked
-              ? 'hover:border-[#C9A84C]/35 hover:scale-[1.03] hover:[transform:rotate(0deg)_scale(1.03)] cursor-pointer'
-              : 'cursor-not-allowed'))
+        'group relative animate-fade-in-up text-left rounded-3xl border-4 bg-[#2C3A63] p-5 transition-all duration-200 ease-out ' +
+        (unlocked
+          ? 'hover:[transform:rotate(0deg)_translateY(-8px)_scale(1.02)] active:translate-y-0 cursor-pointer'
+          : 'opacity-60 cursor-not-allowed')
       }
     >
-      {/* Parchment line texture */}
+      {/* icon tile */}
       <div
-        className="absolute inset-0 pointer-events-none opacity-[0.03]"
-        style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(201,168,76,0.1) 3px, rgba(201,168,76,0.1) 4px)' }}
-      />
-
-      {/* Scenario bg animation */}
-      {!isSpecial && <div className={`scenario-bg scenario-bg--${scenario.id}`} />}
-
-      {/* Card content */}
-      <div className={`relative z-10 p-5 ${unlocked ? '' : 'opacity-45 grayscale'}`}>
-        <div
-          className={
-            'flex h-12 w-12 items-center justify-center text-2xl mb-4 rounded-2xl border-[2.5px] '
-            + (isSpecial ? 'border-[#C9A84C]/35 bg-[#C9A84C]/08' : 'bg-[#0D0A04]')
-          }
-          style={isSpecial ? undefined : { borderColor: accent + '55' }}
-        >
-          {isSpecial ? <CrownIcon /> : <span>{scenario.icon}</span>}
-        </div>
-
-        <h3 className="font-display text-sm font-bold mb-1.5 text-[#F5F0E8] tracking-wide leading-snug">
-          {scenario.title}
-        </h3>
-        <p className="font-mono text-xs text-[#6B5535] leading-snug mb-4 min-h-[2.5rem]">
-          {scenario.description}
-        </p>
-
-        <div className="flex items-center justify-between gap-3">
-          <HudProgressBar progress={progress} gold={isSpecial} accent={accent} />
-          <span className="font-mono text-[9px] tabular-nums text-[#4A3A15] shrink-0">{progress}%</span>
-        </div>
+        className="flex h-14 w-14 items-center justify-center rounded-2xl text-3xl mb-4"
+        style={{ background: isSpecial ? GOLD : accent + '33', border: `3px solid ${isSpecial ? GOLD : accent}` }}
+      >
+        {isSpecial ? '👑' : scenario.icon}
       </div>
 
-      {/* Completed seal — gold coin */}
+      <h3 className="font-display text-base font-extrabold mb-1 text-white leading-snug">
+        {scenario.title}
+      </h3>
+      <p className="font-display text-xs font-semibold text-sky-200/60 leading-snug mb-4 min-h-[2.5rem]">
+        {scenario.description}
+      </p>
+
+      <div className="flex items-center gap-3">
+        <ProgressBar progress={progress} accent={isSpecial ? GOLD : accent} />
+        <span className="font-display text-[11px] font-bold tabular-nums text-sky-200/60 shrink-0">{progress}%</span>
+      </div>
+
+      {/* completed badge */}
       {completed && (
-        <div className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full flex items-center justify-center shadow-[0_0_10px_rgba(201,168,76,0.5)]"
-          style={{ background: 'radial-gradient(circle at 35% 30%, #E8C547, #8B6914)' }}
-        >
-          <span className="text-[#0D0A04] text-[10px] font-bold">✓</span>
+        <div className="absolute -top-3 -right-3 w-9 h-9 rounded-full bg-[#58CC02] border-4 border-[#243154] flex items-center justify-center text-white font-black">
+          ✓
         </div>
       )}
 
-      {/* Wax seal for unlocked + not done */}
-      {unlocked && !completed && (
-        <div
-          className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full animate-wax-pulse"
-          style={{
-            background: `radial-gradient(circle at 35% 30%, ${accent}, ${accent}88)`,
-            boxShadow: `0 0 0 1px ${accent}55`,
-          }}
-        />
-      )}
-
-      {/* Locked overlay */}
+      {/* locked overlay */}
       {!unlocked && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[#0D0A04]/80 z-20">
-          <LockIcon className="w-5 h-5 text-[#3D2E0D]" />
-          <div className="transform -rotate-8 border border-[#8B0000]/50 px-4 py-1">
-            <span className="font-display text-[10px] font-bold tracking-[0.3em] text-[#8B0000] uppercase">
-              {isSpecial ? 'Classified' : 'Locked'}
-            </span>
-          </div>
+        <div className="absolute inset-0 rounded-3xl flex flex-col items-center justify-center gap-2 bg-[#101A38]/82">
+          <span className="text-4xl">🔒</span>
+          <span className="font-display text-xs font-extrabold uppercase tracking-wide text-sky-200/75">
+            {isSpecial ? 'Final Boss' : 'Locked'}
+          </span>
           {isSpecial && (
-            <span className="font-mono text-[8px] text-[#4A2020] tracking-widest text-center px-6">
-              Complete all scenarios
-            </span>
+            <span className="font-display text-[10px] font-semibold text-sky-200/50">Complete all missions</span>
           )}
         </div>
       )}
@@ -156,45 +83,43 @@ function ScenarioCard({ scenario, unlocked, progress, completed, index, onClick,
   )
 }
 
-function VocabModal({ scenario, onClose, onStart, accent = '#C9A84C' }) {
+function VocabModal({ scenario, onClose, onStart, accent = GOLD }) {
   return (
-    <div className="absolute inset-0 flex items-center justify-center bg-black/60 pointer-events-auto animate-overlay-fade z-20">
-      <div className="animate-modal-pop w-[28rem] max-h-[85vh] overflow-y-auto bg-[#0D0B06] rounded-[26px] border-[3px] border-[#C9A84C]/28 p-7 shadow-[0_0_60px_rgba(0,0,0,0.9)]">
+    <div className="fixed inset-0 flex items-center justify-center bg-[#0D1530]/80 backdrop-blur-sm z-20 animate-overlay-fade px-4">
+      <div
+        className="animate-modal-pop relative w-[28rem] max-w-full max-h-[85vh] overflow-y-auto rounded-3xl border-4 p-7"
+        style={{ background: '#1E2A4F', borderColor: accent, boxShadow: '0 10px 0 0 rgba(0,0,0,0.35)' }}
+      >
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-5 right-5 text-[#3D2E0D] hover:text-[#C9A84C]/50 transition-colors text-xl leading-none font-bold"
+          className="absolute top-4 right-5 text-sky-200/50 hover:text-white transition-colors text-2xl leading-none font-bold"
           aria-label="Close"
         >
           &times;
         </button>
 
-        <div className="flex items-center gap-3 mb-2">
-          <span className="flex h-12 w-12 items-center justify-center rounded-2xl border-[2.5px] border-[#C9A84C]/25 bg-[#0A0805] text-2xl">{scenario.special ? '\u{1F451}' : scenario.icon}</span>
+        <div className="flex items-center gap-3 mb-5">
+          <span
+            className="flex h-14 w-14 items-center justify-center rounded-2xl text-3xl shrink-0"
+            style={{ background: scenario.special ? GOLD : accent + '33', border: `3px solid ${scenario.special ? GOLD : accent}` }}
+          >
+            {scenario.special ? '👑' : scenario.icon}
+          </span>
           <div>
-            <h3 className="font-display text-xl font-bold text-[#F5F0E8] tracking-wide">{scenario.title}</h3>
-            <p className="font-mono text-xs text-[#5A4A2A]">{scenario.description}</p>
+            <h3 className="font-display text-xl font-black text-white">{scenario.title}</h3>
+            <p className="font-display text-xs font-semibold text-sky-200/60">{scenario.description}</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 mt-6 mb-4">
-          <div className="flex-1 h-px bg-[#C9A84C]/15" />
-          <h4 className="font-mono text-[9px] font-bold uppercase tracking-[0.3em] text-[#C9A84C]/35">
-            Key Vocabulary
-          </h4>
-          <div className="flex-1 h-px bg-[#C9A84C]/15" />
-        </div>
-
+        <p className="font-display text-[11px] font-extrabold uppercase tracking-wide text-sky-200/50 mb-2.5">📚 Key Vocabulary</p>
         <ul className="flex flex-col gap-2 mb-6">
           {scenario.vocab.map((word) => (
-            <li
-              key={word.en}
-              className="flex items-center justify-between gap-3 border border-[#3D2E0D]/50 bg-[#0A0805] px-4 py-2.5"
-            >
-              <span className="font-mono text-xs text-[#8B7355]">{word.en}</span>
+            <li key={word.en} className="flex items-center justify-between gap-3 rounded-xl bg-[#28365E] px-4 py-2.5">
+              <span className="font-display text-sm font-semibold text-sky-200/80">{word.en}</span>
               <span className="flex items-baseline gap-2">
-                <span className="font-display text-lg font-bold text-[#F5F0E8]">{word.native ?? word.zh}</span>
-                <span className="font-mono text-xs italic" style={{ color: accent + 'b0' }}>{word.roman ?? word.pinyin}</span>
+                <span className="font-display text-lg font-black text-white">{word.native ?? word.zh}</span>
+                <span className="font-display text-xs font-bold italic" style={{ color: accent }}>{word.roman ?? word.pinyin}</span>
               </span>
             </li>
           ))}
@@ -203,17 +128,16 @@ function VocabModal({ scenario, onClose, onStart, accent = '#C9A84C' }) {
         <button
           type="button"
           onClick={onStart}
-          className="btn-chunky w-full py-3 rounded-2xl border-[2.5px] font-display font-bold uppercase tracking-widest"
-          style={{ borderColor: accent + '99', background: accent + '1f', color: accent }}
+          className="w-full py-3.5 rounded-2xl bg-[#FFC93C] text-[#3A2E0A] border-4 border-[#E0A91E] font-display font-black uppercase tracking-wide shadow-[0_5px_0_0_#B8860B] hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0.5 active:shadow-[0_2px_0_0_#B8860B] transition-all"
         >
-          Start Scenario
+          Start Mission →
         </button>
       </div>
     </div>
   )
 }
 
-function CharacterBadge({ country, progress, accent = '#C9A84C' }) {
+function CharacterBadge({ country, progress }) {
   const character = CHARACTERS[country] ?? CHARACTERS.China
   const completedCount = progress.filter((p) => p >= 100).length
   const level = levelForCompleted(completedCount)
@@ -233,15 +157,14 @@ function CharacterBadge({ country, progress, accent = '#C9A84C' }) {
   return (
     <div
       className={
-        'flex items-center gap-2 bg-[#0D0B06] rounded-2xl border-[2.5px] pl-2 pr-4 py-1.5 '
+        'flex items-center gap-2.5 bg-[#22305C] rounded-2xl border-4 border-[#34457C] pl-2 pr-4 py-1.5 shadow-[0_5px_0_0_rgba(0,0,0,0.35)] '
         + (justLeveledUp ? 'animate-level-up' : '')
       }
-      style={{ borderColor: accent + '55' }}
     >
-      <SackboyCharacter country={country} size={36} state="wave" className="shrink-0" />
-      <span className="font-mono text-sm text-[#8B7355]">
+      <img src={AGENT_AVATARS[country]} alt={`${country} agent`} className="w-10 h-10 drop-shadow-lg shrink-0" />
+      <span className="font-display text-sm font-bold text-sky-100">
         {character.type}{' '}
-        <span className="font-display font-bold" style={{ color: accent }}>Lv {level}</span>
+        <span className="font-black" style={{ color: GOLD }}>Lv {level}</span>
       </span>
     </div>
   )
@@ -258,7 +181,6 @@ export default function ScenariosPage({ country = 'China', progress, onBack, onS
 
   const theme = COUNTRY_THEMES[country] ?? COUNTRY_THEMES.China
   const accent = theme.accents[0]
-  const [a1, a2, a3] = theme.accents
 
   function isUnlocked(index) {
     return index === 0 || progress[index - 1] >= 100
@@ -283,55 +205,41 @@ export default function ScenariosPage({ country = 'China', progress, onBack, onS
   }
 
   return (
-    <div className="relative w-screen h-screen overflow-y-auto overflow-x-hidden bg-[#0A0A0A] text-[#F5F0E8] font-mono">
-      {/* Country flag accent stripe */}
-      <div
-        className="fixed top-0 left-0 right-0 h-1.5 z-30"
-        style={{ background: `linear-gradient(90deg, ${a1} 0%, ${a1} 33.3%, ${a2} 33.3%, ${a2} 66.6%, ${a3} 66.6%, ${a3} 100%)` }}
-      />
-      {/* Ambient accent glow */}
+    <div
+      className="relative w-screen h-screen overflow-y-auto overflow-x-hidden text-white font-sans"
+      style={{ background: 'radial-gradient(ellipse 90% 60% at 50% 0%, #1E2C5A 0%, #131D3B 60%, #0D1530 100%)' }}
+    >
+      {/* soft per-country accent glow at the top */}
       <div
         className="absolute inset-0 pointer-events-none"
-        style={{ background: `radial-gradient(ellipse at 50% -10%, ${accent}1a, transparent 55%)` }}
+        style={{ background: `radial-gradient(ellipse 55% 30% at 50% 0%, ${accent}22, transparent 70%)` }}
       />
-      {/* Cartographic grid background */}
-      <div
-        className="absolute inset-0 pointer-events-none opacity-[0.03]"
-        style={{
-          backgroundImage:
-            'linear-gradient(rgba(201,168,76,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(201,168,76,0.5) 1px, transparent 1px)',
-          backgroundSize: '60px 60px',
-        }}
-      />
-      {/* Vignette */}
-      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,_transparent_55%,_rgba(0,0,0,0.6)_100%)]" />
 
-      <header className="relative z-10 flex items-center justify-between px-8 py-5 border-b border-[#C9A84C]/10">
+      <header className="relative z-10 flex items-center justify-between px-8 py-5">
         <button
           type="button"
           onClick={onBack}
-          className="btn-chunky flex items-center gap-2 bg-transparent rounded-2xl border-[2.5px] border-[#3D2E0D] hover:border-[#C9A84C]/35 px-4 py-2 font-display font-bold text-sm text-[#5A4A2A] hover:text-[#C9A84C]/60 uppercase tracking-wider"
+          className="flex items-center gap-1.5 bg-[#22305C] rounded-2xl border-4 border-[#34457C] px-4 py-2.5 font-display font-extrabold text-sm text-sky-100 shadow-[0_5px_0_0_rgba(0,0,0,0.35)] hover:-translate-y-0.5 active:translate-y-0.5 transition-transform"
         >
-          <BackIcon />
-          <span>Globe</span>
+          ← Globe
         </button>
 
         <div className="flex items-center gap-3">
-          <SackboyCharacter country={country} size={56} state="wave" className="shrink-0" />
+          <img src={AGENT_AVATARS[country]} alt={`${country} agent`} className="w-16 h-16 drop-shadow-2xl shrink-0" />
           <div>
-            <h1 className="font-display text-2xl font-bold text-[#F5F0E8] tracking-wider">{country}</h1>
-            <p className="font-mono text-[9px] font-bold uppercase tracking-[0.28em]" style={{ color: accent }}>
-              {theme.flavor}
+            <h1 className="font-display text-3xl font-black text-white leading-none">{country}</h1>
+            <p className="font-display text-xs font-bold tracking-wide mt-1" style={{ color: GOLD }}>
+              Choose your mission!
             </p>
           </div>
         </div>
 
-        <CharacterBadge country={country} progress={progress} accent={accent} />
+        <CharacterBadge country={country} progress={progress} />
       </header>
 
-      <main className="relative z-10 px-8 py-8 pb-16">
+      <main className="relative z-10 px-8 py-8 pb-20">
         {hasScenarios ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
             {scenarios.map((scenario, index) => {
               const unlocked = isUnlocked(index)
               return (
@@ -361,8 +269,8 @@ export default function ScenariosPage({ country = 'China', progress, onBack, onS
           </div>
         ) : (
           <div className="max-w-md mx-auto text-center py-24">
-            <p className="font-mono text-sm text-[#3D2E0D]">
-              Scenarios for {country} are pending clearance.
+            <p className="font-display text-base font-bold text-sky-200/60">
+              Missions for {country} are coming soon! 🚧
             </p>
           </div>
         )}

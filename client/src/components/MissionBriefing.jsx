@@ -1,213 +1,128 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { AGENT_AVATARS } from '../gameData'
 
+const GOLD = '#FFC93C'
+
+// Friendly per-scenario flavor: where you're headed, how long it takes, and how
+// tricky it is (1-5 stars). No more "classification" / spy redaction.
 const SCENARIO_META = {
-  'street-market':     { classification: 'RESTRICTED',  difficulty: 2, time: '8 min',  location: 'HUANGPU DISTRICT, SHANGHAI' },
-  'restaurant':        { classification: 'CONFIDENTIAL', difficulty: 2, time: '8 min',  location: "JING'AN, SHANGHAI" },
-  'train-station':     { classification: 'SECRET',       difficulty: 3, time: '10 min', location: 'SHANGHAI HONGQIAO STATION' },
-  'taxi-ride':         { classification: 'CONFIDENTIAL', difficulty: 2, time: '7 min',  location: 'PUDONG, SHANGHAI' },
-  'hotel-checkin':     { classification: 'RESTRICTED',   difficulty: 1, time: '6 min',  location: 'THE BUND, SHANGHAI' },
-  'newspaper-reading': { classification: 'TOP SECRET',   difficulty: 4, time: '12 min', location: 'FRENCH CONCESSION, SHANGHAI' },
-  'business-meeting':  { classification: 'TOP SECRET',   difficulty: 4, time: '15 min', location: 'LUJIAZUI FINANCIAL DISTRICT' },
-  'politician-speech': { classification: 'EYES ONLY',    difficulty: 5, time: '18 min', location: "PEOPLE'S SQUARE, SHANGHAI" },
+  'street-market':     { difficulty: 2, time: '8 min',  place: 'Huangpu Market, Shanghai' },
+  'restaurant':        { difficulty: 2, time: '8 min',  place: "Jing'an Bistro, Shanghai" },
+  'train-station':     { difficulty: 3, time: '10 min', place: 'Hongqiao Station, Shanghai' },
+  'taxi-ride':         { difficulty: 2, time: '7 min',  place: 'Pudong, Shanghai' },
+  'hotel-checkin':     { difficulty: 1, time: '6 min',  place: 'The Bund Hotel, Shanghai' },
+  'newspaper-reading': { difficulty: 4, time: '12 min', place: 'French Concession, Shanghai' },
+  'business-meeting':  { difficulty: 4, time: '15 min', place: 'Lujiazui, Shanghai' },
+  'politician-speech': { difficulty: 5, time: '18 min', place: "People's Square, Shanghai" },
 }
 
-function Stars({ count, max = 5 }) {
+function DifficultyStars({ count, max = 5 }) {
   return (
-    <span>
+    <span className="inline-flex gap-0.5">
       {Array.from({ length: max }, (_, i) => (
-        <span key={i} className={i < count ? 'text-[#C9A84C]' : 'text-[#3D2E0D]'}>★</span>
+        <span key={i} className={i < count ? 'text-[#FFC93C]' : 'text-slate-300'}>★</span>
       ))}
     </span>
   )
 }
 
-function TypewriterLine({ text, delay = 0, speed = 22, className = '' }) {
-  const [displayed, setDisplayed] = useState('')
-  const [started, setStarted] = useState(false)
-
-  useEffect(() => {
-    const t = setTimeout(() => setStarted(true), delay)
-    return () => clearTimeout(t)
-  }, [delay])
-
-  useEffect(() => {
-    if (!started) return
-    setDisplayed('')
-    let i = 0
-    const interval = setInterval(() => {
-      if (i < text.length) setDisplayed(text.slice(0, ++i))
-      else clearInterval(interval)
-    }, speed)
-    return () => clearInterval(interval)
-  }, [started, text, speed])
-
-  if (!started && !displayed) return <span className={className + ' opacity-0'}>|</span>
-
+function InfoChip({ icon, label, children }) {
   return (
-    <span className={className}>
-      {displayed}
-      {displayed.length < text.length && (
-        <span className="animate-pulse text-[#C9A84C]">▋</span>
-      )}
-    </span>
+    <div className="flex flex-col items-center gap-1 flex-1 rounded-2xl bg-[#EEF3FF] border-[3px] border-slate-200 px-3 py-3">
+      <span className="font-display text-[10px] font-extrabold uppercase tracking-wide text-slate-400">
+        {icon} {label}
+      </span>
+      <span className="font-display text-sm font-black text-slate-700 text-center leading-tight">
+        {children}
+      </span>
+    </div>
   )
 }
 
 export default function MissionBriefing({ scenario, country, onAccept, onCancel }) {
   const meta = SCENARIO_META[scenario.id] ?? {
-    classification: 'CLASSIFIED', difficulty: 3, time: '10 min', location: `${country.toUpperCase()} SECTOR`,
+    difficulty: 3, time: '10 min', place: `${country}`,
   }
-  const [showButton, setShowButton] = useState(false)
-  const [showStamp, setShowStamp] = useState(false)
-
-  const totalTypingMs = 200 + 6 * 400
+  const [show, setShow] = useState(false)
   useEffect(() => {
-    const t1 = setTimeout(() => setShowStamp(true), 350)
-    const t2 = setTimeout(() => setShowButton(true), totalTypingMs + 600)
-    return () => { clearTimeout(t1); clearTimeout(t2) }
-  }, [totalTypingMs])
-
-  const lines = [
-    { label: 'MISSION REF',    value: scenario.id.toUpperCase().replace(/-/g, '_'), delay: 0,    redact: false },
-    { label: 'CLASSIFICATION', value: meta.classification,                          delay: 400,  redact: false, highlight: true },
-    { label: 'LOCATION',       value: meta.location,                                delay: 800,  redact: true  },
-    { label: 'OBJECTIVE',      value: scenario.description,                         delay: 1200, redact: false },
-    { label: 'EST. DURATION',  value: meta.time,                                    delay: 1600, redact: false },
-    { label: 'THREAT LEVEL',   value: null,                                         delay: 2000, stars: meta.difficulty },
-  ]
+    const t = setTimeout(() => setShow(true), 60)
+    return () => clearTimeout(t)
+  }, [])
 
   const keyPhrases = (scenario.vocab ?? []).slice(0, 4)
+  const avatar = AGENT_AVATARS[country]
 
   return (
-    <div className="fixed inset-0 z-40 bg-[#080604] flex items-center justify-center animate-overlay-fade">
-      {/* Aged paper grain */}
-      <div
-        className="absolute inset-0 pointer-events-none opacity-[0.025]"
-        style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(201,168,76,0.1) 3px, rgba(201,168,76,0.1) 4px)' }}
-      />
-
-      {/* Coffee stain A */}
-      <div className="absolute pointer-events-none" style={{
-        top: '12%', right: '10%', width: '200px', height: '180px',
-        background: 'radial-gradient(ellipse, rgba(101,67,33,0.14) 0%, rgba(101,67,33,0.06) 45%, transparent 70%)',
-        borderRadius: '60% 40% 55% 45%',
-      }} />
-      {/* Coffee stain B */}
-      <div className="absolute pointer-events-none" style={{
-        bottom: '18%', left: '7%', width: '130px', height: '160px',
-        background: 'radial-gradient(ellipse, rgba(101,67,33,0.1) 0%, rgba(101,67,33,0.04) 45%, transparent 70%)',
-        borderRadius: '40% 60% 30% 70%',
-        transform: 'rotate(-20deg)',
-      }} />
-
-      {/* CLASSIFIED diagonal stamp */}
-      {showStamp && (
-        <div
-          className="absolute top-20 right-12 pointer-events-none animate-stamp"
-          style={{ transform: 'rotate(-18deg)', transformOrigin: 'center' }}
-        >
-          <div className="border-[3px] border-[#8B0000] px-6 py-2" style={{ opacity: 0.8 }}>
-            <span className="font-display text-xl font-black tracking-[0.35em] text-[#8B0000] uppercase">
-              Classified
-            </span>
-          </div>
-        </div>
-      )}
-
-      <div className="relative z-10 w-full max-w-2xl px-8 py-10">
-        {/* Header rule */}
-        <div className="flex items-center gap-4 mb-8 animate-fade-in-up">
-          <div className="flex-1 h-px bg-[#C9A84C]/20" />
-          <span className="font-mono text-[9px] font-bold tracking-[0.45em] text-[#C9A84C]/40">
-            Field Operations Dossier
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-[#0D1530]/80 backdrop-blur-sm animate-overlay-fade px-4">
+      <div className="animate-modal-pop relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-[2rem] bg-white border-4 border-slate-300 p-7 pt-12 shadow-[0_8px_0_0_rgba(200,200,200,1)]">
+        {/* Friendly banner ribbon */}
+        <div className="absolute -top-5 left-1/2 -translate-x-1/2 px-6 py-2 rounded-2xl bg-[#1CB0F6] border-4 border-white shadow-[0_4px_0_0_rgba(24,153,214,1)]">
+          <span className="font-display text-sm font-black uppercase tracking-wide text-white whitespace-nowrap">
+            ✨ Mission Overview
           </span>
-          <div className="flex-1 h-px bg-[#C9A84C]/20" />
         </div>
 
-        {/* Mission icon + title */}
-        <div className="flex items-center gap-4 mb-8 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-          <div className="w-16 h-16 rounded-2xl border-[2.5px] border-[#C9A84C]/25 flex items-center justify-center text-3xl bg-[#0A0805]">
-            {scenario.icon}
-          </div>
-          <div>
-            <p className="font-mono text-[9px] text-[#C9A84C]/35 tracking-widest uppercase mb-1">
-              {country} — Field Mission
-            </p>
-            <h1 className="font-display text-2xl font-bold text-[#F5F0E8] tracking-wider">
-              {scenario.title}
-            </h1>
-          </div>
+        {/* Agent avatar + title */}
+        <div className="flex flex-col items-center text-center mb-6">
+          {avatar && (
+            <img
+              src={avatar}
+              alt={`${country} guide`}
+              draggable="false"
+              className={'w-24 h-24 drop-shadow-2xl mb-2 ' + (show ? 'sackboy-bob' : '')}
+            />
+          )}
+          <span className="font-display text-[11px] font-extrabold uppercase tracking-wide text-[#1CB0F6]">
+            {country} Adventure
+          </span>
+          <h1 className="font-display text-2xl font-black text-slate-800 leading-tight mt-0.5 flex items-center gap-2">
+            <span>{scenario.icon}</span> {scenario.title}
+          </h1>
+          <p className="font-display text-sm font-semibold text-slate-500 mt-2 max-w-sm">
+            {scenario.description}
+          </p>
         </div>
 
-        {/* Typewriter data lines */}
-        <div className="space-y-2.5 mb-8 font-mono">
-          {lines.map((line, i) => (
-            <div key={i} className="flex gap-3 text-sm leading-relaxed border-b border-[#C9A84C]/[0.06] pb-2.5">
-              <span className="text-[#C9A84C]/30 shrink-0 w-36 text-[9px] tracking-widest uppercase pt-0.5">
-                {line.label}
-              </span>
-              <span className="text-[#C9A84C]/30 text-xs">|</span>
-              {line.stars ? (
-                <span className="transition-opacity duration-500" style={{ opacity: showButton ? 1 : 0 }}>
-                  <Stars count={line.stars} />
-                </span>
-              ) : (
-                <TypewriterLine
-                  text={line.value ?? ''}
-                  delay={line.delay}
-                  className={'font-medium ' + (line.highlight ? 'text-[#8B0000] font-bold tracking-widest' : 'text-[#D4C9A8]/80')}
-                />
-              )}
-            </div>
-          ))}
+        {/* Info chips */}
+        <div className="flex gap-3 mb-6">
+          <InfoChip icon="📍" label="Where">{meta.place}</InfoChip>
+          <InfoChip icon="⏱️" label="Time">{meta.time}</InfoChip>
+          <InfoChip icon="⭐" label="Level"><DifficultyStars count={meta.difficulty} /></InfoChip>
         </div>
 
-        {/* Key phrases panel */}
+        {/* Key phrases */}
         {keyPhrases.length > 0 && (
-          <div
-            className="mb-8 border border-[#C9A84C]/15 bg-[#0A0805] p-4 animate-fade-in-up"
-            style={{ animationDelay: '2.4s' }}
-          >
-            <p className="font-mono text-[8px] text-[#C9A84C]/30 tracking-widest uppercase mb-3">
-              Operational Vocabulary
+          <div className="rounded-3xl bg-[#F4F7FF] border-[3px] border-slate-200 p-4 mb-7">
+            <p className="font-display text-[11px] font-extrabold uppercase tracking-wide text-slate-400 mb-3">
+              🎒 Phrases you'll pack
             </p>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2.5">
               {keyPhrases.map((word, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <span className="text-[#C9A84C]/25 font-mono text-xs">›</span>
-                  <span className="font-mono text-xs text-[#8B7355]">{word.en}</span>
-                  <span className="font-display text-sm text-[#C9A84C] ml-1">{word.native ?? word.zh}</span>
+                <div key={i} className="flex items-center justify-between gap-2 rounded-2xl bg-white border-2 border-slate-200 px-3 py-2">
+                  <span className="font-display text-xs font-semibold text-slate-500 truncate">{word.en}</span>
+                  <span className="font-display text-base font-black text-slate-800 shrink-0">{word.native ?? word.zh}</span>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* Action buttons */}
-        <div className={'flex gap-4 transition-all duration-500 ' + (showButton ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4')}>
+        {/* Actions */}
+        <div className="flex gap-3">
           <button
             type="button"
             onClick={onCancel}
-            className="btn-chunky flex-1 py-3.5 rounded-2xl bg-transparent border-[2.5px] border-[#3D2E0D] hover:border-[#C9A84C]/30 font-display text-sm font-bold text-[#5A4A2A] hover:text-[#C9A84C]/55 uppercase tracking-widest"
+            className="flex-1 py-3.5 rounded-2xl bg-white border-4 border-slate-300 font-display font-extrabold text-sm uppercase tracking-wide text-slate-500 shadow-[0_4px_0_0_rgba(203,213,225,1)] hover:-translate-y-0.5 active:translate-y-0.5 active:shadow-[0_1px_0_0_rgba(203,213,225,1)] transition-all"
           >
-            Decline
+            Maybe Later
           </button>
           <button
             type="button"
             onClick={onAccept}
-            className="btn-chunky flex-[2] py-3.5 rounded-2xl bg-[#8B0000]/15 border-[2.5px] border-[#8B0000]/55 hover:bg-[#8B0000]/25 font-display font-bold text-[#F5F0E8] uppercase tracking-widest animate-mission-glow"
+            className="flex-[2] py-3.5 rounded-2xl bg-[#58CC02] text-white border-4 border-[#46A302] font-display font-black text-base uppercase tracking-wide shadow-[0_5px_0_0_#3E8E00] hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0.5 active:shadow-[0_2px_0_0_#3E8E00] transition-all"
           >
-            Accept Mission
+            Let's Go! →
           </button>
-        </div>
-
-        {/* Footer */}
-        <div className="flex items-center gap-4 mt-8 animate-fade-in-up" style={{ animationDelay: '2.6s' }}>
-          <div className="flex-1 h-px bg-[#C9A84C]/10" />
-          <span className="font-mono text-[8px] text-[#C9A84C]/18 tracking-widest">
-            UNAUTHORIZED ACCESS IS PROHIBITED
-          </span>
-          <div className="flex-1 h-px bg-[#C9A84C]/10" />
         </div>
       </div>
     </div>
