@@ -80,6 +80,12 @@ function App() {
     return true
   }
 
+  const scenarioIdsForCountry = (countryName) => {
+    const regular = scenariosByCountry?.[countryName]?.map((s) => s.id) ?? []
+    const special = specialScenarioByCountry?.[countryName]?.id
+    return special ? [...regular, special] : regular
+  }
+
   if (completionCountry) {
     const flag = countries.find((c) => c.name === completionCountry)?.flag ?? ''
     return (
@@ -89,9 +95,10 @@ function App() {
         character={characters[completionCountry]}
         rewardTokens={rewardTokens}
         onReturn={async () => {
+          const code = completionCountry.toLowerCase()
           setCompletionCountry(null);
           setSelectedCountry(null);
-          await profile.awardTokens(rewardTokens)
+          await profile.claimCountryReward(code)
         }}
       />
     )
@@ -108,8 +115,7 @@ function App() {
           setActiveScenario(null);
 
           if (selectedCountry) {
-            const allScenarios = scenariosByCountry[selectedCountry] || [];
-            const allIds = allScenarios.map(s => s.id);
+            const allIds = scenarioIdsForCountry(selectedCountry)
             const completedAfter = result?.completed && result?.id
               ? [...profile.completedScenarios, result.id]
               : profile.completedScenarios

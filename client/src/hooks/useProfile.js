@@ -22,8 +22,7 @@ export function useProfile() {
       supabase
         .from('profiles')
         .select(`
-          user_id, tokens, experience_points, level_id, rank_id,
-          level:levels!profiles_level_id_fkey(id, code, name, minimum_xp, display_order),
+          user_id, tokens, experience_points, rank_id,
           rank:ranks!profiles_rank_id_fkey(id, code, name, minimum_xp, display_order)
         `)
         .eq('user_id', sessionUser.id)
@@ -106,7 +105,8 @@ export function useProfile() {
       p_country_code: countryCode,
       p_cost: cost,
     })
-    if (error) { console.error('Unable to unlock country:', error.message); return null }
+    if (error) { setAuthError(error.message); console.error('Unable to unlock country:', error.message); return null }
+    setAuthError('')
     setProfile((current) => current ? { ...current, tokens: data.tokens } : current)
     setUnlockedCountries(data.unlockedCountries ?? [])
     return data
@@ -148,11 +148,12 @@ export function useProfile() {
     return true
   }, [loadGameState, user])
 
+  const levelNumber = unlockedCountries.length
   return {
     user,
     profile,
     tokens: profile?.tokens ?? 0,
-    level: profile?.level ?? null,
+    level: { display_order: levelNumber, name: `Level ${levelNumber}` },
     rank: profile?.rank ?? null,
     unlockedCountries,
     completedScenarios,

@@ -231,16 +231,19 @@ export default function ScenariosPage({ country = 'China', flag = '', completedS
               />
             )
           })}
-          {specialScenario && (
-            <ScenarioCard
-              scenario={specialScenario}
-              index={scenarios.length}
-              unlocked={allCompleted}
-              progress={allCompleted ? 0 : 0}
-              completed={false}
-              onClick={() => handleCardClick(specialScenario, allCompleted)}
-            />
-          )}
+          {specialScenario && (() => {
+            const specialDone = completedScenarios.includes(specialScenario.id)
+            return (
+              <ScenarioCard
+                scenario={specialScenario}
+                index={scenarios.length}
+                unlocked={allCompleted}
+                progress={specialDone ? 100 : 0}
+                completed={specialDone}
+                onClick={() => handleCardClick(specialScenario, allCompleted && !specialDone)}
+              />
+            )
+          })()}
         </div>
       </main>
 
