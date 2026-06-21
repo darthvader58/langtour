@@ -9,3 +9,30 @@ body,
   height: 100%;
   background: #05060a;
 }
+
+body {
+  font-family: 'Outfit', 'Space Grotesk', system-ui, sans-serif;
+}
+
+.font-display {
+  font-family: 'Space Grotesk', 'Outfit', system-ui, sans-serif;
+}
+
+@keyframes gradient-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}
+
+.text-gradient-animated {
+  background: linear-gradient(90deg, #5eead4, #818cf8, #f472b6, #5eead4);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: gradient-flow 6s linear infinite;
+}
