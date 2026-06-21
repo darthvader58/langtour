@@ -9,6 +9,14 @@ const DIVE_DURATION_MS = 750
 const GLOBE_RADIUS = 2
 const EARTH_SPIN_SPEED = 0.0009
 const CLOUD_SPIN_SPEED = 0.0015
+const FLAG_CODE_BY_COUNTRY = {
+  China: 'cn',
+  India: 'in',
+  France: 'fr',
+  Mexico: 'mx',
+  Egypt: 'eg',
+  Brazil: 'br',
+}
 
 function createToyboxGlobeTexture() {
   const width = 1536
@@ -119,23 +127,6 @@ function latLngToDirection(lat, lng) {
   )
 }
 
-function createFlagTexture(flag) {
-  const size = 256
-  const canvas = document.createElement('canvas')
-  canvas.width = size
-  canvas.height = size
-  const ctx = canvas.getContext('2d')
-  ctx.shadowColor = 'rgba(0,0,0,.45)'
-  ctx.shadowBlur = 22
-  ctx.font = '156px "Apple Color Emoji", "Segoe UI Emoji", sans-serif'
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-  ctx.fillText(flag, size / 2, size / 2 + 5)
-  const texture = new THREE.CanvasTexture(canvas)
-  texture.colorSpace = THREE.SRGBColorSpace
-  return texture
-}
-
 function createStarField() {
   const starCount = 1800
   const positions = new Float32Array(starCount * 3)
@@ -170,19 +161,7 @@ function createCountryMarker(country) {
   )
   group.add(hitMesh)
 
-  const flagSprite = new THREE.Sprite(
-    new THREE.SpriteMaterial({
-      map: createFlagTexture(country.flag),
-      transparent: true,
-      depthWrite: false,
-    }),
-  )
-  flagSprite.scale.set(0.56, 0.56, 1)
-  flagSprite.position.copy(direction.clone().multiplyScalar(0.09))
-  flagSprite.visible = false
-  group.add(flagSprite)
-
-  return { group, hitMesh, flagSprite }
+  return { group, hitMesh }
 }
 
 function LockIcon() {
@@ -289,6 +268,20 @@ export default function LandingPage({ tokens, unlockedCountries, glowCountry, le
     renderer.toneMapping = THREE.ACESFilmicToneMapping
     renderer.toneMappingExposure = 1.08
     mount.appendChild(renderer.domElement)
+
+    const flagLabel = document.createElement('img')
+    Object.assign(flagLabel.style, {
+      position: 'absolute',
+      zIndex: '5',
+      display: 'none',
+      pointerEvents: 'none',
+      transform: 'translate(-50%, -115%)',
+      width: '46px',
+      height: 'auto',
+      borderRadius: '4px',
+      filter: 'drop-shadow(0 8px 10px rgba(0,0,0,.55))',
+    })
+    mount.appendChild(flagLabel)
 
     const controls = new OrbitControls(camera, renderer.domElement)
     controls.enableDamping = true
@@ -412,12 +405,34 @@ export default function LandingPage({ tokens, unlockedCountries, glowCountry, le
     }
 
     function handlePointerMove(event) {
-      if (travel || dive) return
+      if (travel || dive) {
+        flagLabel.style.display = 'none'
+        return
+      }
       updatePointer(event)
       raycaster.setFromCamera(pointerNdc, camera)
       const intersects = raycaster.intersectObjects(hitMeshes)
       hoveredMarker = intersects.length > 0 ? intersects[0].object : null
       renderer.domElement.style.cursor = hoveredMarker ? 'pointer' : 'auto'
+      const marker = hoveredMarker ? markers.find((item) => item.hitMesh === hoveredMarker) : null
+      if (marker) {
+        const rect = renderer.domElement.getBoundingClientRect()
+        const flagCode = FLAG_CODE_BY_COUNTRY[marker.country.name] ?? marker.country.code
+        const flagUrl = `https://flagcdn.com/${flagCode}.svg`
+        if (flagLabel.src !== flagUrl) flagLabel.src = flagUrl
+        flagLabel.alt = `${marker.country.name} flag`
+        flagLabel.style.left = `${event.clientX - rect.left}px`
+        flagLabel.style.top = `${event.clientY - rect.top}px`
+        flagLabel.style.display = 'block'
+      } else {
+        flagLabel.style.display = 'none'
+      }
+    }
+
+    function handlePointerLeave() {
+      hoveredMarker = null
+      flagLabel.style.display = 'none'
+      renderer.domElement.style.cursor = 'auto'
     }
 
     function handleClick(event) {
@@ -433,6 +448,7 @@ export default function LandingPage({ tokens, unlockedCountries, glowCountry, le
     }
 
     renderer.domElement.addEventListener('pointermove', handlePointerMove)
+    renderer.domElement.addEventListener('pointerleave', handlePointerLeave)
     renderer.domElement.addEventListener('click', handleClick)
 
     let travel = null
@@ -539,12 +555,6 @@ export default function LandingPage({ tokens, unlockedCountries, glowCountry, le
       planeAngle += 0.0032
       orbitPlane.position.set(Math.cos(planeAngle) * 2.72, 0, Math.sin(planeAngle) * 2.72)
       orbitPlane.rotation.y = -planeAngle + Math.PI / 2
-      markers.forEach(({ flagSprite, hitMesh }) => {
-        const isHovered = hoveredMarker === hitMesh;
-        flagSprite.visible = isHovered
-        if (isHovered) flagSprite.scale.setScalar(0.56 + Math.sin(t * 4) * 0.025)
-      })
-
       if (travel) stepTravel(performance.now())
       if (dive) stepDive(performance.now())
       if (!travel && !dive) controls.update()
@@ -557,6 +567,7 @@ export default function LandingPage({ tokens, unlockedCountries, glowCountry, le
       cancelAnimationFrame(frameId)
       window.removeEventListener('resize', handleResize)
       renderer.domElement.removeEventListener('pointermove', handlePointerMove)
+      renderer.domElement.removeEventListener('pointerleave', handlePointerLeave)
       renderer.domElement.removeEventListener('click', handleClick)
       controls.dispose()
       renderer.dispose()
@@ -570,6 +581,7 @@ export default function LandingPage({ tokens, unlockedCountries, glowCountry, le
       })
       atmosphereGeometry.dispose()
       atmosphereMaterial.dispose()
+      mount.removeChild(flagLabel)
       mount.removeChild(renderer.domElement)
     }
   }, [countries])
