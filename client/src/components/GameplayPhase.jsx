@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import MicrophoneRecorder from './MicrophoneRecorder';
-import { API } from '../api';
+import { authFetch } from '../api';
 
 export default function GameplayPhase({ scenario, targetWords, onEndScenario }) {
   const [state, setState] = useState('generating'); // generating, npc_turn, user_turn, evaluating, feedback, scenario_complete
@@ -17,7 +17,7 @@ export default function GameplayPhase({ scenario, targetWords, onEndScenario }) 
 
     async function generateNpcLine() {
       try {
-        const response = await fetch(`${API}/api/scenario/generate`, {
+        const response = await authFetch(`/api/scenario/generate`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -54,7 +54,7 @@ export default function GameplayPhase({ scenario, targetWords, onEndScenario }) 
     setState('evaluating');
 
     try {
-      const response = await fetch(`${API}/api/scenario/evaluate`, {
+      const response = await authFetch(`/api/scenario/evaluate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

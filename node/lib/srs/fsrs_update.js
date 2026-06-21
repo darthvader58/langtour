@@ -1,12 +1,11 @@
 import fsrsJs from 'fsrs.js';
-import { getWordsByIds, insertReviewLog, updateWord } from '../db/db.js';
+import { getUserWordProgress, insertReviewLog, upsertUserWordProgress } from '../db/db.js';
 
 const { FSRS, Card } = fsrsJs;
 const fsrs = new FSRS();
 
-export async function updateWordFSRS(wordId, ratingValue) {
-  const [row] = await getWordsByIds([wordId]);
-  if (!row) return null;
+export async function updateWordFSRS(userId, wordId, ratingValue) {
+  const row = await getUserWordProgress(userId, wordId);
 
   const card = new Card();
   card.state = row.state;
@@ -21,7 +20,7 @@ export async function updateWordFSRS(wordId, ratingValue) {
   if (!scheduled) throw new Error('Invalid FSRS rating');
 
   const newCard = scheduled.card;
-  await updateWord(wordId, {
+  await upsertUserWordProgress(userId, wordId, {
     state: newCard.state,
     stability: newCard.stability,
     difficulty: newCard.difficulty,
@@ -30,6 +29,7 @@ export async function updateWordFSRS(wordId, ratingValue) {
     last_review_at: now.toISOString(),
   });
   await insertReviewLog({
+    user_id: userId,
     word_id: wordId,
     rating: ratingValue,
     state: scheduled.review_log.state,

@@ -93,6 +93,36 @@ export async function initializeDatabase() {
     assertResult(await db.from('game_scenarios').insert(scenarioRows), 'Seed scenarios');
     assertResult(await db.from('game_scenario_vocabulary').insert(vocabularyRows), 'Seed scenario vocabulary');
   }
+
+  // Keep scenario_catalog (used by per-user completion + reward claim RPCs) in
+  // sync with the gameplay catalog, including special scenarios. Without this
+  // the special couldn't be marked complete because of its FK.
+  assertResult(
+    await db.from('scenario_catalog').upsert(
+      scenarioRows.map((row) => ({ country_code: row.country_code, scenario_id: row.id })),
+      { onConflict: 'country_code,scenario_id', ignoreDuplicates: true },
+    ),
+    'Seed scenario catalog',
+  );
+
+  // Country reward thresholds derive from the actual scenario count per country
+  // (regular + special) so adding scenarios doesn't require schema edits.
+  const requiredByCountry = new Map();
+  for (const row of scenarioRows) {
+    requiredByCountry.set(row.country_code, (requiredByCountry.get(row.country_code) ?? 0) + 1);
+  }
+  assertResult(
+    await db.from('country_rewards').upsert(
+      [...requiredByCountry.entries()].map(([code, required]) => ({
+        country_code: code,
+        required_scenarios: required,
+        token_reward: REWARD_TOKENS,
+      })),
+      { onConflict: 'country_code' },
+    ),
+    'Sync country rewards',
+  );
+
   assertResult(await db.from('game_settings').upsert([
     { key: 'unlock_cost', value: UNLOCK_COST },
     { key: 'reward_tokens', value: REWARD_TOKENS },
@@ -159,26 +189,62 @@ export async function getCatalog() {
   };
 }
 
-export async function getWordsByIds(ids) {
-  if (!ids?.length) return [];
-  return assertResult(await db.from('learning_words').select('*').in('id', ids).order('id'), 'Load words by id');
-}
-
 export async function getWordByExpression(expression) {
   return assertResult(await db.from('learning_words').select('*').eq('expression', expression).maybeSingle(), 'Load word');
 }
 
-export async function listWords(filters = {}) {
-  let query = db.from('learning_words').select(filters.columns ?? '*');
-  if (filters.repsGt != null) query = query.gt('reps', filters.repsGt);
-  if (filters.repsEq != null) query = query.eq('reps', filters.repsEq);
-  if (filters.stabilityGte != null) query = query.gte('stability', filters.stabilityGte);
-  query = query.order('id');
-  return assertResult(await query, 'Load words');
+// Load every word in the catalog merged with the current user's FSRS progress.
+// Rows without progress fall back to zero/null defaults. Filters are applied in
+// memory because the underlying tables live in different relations.
+export async function listUserWords(userId, filters = {}) {
+  const [wordsResult, progressResult] = await Promise.all([
+    db.from('learning_words').select(filters.columns ?? '*').order('id'),
+    db.from('learning_user_word_progress')
+      .select('word_id,state,stability,difficulty,lapses,reps,last_review_at')
+      .eq('user_id', userId),
+  ]);
+  const words = assertResult(wordsResult, 'Load words');
+  const progress = assertResult(progressResult, 'Load user word progress');
+  const progressByWordId = new Map(progress.map((row) => [row.word_id, row]));
+
+  const merged = words.map((word) => {
+    const p = progressByWordId.get(word.id);
+    return {
+      ...word,
+      state: p?.state ?? 0,
+      stability: p?.stability ?? 0,
+      difficulty: p?.difficulty ?? 0,
+      lapses: p?.lapses ?? 0,
+      reps: p?.reps ?? 0,
+      last_review_at: p?.last_review_at ?? null,
+    };
+  });
+
+  return merged.filter((w) => {
+    if (filters.repsGt != null && !(w.reps > filters.repsGt)) return false;
+    if (filters.repsEq != null && w.reps !== filters.repsEq) return false;
+    if (filters.stabilityGte != null && !(w.stability >= filters.stabilityGte)) return false;
+    return true;
+  });
 }
 
-export async function updateWord(wordId, values) {
-  assertResult(await db.from('learning_words').update(values).eq('id', wordId), 'Update word');
+export async function getUserWordProgress(userId, wordId) {
+  const result = await db.from('learning_user_word_progress')
+    .select('state,stability,difficulty,lapses,reps,last_review_at')
+    .eq('user_id', userId)
+    .eq('word_id', wordId)
+    .maybeSingle();
+  if (result.error) throw new Error(`Load user word progress: ${result.error.message}`);
+  return result.data ?? { state: 0, stability: 0, difficulty: 0, lapses: 0, reps: 0, last_review_at: null };
+}
+
+export async function upsertUserWordProgress(userId, wordId, values) {
+  assertResult(await db.from('learning_user_word_progress').upsert({
+    user_id: userId,
+    word_id: wordId,
+    ...values,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'user_id,word_id' }), 'Upsert user word progress');
 }
 
 export async function insertReviewLog(values) {

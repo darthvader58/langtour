@@ -7,8 +7,7 @@ const google = createGoogleGenerativeAI({
 });
 import {
   getAllWordEmbeddings,
-  getWordEmbeddingRow,
-  listWords,
+  listUserWords,
   saveWordEmbedding,
 } from '../db/db.js';
 import { retrievability, reviewPriority } from '../srs/fsrs_metrics.js';
@@ -35,15 +34,14 @@ export async function generateEmbedding(text) {
   return embedding;
 }
 
-// Get or create embedding for a word
-export async function getWordEmbedding(wordId, text) {
-  const row = await getWordEmbeddingRow(wordId);
-  if (row) {
-    return row.embedding;
-  }
-  
-  const embedding = await generateEmbedding(text);
-  await saveWordEmbedding(wordId, embedding);
+// Scenario topic strings repeat across players and turns; the Gemini call is the
+// slowest hop on the discovery path, so we memoize the result in-process.
+const scenarioEmbeddingCache = new Map();
+async function getScenarioEmbedding(topic) {
+  const cached = scenarioEmbeddingCache.get(topic);
+  if (cached) return cached;
+  const embedding = await generateEmbedding(topic);
+  scenarioEmbeddingCache.set(topic, embedding);
   return embedding;
 }
 
@@ -61,50 +59,48 @@ export async function loadAllEmbeddings() {
  * Discovery Algorithm:
  * Mixes "due" review words with "new" words via Intersection Filter.
  */
-export async function getDiscoveryWords(scenarioTopic, limit = 4) {
-  // 1. Due filter for known words
-  const knownWordsRows = await listWords({ repsGt: 0 });
-  
+export async function getDiscoveryWords(userId, scenarioTopic, limit = 4) {
+  // Load the user's full word view, the scenario embedding, and all cached
+  // word embeddings concurrently — the per-user word view is two round trips,
+  // so the three filtered lists below all reuse the same fetch.
+  const [allUserWords, scenarioEmbedding, allEmbeddings] = await Promise.all([
+    listUserWords(userId),
+    getScenarioEmbedding(scenarioTopic),
+    loadAllEmbeddings(),
+  ]);
+
+  const knownWordsRows = allUserWords.filter((w) => w.reps > 0);
   const dueWords = knownWordsRows
-    .map(w => {
-      const r = retrievability({ 
-        stability: w.stability, 
-        last_review_at: w.last_review_at 
-      });
+    .map((w) => {
+      const r = retrievability({ stability: w.stability, last_review_at: w.last_review_at });
       return { ...w, r, priority: reviewPriority({ retrievability: r, difficulty: w.difficulty, lapses: w.lapses }) };
     })
-    .filter(w => w.r < 0.9)
+    .filter((w) => w.r < 0.9)
     .sort((a, b) => b.priority - a.priority);
 
-  // Take up to 2 due words
   const selectedDue = dueWords.slice(0, 2);
   const remainingSlots = limit - selectedDue.length;
 
-  const sanitize = w => { delete w.r; delete w.priority; return w; };
+  const sanitize = (w) => { delete w.r; delete w.priority; return w; };
   if (remainingSlots <= 0) return selectedDue.map(sanitize);
 
-  // 2. Intersection filter for new words
-  const scenarioEmbedding = await generateEmbedding(scenarioTopic);
-  
-  // Identify user's known anchors (high stability words)
-  const anchorWords = await listWords({ stabilityGte: 2, columns: 'id,expression,meaning' });
-  
-  const unknownWords = await listWords({ repsEq: 0 });
-  
+  const anchorWords = allUserWords.filter((w) => w.stability >= 2);
+  const unknownWords = allUserWords.filter((w) => w.reps === 0);
   if (unknownWords.length === 0) {
     return selectedDue.map(sanitize);
   }
-  
-  // Ensure we have embeddings for unknown words
-  for (const word of unknownWords) {
-    await getWordEmbedding(word.id, `${word.expression} (${word.meaning})`);
+
+  // Fill any holes for words missing an embedding, generating in parallel so the
+  // Gemini calls overlap instead of serializing.
+  const missing = [...unknownWords, ...anchorWords].filter(w => !allEmbeddings.has(w.id));
+  if (missing.length > 0) {
+    await Promise.all(missing.map(async (word) => {
+      const embedding = await generateEmbedding(`${word.expression} (${word.meaning})`);
+      allEmbeddings.set(word.id, embedding);
+      await saveWordEmbedding(word.id, embedding);
+    }));
   }
-  // Ensure we have embeddings for known anchor words
-  for (const word of anchorWords) {
-    await getWordEmbedding(word.id, `${word.expression} (${word.meaning})`);
-  }
-  
-  const allEmbeddings = await loadAllEmbeddings();
+
   const anchorEmbeddings = anchorWords.map(w => allEmbeddings.get(w.id)).filter(Boolean);
   
   const candidates = [];
