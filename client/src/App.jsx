@@ -111,6 +111,7 @@ function App() {
       <ScenarioRunner
         scenario={activeScenario}
         langCode={langCode}
+        country={selectedCountry}
         onEndScenario={async (result) => {
           if (result?.completed && result?.id && !profile.completedScenarios.includes(result.id) && selectedCountry) {
             await profile.completeScenario(selectedCountry.toLowerCase(), result.id)
@@ -164,6 +165,7 @@ function App() {
            rank={profile.rank}
            auth={profile}
            countries={countries}
+           characters={characters}
            unlockCost={unlockCost}
            onUnlockCountry={handleUnlockCountry}
            onCountrySelect={(country) => {

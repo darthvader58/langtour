@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { getCountryTheme, getCountryThemeStyle } from '../countryTheme';
 
-export default function VisualCluster({ targetWords }) {
+export default function VisualCluster({ targetWords, country }) {
   const mountRef = useRef(null);
 
   useEffect(() => {
@@ -32,8 +33,8 @@ export default function VisualCluster({ targetWords }) {
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     
     const material = new THREE.PointsMaterial({ 
-      color: 0x1CB0F6, 
-      size: 0.15, 
+      color: new THREE.Color(getCountryTheme(country).accent),
+      size: 0.13,
       transparent: true, 
       opacity: 0.7,
       blending: THREE.AdditiveBlending
@@ -74,27 +75,31 @@ export default function VisualCluster({ targetWords }) {
         mount.removeChild(renderer.domElement);
       }
     };
-  }, []);
+  }, [country]);
 
   return (
-    <div className="w-full h-full relative bg-[#0F1418] flex flex-col items-center justify-center overflow-hidden">
+    <div style={getCountryThemeStyle(country)} className="relative flex min-h-dvh w-full flex-col items-center justify-center overflow-hidden bg-[#07101d] p-3 sm:p-6">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(91,135,170,.055)_1px,transparent_1px),linear-gradient(90deg,rgba(91,135,170,.055)_1px,transparent_1px)] bg-[size:72px_72px]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(30,100,145,.24),transparent_42%),radial-gradient(circle_at_25%_80%,rgba(255,154,77,.1),transparent_32%)]" />
       <div ref={mountRef} className="absolute inset-0 z-0" />
-      <div className="z-10 flex flex-col items-center animate-fade-in-up bg-black/40 px-8 py-6 rounded-3xl backdrop-blur-sm border-2 border-[#37464F]">
-        <div className="w-16 h-16 mb-4 relative">
-          <div className="absolute inset-0 rounded-full border-4 border-[#1F2937]"></div>
-          <div className="absolute inset-0 rounded-full border-4 border-[#1CB0F6] border-t-transparent animate-spin"></div>
+      <div className="z-10 flex w-[31rem] max-w-full flex-col items-center rounded-[1.5rem] border border-white/10 bg-[#0b1727]/88 px-5 py-6 shadow-[0_30px_100px_rgba(0,0,0,.5)] backdrop-blur-xl animate-fade-in-up sm:rounded-[2rem] sm:px-10 sm:py-9 [@media(max-height:600px)]:py-4">
+        <p className="mb-4 font-display text-[8px] font-extrabold uppercase tracking-[.28em] text-[var(--accent)] sm:mb-6 sm:text-[9px] sm:tracking-[.35em]">Mission systems</p>
+        <div className="relative mb-4 h-20 w-20 sm:mb-6 sm:h-24 sm:w-24 [@media(max-height:600px)]:h-16 [@media(max-height:600px)]:w-16">
+          <div className="absolute inset-0 rotate-12 rounded-[1.75rem] border border-[var(--accent-25)] bg-[#07101d] shadow-inner" />
+          <div className="absolute inset-3 rounded-2xl border-2 border-[var(--accent)] border-t-transparent animate-spin" />
+          <div className="absolute inset-0 flex items-center justify-center"><span className="h-3 w-3 rounded-full bg-[var(--accent)]" /></div>
         </div>
-        <h2 className="text-2xl font-display font-extrabold text-white mb-2 text-center">
+        <h2 className="mb-2 text-center font-display text-xl font-extrabold text-white sm:text-2xl">
           {targetWords.length > 0 ? "Vocab Found!" : "Discovering Optimal Vocab..."}
         </h2>
-        <div className="text-xs font-bold text-[#1CB0F6] uppercase tracking-[0.2em] animate-pulse">
+        <div className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.22em] animate-pulse">
           {targetWords.length > 0 ? "Preparing scenario" : "Intersecting Semantic Clusters"}
         </div>
         
         {targetWords.length > 0 && (
           <div className="mt-6 flex flex-wrap gap-2 justify-center">
-            {targetWords.map(w => (
-              <span key={w.en} className="bg-[#1F2937] text-gray-300 px-3 py-1 rounded-full text-sm font-bold border border-[#37464F]">
+            {targetWords.map((w, index) => (
+              <span key={`${w.expression ?? w.zh}-${index}`} className="rounded-xl border border-[var(--accent-20)] bg-[var(--accent-10)] px-3 py-1.5 text-sm font-bold text-[var(--accent-soft)]">
                 {w.zh}
               </span>
             ))}

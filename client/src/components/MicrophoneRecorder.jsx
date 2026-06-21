@@ -143,10 +143,10 @@ export default function MicrophoneRecorder({ onRecordingComplete, disabled, lang
   };
 
   return (
-    <div className="flex flex-col items-center gap-4 w-full mt-4">
-      <div className="h-10 flex items-end justify-center w-full px-4 overflow-hidden">
+    <div className="mt-1 flex w-full flex-col items-center gap-1 rounded-[1.4rem] border border-white/10 bg-[#0b1727]/90 px-4 py-3 shadow-[0_18px_55px_rgba(0,0,0,.3)] sm:mt-2 sm:gap-3 sm:rounded-[1.75rem] sm:px-6 sm:py-5 [@media(max-height:650px)]:py-2">
+      <div className="flex h-7 w-full items-end justify-center overflow-hidden px-2 sm:h-10 sm:px-4">
         {status === 'recording' && (
-          <span className="text-[#1CB0F6] font-display font-bold text-xl truncate animate-pulse">
+          <span className="truncate font-display text-xl font-bold text-[var(--accent-soft)] animate-pulse">
             {liveText || "Listening..."}
           </span>
         )}
@@ -162,11 +162,11 @@ export default function MicrophoneRecorder({ onRecordingComplete, disabled, lang
         )}
       </div>
 
-      <div className="relative flex items-center justify-center w-28 h-28">
+      <div className="relative flex h-24 w-24 items-center justify-center sm:h-32 sm:w-32 [@media(max-height:650px)]:h-20 [@media(max-height:650px)]:w-20">
         {isRecording && (
           <>
-            <div className="absolute inset-0 rounded-full bg-[#1CB0F6] animate-ping opacity-30"></div>
-            <div className="absolute inset-2 rounded-full bg-[#1CB0F6] animate-ping opacity-40" style={{ animationDelay: '0.2s' }}></div>
+            <div className="absolute inset-0 rounded-[2.4rem] bg-[var(--accent)] animate-ping opacity-20"></div>
+            <div className="absolute inset-3 rounded-[2rem] bg-[var(--accent)] animate-ping opacity-25" style={{ animationDelay: '0.2s' }}></div>
           </>
         )}
         <button
@@ -176,19 +176,19 @@ export default function MicrophoneRecorder({ onRecordingComplete, disabled, lang
           onTouchStart={() => startRecording()}
           onTouchEnd={() => stopRecording()}
           disabled={disabled || status === 'transcribing' || status === 'initializing'}
-          className={`relative w-20 h-20 rounded-full flex items-center justify-center transition-all touch-none ${
+          className={`relative flex h-20 w-20 touch-none items-center justify-center rounded-[1.6rem] border transition-all sm:h-24 sm:w-24 sm:rounded-[2rem] [@media(max-height:650px)]:h-16 [@media(max-height:650px)]:w-16 ${
             disabled ? 'bg-[#37464F] opacity-50 cursor-not-allowed' :
             isRecording 
-              ? 'bg-[#1CB0F6] shadow-[0_0_20px_rgba(109, 33, 255,0.6)] scale-110' 
-              : 'bg-[#1F2937] border-2 border-[#37464F] border-b-4 hover:bg-[#28323c] active:border-b-2 active:translate-y-0.5'
+              ? 'border-[var(--accent-55)] bg-[var(--accent)] scale-105'
+              : 'border-[var(--accent-30)] bg-[#07101d] shadow-inner hover:bg-[#102239] active:translate-y-0.5'
           }`}
         >
-          <svg className={`w-8 h-8 ${isRecording ? 'text-white' : 'text-[#1CB0F6]'}`} fill="currentColor" viewBox="0 0 20 20">
+          <svg className={`w-9 h-9 ${isRecording ? 'text-[var(--accent-ink)]' : 'text-[var(--accent-soft)]'}`} fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd" />
           </svg>
         </button>
       </div>
-      <span className="text-gray-500 font-bold text-xs uppercase tracking-widest mt-2">
+      <span className="mt-1 font-display text-[10px] font-extrabold uppercase tracking-[.25em] text-slate-500">
         {isRecording ? 'Release to Send' : 'Hold to Speak'}
       </span>
     </div>

@@ -3,13 +3,14 @@ import { authFetch } from '../api';
 import VisualCluster from './VisualCluster';
 import InputPhase from './InputPhase';
 import GameplayPhase from './GameplayPhase';
+import { getCountryThemeStyle } from '../countryTheme';
 
-export default function ScenarioRunner({ scenario, langCode, onEndScenario }) {
+export default function ScenarioRunner({ scenario, langCode, country, onEndScenario }) {
   const [phase, setPhase] = useState('loading'); // loading -> input -> gameplay
   const [targetWords, setTargetWords] = useState([]);
 
   useEffect(() => {
-    // 1. Fetch optimal dynamic vocabulary for this scenario
+    // Fetch optimal dynamic vocabulary using the established backend flow.
     authFetch(`/api/scenario/discovery?scenarioId=${scenario.id}&topic=${scenario.title}&langCode=${langCode}`)
       .then(res => {
         if (!res.ok) throw new Error("API error");
@@ -18,36 +19,34 @@ export default function ScenarioRunner({ scenario, langCode, onEndScenario }) {
       .then(data => {
         if (!data.words) throw new Error("No words returned");
         setTargetWords(data.words);
-        // Leave the visual cluster up for at least 3 seconds total for the animation
         setTimeout(() => setPhase('input'), 2000);
       })
       .catch(err => {
         console.error("Discovery error", err);
-        // Fallback
         setTargetWords(scenario.vocab.slice(0, 4));
         setPhase('input');
       });
   }, [scenario]);
 
   if (phase === 'loading') {
-    return <VisualCluster targetWords={targetWords} />;
+    return <VisualCluster targetWords={targetWords} country={country} />;
   }
 
   if (phase === 'input') {
     return (
-      <div className="w-screen h-screen flex flex-col items-center justify-center gap-4 bg-[#0F1418] text-white font-display animate-fade-in-up">
+      <div style={getCountryThemeStyle(country)} className="flex min-h-dvh w-screen flex-col items-center justify-center gap-4 overflow-y-auto bg-[#07101d] bg-[linear-gradient(rgba(91,135,170,.055)_1px,transparent_1px),linear-gradient(90deg,rgba(91,135,170,.055)_1px,transparent_1px)] bg-[size:72px_72px] p-3 text-white font-display animate-fade-in-up sm:p-6">
         <InputPhase words={targetWords} langCode={langCode} onComplete={() => setPhase('gameplay')} />
       </div>
     );
   }
 
   return (
-    <div className="w-screen h-screen bg-[#0F1418] font-display">
-      <GameplayPhase 
-        scenario={scenario} 
-        targetWords={targetWords} 
+    <div style={getCountryThemeStyle(country)} className="h-dvh w-screen overflow-hidden bg-[#07101d] bg-[linear-gradient(rgba(91,135,170,.055)_1px,transparent_1px),linear-gradient(90deg,rgba(91,135,170,.055)_1px,transparent_1px)] bg-[size:72px_72px] font-display">
+      <GameplayPhase
+        scenario={scenario}
+        targetWords={targetWords}
         langCode={langCode}
-        onEndScenario={onEndScenario} 
+        onEndScenario={onEndScenario}
       />
     </div>
   );
