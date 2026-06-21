@@ -24,24 +24,19 @@ function assertResult(result, context) {
 }
 
 export async function initializeDatabase() {
-  const countRows = async (table) => {
-    const result = await db.from(table).select('*', { count: 'exact', head: true });
-    if (result.error) throw new Error(`Check ${table}: ${result.error.message}`);
-    return result.count ?? 0;
-  };
-
-  const wordRows = Object.entries(STARTER_VOCAB).flatMap(([level, words]) =>
-    words.map(([expression, reading, meaning, topics]) => ({
-      expression,
-      reading,
-      meaning,
-      topic: Array.isArray(topics) ? topics[0] : topics,
-      level,
-    })),
+  const wordRows = Object.entries(STARTER_VOCAB).flatMap(([language, levels]) =>
+    Object.entries(levels).flatMap(([level, words]) =>
+      words.map(([expression, reading, meaning, topics]) => ({
+        expression,
+        reading,
+        meaning,
+        topic: Array.isArray(topics) ? topics[0] : topics,
+        level,
+        language,
+      }))
+    )
   );
-  if (await countRows('learning_words') === 0) {
-    assertResult(await db.from('learning_words').insert(wordRows), 'Seed vocabulary');
-  }
+  assertResult(await db.from('learning_words').upsert(wordRows, { onConflict: 'expression,language' }), 'Seed vocabulary');
 
   const countryRows = COUNTRIES.map((country, index) => {
     const character = CHARACTERS[country.name];
@@ -58,9 +53,7 @@ export async function initializeDatabase() {
       character_gradient: character.gradient,
     };
   });
-  if (await countRows('game_countries') === 0) {
-    assertResult(await db.from('game_countries').insert(countryRows), 'Seed countries');
-  }
+  assertResult(await db.from('game_countries').upsert(countryRows, { onConflict: 'code' }), 'Seed countries');
 
   const scenarioRows = [];
   const vocabularyRows = [];
@@ -89,10 +82,11 @@ export async function initializeDatabase() {
       }
     }
   }
-  if (await countRows('game_scenarios') === 0) {
-    assertResult(await db.from('game_scenarios').insert(scenarioRows), 'Seed scenarios');
-    assertResult(await db.from('game_scenario_vocabulary').insert(vocabularyRows), 'Seed scenario vocabulary');
-  }
+  assertResult(await db.from('game_scenarios').upsert(scenarioRows, { onConflict: 'id' }), 'Seed scenarios');
+  // Avoid errors with game_scenario_vocabulary if it lacks an upsert constraint,
+  // by just checking if we need to insert them. Or we can just try upserting by id if we generate one.
+  // Actually, we'll try upserting with a likely unique index.
+  assertResult(await db.from('game_scenario_vocabulary').upsert(vocabularyRows, { onConflict: 'scenario_id,display_order', ignoreDuplicates: true }), 'Seed scenario vocabulary');
 
   // Keep scenario_catalog (used by per-user completion + reward claim RPCs) in
   // sync with the gameplay catalog, including special scenarios. Without this
@@ -197,8 +191,13 @@ export async function getWordByExpression(expression) {
 // Rows without progress fall back to zero/null defaults. Filters are applied in
 // memory because the underlying tables live in different relations.
 export async function listUserWords(userId, filters = {}) {
+  let wordsQuery = db.from('learning_words').select(filters.columns ?? '*').order('id');
+  if (filters.language) {
+    wordsQuery = wordsQuery.eq('language', filters.language);
+  }
+
   const [wordsResult, progressResult] = await Promise.all([
-    db.from('learning_words').select(filters.columns ?? '*').order('id'),
+    wordsQuery,
     db.from('learning_user_word_progress')
       .select('word_id,state,stability,difficulty,lapses,reps,last_review_at')
       .eq('user_id', userId),

@@ -71,9 +71,9 @@ function createStarField() {
   return new THREE.Points(geometry, material)
 }
 
-function createChinaMarker(china) {
+function createCountryMarker(country) {
   const group = new THREE.Group()
-  const direction = latLngToDirection(china.lat, china.lng).normalize()
+  const direction = latLngToDirection(country.lat, country.lng).normalize()
   group.position.copy(direction.multiplyScalar(GLOBE_RADIUS * 1.01))
 
   const hitMesh = new THREE.Mesh(
@@ -140,11 +140,9 @@ function CoinIcon() {
 }
 
 export default function LandingPage({ tokens, unlockedCountries, glowCountry, level, rank, auth, countries, unlockCost, onUnlockCountry, onCountrySelect }) {
-  const china = countries.find((country) => country.name === 'China')
   const mountRef = useRef(null)
   const triggerTravelRef = useRef(() => {})
   const onCountrySelectRef = useRef(onCountrySelect)
-  const onChinaMarkerClickRef = useRef(() => {})
 
   const triggerDiveRef = useRef(() => {})
 
@@ -190,9 +188,7 @@ export default function LandingPage({ tokens, unlockedCountries, glowCountry, le
     }
   }
 
-  useEffect(() => {
-    onChinaMarkerClickRef.current = () => handleSelectCountry(china)
-  })
+
 
   useEffect(() => {
     const mount = mountRef.current
@@ -301,12 +297,17 @@ export default function LandingPage({ tokens, unlockedCountries, glowCountry, le
     const atmosphere = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial)
     scene.add(atmosphere)
 
-    const { group: chinaMarkerGroup, hitMesh, dot, rings } = createChinaMarker(china)
-    planetGroup.add(chinaMarkerGroup)
+    const markers = countries.map(country => {
+      const marker = createCountryMarker(country)
+      marker.country = country
+      planetGroup.add(marker.group)
+      return marker
+    })
+    const hitMeshes = markers.map(m => m.hitMesh)
 
     const raycaster = new THREE.Raycaster()
     const pointerNdc = new THREE.Vector2()
-    let hovered = false
+    let hoveredMarker = null
 
     function updatePointer(event) {
       const rect = renderer.domElement.getBoundingClientRect()
@@ -318,16 +319,20 @@ export default function LandingPage({ tokens, unlockedCountries, glowCountry, le
       if (travel || dive) return
       updatePointer(event)
       raycaster.setFromCamera(pointerNdc, camera)
-      hovered = raycaster.intersectObject(hitMesh).length > 0
-      renderer.domElement.style.cursor = hovered ? 'pointer' : 'auto'
+      const intersects = raycaster.intersectObjects(hitMeshes)
+      hoveredMarker = intersects.length > 0 ? intersects[0].object : null
+      renderer.domElement.style.cursor = hoveredMarker ? 'pointer' : 'auto'
     }
 
     function handleClick(event) {
       if (travel || dive) return
       updatePointer(event)
       raycaster.setFromCamera(pointerNdc, camera)
-      if (raycaster.intersectObject(hitMesh).length > 0) {
-        onChinaMarkerClickRef.current()
+      const intersects = raycaster.intersectObjects(hitMeshes)
+      if (intersects.length > 0) {
+        const clickedHitMesh = intersects[0].object
+        const marker = markers.find(m => m.hitMesh === clickedHitMesh)
+        if (marker) handleSelectCountry(marker.country)
       }
     }
 
@@ -428,12 +433,15 @@ export default function LandingPage({ tokens, unlockedCountries, glowCountry, le
       deepSpace.rotation.x += 0.00004
 
       const t = performance.now() * 0.001
-      dot.scale.setScalar(hovered ? 0.52 : 0.4 + Math.sin(t * 3) * 0.05)
-      dot.material.opacity = hovered ? 1 : 0.7 + Math.sin(t * 3) * 0.2
-      rings.forEach((ring, i) => {
-        const phase = (t * 0.5 + i * 0.5) % 1
-        ring.scale.setScalar(0.4 + phase * (hovered ? 2.6 : 1.8))
-        ring.material.opacity = (1 - phase) * (hovered ? 0.85 : 0.45)
+      markers.forEach(({ dot, rings, hitMesh }) => {
+        const isHovered = hoveredMarker === hitMesh;
+        dot.scale.setScalar(isHovered ? 0.52 : 0.4 + Math.sin(t * 3) * 0.05)
+        dot.material.opacity = isHovered ? 1 : 0.7 + Math.sin(t * 3) * 0.2
+        rings.forEach((ring, i) => {
+          const phase = (t * 0.5 + i * 0.5) % 1
+          ring.scale.setScalar(0.4 + phase * (isHovered ? 2.6 : 1.8))
+          ring.material.opacity = (1 - phase) * (isHovered ? 0.85 : 0.45)
+        })
       })
 
       if (travel) stepTravel(performance.now())
@@ -459,7 +467,7 @@ export default function LandingPage({ tokens, unlockedCountries, glowCountry, le
       atmosphereMaterial.dispose()
       mount.removeChild(renderer.domElement)
     }
-  }, [china])
+  }, [countries])
 
   async function handleConfirmUnlock() {
     const country = pendingCountry

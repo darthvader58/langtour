@@ -18,7 +18,7 @@ const blobToBase64 = (blob) => {
   });
 };
 
-export default function MicrophoneRecorder({ onRecordingComplete, disabled }) {
+export default function MicrophoneRecorder({ onRecordingComplete, disabled, langCode = 'zh' }) {
   const [isRecording, setIsRecording] = useState(false);
   const [liveText, setLiveText] = useState('');
   const [status, setStatus] = useState('idle');
@@ -56,7 +56,7 @@ export default function MicrophoneRecorder({ onRecordingComplete, disabled }) {
       const response = await fetch(`${API}/api/voice/projects`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: 'Temp Gameplay ' + new Date().getTime(), sourceLang: 'zh' }),
+        body: JSON.stringify({ name: 'Temp Gameplay ' + new Date().getTime(), sourceLang: langCode }),
       });
       const data = await response.json();
       const pid = data.project.id;

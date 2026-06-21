@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export default function InputPhase({ words, onComplete }) {
+export default function InputPhase({ words, langCode, onComplete }) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   // In the future, this will fetch from the backend:
@@ -19,7 +19,8 @@ export default function InputPhase({ words, onComplete }) {
   const playAudio = () => {
     // Basic text-to-speech fallback
     const utterance = new SpeechSynthesisUtterance(currentWord.zh);
-    utterance.lang = 'zh-CN';
+    const voiceLangs = { hi: 'hi-IN', fr: 'fr-FR', es: 'es-MX', zh: 'zh-CN' };
+    utterance.lang = voiceLangs[langCode] || 'zh-CN';
     window.speechSynthesis.speak(utterance);
   };
 

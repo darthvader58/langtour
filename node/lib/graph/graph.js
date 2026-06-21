@@ -59,12 +59,12 @@ export async function loadAllEmbeddings() {
  * Discovery Algorithm:
  * Mixes "due" review words with "new" words via Intersection Filter.
  */
-export async function getDiscoveryWords(userId, scenarioTopic, limit = 4) {
+export async function getDiscoveryWords(userId, scenarioTopic, langCode, limit = 4) {
   // Load the user's full word view, the scenario embedding, and all cached
   // word embeddings concurrently — the per-user word view is two round trips,
   // so the three filtered lists below all reuse the same fetch.
   const [allUserWords, scenarioEmbedding, allEmbeddings] = await Promise.all([
-    listUserWords(userId),
+    listUserWords(userId, { language: langCode }),
     getScenarioEmbedding(scenarioTopic),
     loadAllEmbeddings(),
   ]);

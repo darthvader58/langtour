@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import MicrophoneRecorder from './MicrophoneRecorder';
 import { authFetch } from '../api';
 
-export default function GameplayPhase({ scenario, targetWords, onEndScenario }) {
+export default function GameplayPhase({ scenario, targetWords, langCode, onEndScenario }) {
   const [state, setState] = useState('generating'); // generating, npc_turn, user_turn, evaluating, feedback, scenario_complete
   const [npcLine, setNpcLine] = useState(null);
   const [userResponse, setUserResponse] = useState('');
@@ -23,7 +23,8 @@ export default function GameplayPhase({ scenario, targetWords, onEndScenario }) 
           body: JSON.stringify({
             scenarioContext: scenario.title,
             targetWords,
-            previousTurns
+            previousTurns,
+            langCode
           }),
           signal: controller.signal
         });
@@ -45,7 +46,8 @@ export default function GameplayPhase({ scenario, targetWords, onEndScenario }) 
   const playNpcAudio = () => {
     if (!npcLine) return;
     const utterance = new SpeechSynthesisUtterance(npcLine.zh);
-    utterance.lang = 'zh-CN';
+    const voiceLangs = { hi: 'hi-IN', fr: 'fr-FR', es: 'es-MX', zh: 'zh-CN' };
+    utterance.lang = voiceLangs[langCode] || 'zh-CN';
     window.speechSynthesis.speak(utterance);
   };
 
@@ -61,7 +63,8 @@ export default function GameplayPhase({ scenario, targetWords, onEndScenario }) 
           scenarioContext: scenario.title,
           targetWords,
           npcLine,
-          userResponse: transcript
+          userResponse: transcript,
+          langCode
         }),
       });
       const result = await response.json();
@@ -230,7 +233,7 @@ export default function GameplayPhase({ scenario, targetWords, onEndScenario }) 
       )}
 
       {state === 'user_turn' && (
-        <MicrophoneRecorder onRecordingComplete={handleRecordingComplete} />
+        <MicrophoneRecorder langCode={langCode} onRecordingComplete={handleRecordingComplete} />
       )}
 
       {/* Win Screen */}

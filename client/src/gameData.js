@@ -1,10 +1,10 @@
 export const COUNTRIES = [
-  { name: 'China', flag: '\u{1F1E8}\u{1F1F3}', lat: 35.8617, lng: 104.1954 },
-  { name: 'Japan', flag: '\u{1F1EF}\u{1F1F5}', lat: 36.2048, lng: 138.2529 },
-  { name: 'France', flag: '\u{1F1EB}\u{1F1F7}', lat: 46.2276, lng: 2.2137 },
-  { name: 'Mexico', flag: '\u{1F1F2}\u{1F1FD}', lat: 23.6345, lng: -102.5528 },
-  { name: 'Egypt', flag: '\u{1F1EA}\u{1F1EC}', lat: 26.8206, lng: 30.8025 },
-  { name: 'Brazil', flag: '\u{1F1E7}\u{1F1F7}', lat: -14.235, lng: -51.9253 },
+  { name: 'China', flag: '\u{1F1E8}\u{1F1F3}', lat: 35.8617, lng: 104.1954, langCode: 'zh' },
+  { name: 'India', flag: '🇮🇳', lat: 20.5937, lng: 78.9629, langCode: 'hi' },
+  { name: 'France', flag: '\u{1F1EB}\u{1F1F7}', lat: 46.2276, lng: 2.2137, langCode: 'fr' },
+  { name: 'Mexico', flag: '\u{1F1F2}\u{1F1FD}', lat: 23.6345, lng: -102.5528, langCode: 'es' },
+  { name: 'Egypt', flag: '\u{1F1EA}\u{1F1EC}', lat: 26.8206, lng: 30.8025, langCode: 'ar' },
+  { name: 'Brazil', flag: '\u{1F1E7}\u{1F1F7}', lat: -14.235, lng: -51.9253, langCode: 'pt' },
 ]
 
 export const CHINA = COUNTRIES[0]
@@ -16,11 +16,11 @@ export const CHARACTERS = {
     story: 'You are a spy sent to infiltrate a Shanghai black market. To blend in, you must master Mandarin.',
     gradient: 'from-[#3a0a0a] via-[#1F2937] to-[#0F1418]',
   },
-  Japan: {
-    type: 'Ronin',
-    icon: '⚔️',
-    story: 'You are a wandering ronin chasing a rival through the neon streets of Tokyo. To earn allies, you must master Japanese.',
-    gradient: 'from-[#1a1033] via-[#1F2937] to-[#0F1418]',
+  India: {
+    type: 'Bollywood Actor',
+    icon: '🎬',
+    story: 'You are an aspiring Bollywood actor trying to make it big in Mumbai. To win over the directors, you must master Hindi.',
+    gradient: 'from-[#331a00] via-[#1F2937] to-[#0F1418]',
   },
   France: {
     type: 'Art Thief',
@@ -177,12 +177,300 @@ export const REAL_LIFE_SCENARIO = {
   ],
 }
 
+export const INDIA_SCENARIOS = [
+  {
+    id: 'chai-stall',
+    title: 'Chai Stall',
+    icon: '☕',
+    description: 'Order a cup of cutting chai and chat with the locals.',
+    vocab: [
+      { en: 'Tea', zh: 'चाय', pinyin: 'chaay' },
+      { en: 'Sugar', zh: 'चीनी', pinyin: 'cheenee' },
+      { en: 'Hot', zh: 'गरम', pinyin: 'garam' },
+    ],
+  },
+  {
+    id: 'rickshaw-ride',
+    title: 'Rickshaw Ride',
+    icon: '🛺',
+    description: 'Negotiate the fare for an auto rickshaw ride.',
+    vocab: [
+      { en: 'Where', zh: 'कहाँ', pinyin: 'kahaan' },
+      { en: 'Money', zh: 'पैसे', pinyin: 'paise' },
+      { en: 'Stop', zh: 'रुको', pinyin: 'ruko' },
+    ],
+  },
+  {
+    id: 'bollywood-set',
+    title: 'Bollywood Set',
+    icon: '🎬',
+    description: 'Introduce yourself to the director on a movie set.',
+    vocab: [
+      { en: 'Actor', zh: 'अभिनेता', pinyin: 'abhineta' },
+      { en: 'Ready', zh: 'तैयार', pinyin: 'taiyaar' },
+      { en: 'Action', zh: 'एक्शन', pinyin: 'ekshan' },
+    ],
+  },
+  {
+    id: 'spice-market',
+    title: 'Spice Market',
+    icon: '🌶️',
+    description: 'Buy fresh spices from a local vendor.',
+    vocab: [
+      { en: 'Spice', zh: 'मसाला', pinyin: 'masala' },
+      { en: 'Spicy', zh: 'तीखा', pinyin: 'teekha' },
+      { en: 'Give', zh: 'दो', pinyin: 'do' },
+    ],
+  },
+  {
+    id: 'yoga-ashram',
+    title: 'Yoga Ashram',
+    icon: '🧘',
+    description: 'Attend a morning yoga session.',
+    vocab: [
+      { en: 'Breathe', zh: 'साँस', pinyin: 'saans' },
+      { en: 'Peace', zh: 'शांति', pinyin: 'shaanti' },
+      { en: 'Mind', zh: 'मन', pinyin: 'man' },
+    ],
+  },
+  {
+    id: 'indian-railway',
+    title: 'Indian Railway',
+    icon: '🚂',
+    description: 'Find your platform at a busy railway station.',
+    vocab: [
+      { en: 'Train', zh: 'ट्रेन', pinyin: 'train' },
+      { en: 'Ticket', zh: 'टिकट', pinyin: 'ticket' },
+      { en: 'Time', zh: 'समय', pinyin: 'samay' },
+    ],
+  },
+  {
+    id: 'tech-hub',
+    title: 'Tech Hub',
+    icon: '💻',
+    description: 'Meet with software engineers in Bangalore.',
+    vocab: [
+      { en: 'Computer', zh: 'कंप्यूटर', pinyin: 'kampyutar' },
+      { en: 'Work', zh: 'काम', pinyin: 'kaam' },
+      { en: 'Fast', zh: 'तेज़', pinyin: 'tez' },
+    ],
+  },
+  {
+    id: 'wedding-party',
+    title: 'Wedding Party',
+    icon: '🎊',
+    description: 'Celebrate and dance at an Indian wedding.',
+    vocab: [
+      { en: 'Dance', zh: 'नाच', pinyin: 'naach' },
+      { en: 'Happy', zh: 'खुश', pinyin: 'khush' },
+      { en: 'Beautiful', zh: 'सुंदर', pinyin: 'sundar' },
+    ],
+  },
+];
+
+export const FRANCE_SCENARIOS = [
+  {
+    id: 'cafe-terrace',
+    title: 'Café Terrace',
+    icon: '🥐',
+    description: 'Order a croissant and coffee at a bustling Parisian café.',
+    vocab: [
+      { en: 'Coffee', zh: 'café', pinyin: 'ka.fe' },
+      { en: 'Croissant', zh: 'croissant', pinyin: 'kʁwa.sɑ̃' },
+      { en: 'Please', zh: "s'il vous plaît", pinyin: 'sil vu plɛ' },
+    ],
+  },
+  {
+    id: 'louvre-museum',
+    title: 'Louvre Museum',
+    icon: '🖼️',
+    description: 'Ask for directions to the Mona Lisa.',
+    vocab: [
+      { en: 'Where', zh: 'où', pinyin: 'u' },
+      { en: 'Ticket', zh: 'billet', pinyin: 'bi.jɛ' },
+      { en: 'Art', zh: 'art', pinyin: 'aʁ' },
+    ],
+  },
+  {
+    id: 'metro-station',
+    title: 'Metro Station',
+    icon: '🚇',
+    description: 'Buy a train ticket and navigate the Paris Metro.',
+    vocab: [
+      { en: 'Train', zh: 'train', pinyin: 'tʁɛ̃' },
+      { en: 'Station', zh: 'station', pinyin: 'sta.sjɔ̃' },
+      { en: 'Exit', zh: 'sortie', pinyin: 'sɔʁ.ti' },
+    ],
+  },
+  {
+    id: 'bakery',
+    title: 'Bakery',
+    icon: '🥖',
+    description: 'Buy a fresh baguette from a local boulangerie.',
+    vocab: [
+      { en: 'Bread', zh: 'pain', pinyin: 'pɛ̃' },
+      { en: 'Bakery', zh: 'boulangerie', pinyin: 'bu.lɑ̃.ʒʁi' },
+      { en: 'Good morning', zh: 'bonjour', pinyin: 'bɔ̃.ʒuʁ' },
+    ],
+  },
+  {
+    id: 'fashion-boutique',
+    title: 'Fashion Boutique',
+    icon: '👗',
+    description: 'Try on clothes in a high-end fashion boutique.',
+    vocab: [
+      { en: 'Clothes', zh: 'vêtements', pinyin: 'vɛt.mɑ̃' },
+      { en: 'Beautiful', zh: 'beau', pinyin: 'bo' },
+      { en: 'Size', zh: 'taille', pinyin: 'taj' },
+    ],
+  },
+  {
+    id: 'vineyard',
+    title: 'Vineyard Tour',
+    icon: '🍷',
+    description: 'Taste local wine and chat with the winemaker.',
+    vocab: [
+      { en: 'Wine', zh: 'vin', pinyin: 'vɛ̃' },
+      { en: 'Red', zh: 'rouge', pinyin: 'ʁuʒ' },
+      { en: 'Glass', zh: 'verre', pinyin: 'vɛʁ' },
+    ],
+  },
+  {
+    id: 'eiffel-tower',
+    title: 'Eiffel Tower',
+    icon: '🗼',
+    description: 'Take photos and enjoy the view from the top.',
+    vocab: [
+      { en: 'Tower', zh: 'tour', pinyin: 'tuʁ' },
+      { en: 'High', zh: 'haut', pinyin: 'o' },
+      { en: 'Photo', zh: 'photo', pinyin: 'fɔ.to' },
+    ],
+  },
+  {
+    id: 'cheese-shop',
+    title: 'Cheese Shop',
+    icon: '🧀',
+    description: 'Sample different types of French cheese.',
+    vocab: [
+      { en: 'Cheese', zh: 'fromage', pinyin: 'fʁɔ.maʒ' },
+      { en: 'Taste', zh: 'goût', pinyin: 'gu' },
+      { en: 'Strong', zh: 'fort', pinyin: 'fɔʁ' },
+    ],
+  },
+];
+
+export const MEXICO_SCENARIOS = [
+  {
+    id: 'taco-stand',
+    title: 'Taco Stand',
+    icon: '🌮',
+    description: 'Order some street tacos and ask for extra salsa.',
+    vocab: [
+      { en: 'Taco', zh: 'taco', pinyin: 'ta.ko' },
+      { en: 'Spicy', zh: 'picante', pinyin: 'pi.kan.te' },
+      { en: 'Delicious', zh: 'delicioso', pinyin: 'de.li.sjo.so' },
+    ],
+  },
+  {
+    id: 'local-mercado',
+    title: 'Local Mercado',
+    icon: '🛍️',
+    description: 'Haggle for souvenirs at a lively market.',
+    vocab: [
+      { en: 'How much', zh: 'cuánto', pinyin: 'kwan.to' },
+      { en: 'Expensive', zh: 'caro', pinyin: 'ka.ɾo' },
+      { en: 'Cheap', zh: 'barato', pinyin: 'ba.ɾa.to' },
+    ],
+  },
+  {
+    id: 'beach-resort',
+    title: 'Beach Resort',
+    icon: '🏖️',
+    description: 'Relax at a resort in Cancún and ask for a towel.',
+    vocab: [
+      { en: 'Beach', zh: 'playa', pinyin: 'pla.ʝa' },
+      { en: 'Towel', zh: 'toalla', pinyin: 'to.a.ʝa' },
+      { en: 'Sun', zh: 'sol', pinyin: 'sol' },
+    ],
+  },
+  {
+    id: 'mariachi-plaza',
+    title: 'Mariachi Plaza',
+    icon: '🎸',
+    description: 'Request a song from a local Mariachi band.',
+    vocab: [
+      { en: 'Music', zh: 'música', pinyin: 'mu.si.ka' },
+      { en: 'Song', zh: 'canción', pinyin: 'kan.sjon' },
+      { en: 'Sing', zh: 'cantar', pinyin: 'kan.taɾ' },
+    ],
+  },
+  {
+    id: 'cenote-swim',
+    title: 'Cenote Swim',
+    icon: '🌊',
+    description: 'Go swimming in a beautiful natural cenote.',
+    vocab: [
+      { en: 'Swim', zh: 'nadar', pinyin: 'na.ðaɾ' },
+      { en: 'Water', zh: 'agua', pinyin: 'a.ɣwa' },
+      { en: 'Cold', zh: 'frío', pinyin: 'fɾi.o' },
+    ],
+  },
+  {
+    id: 'ruins-tour',
+    title: 'Maya Ruins Tour',
+    icon: '🏛️',
+    description: 'Explore ancient pyramids and learn history.',
+    vocab: [
+      { en: 'Pyramid', zh: 'pirámide', pinyin: 'pi.ɾa.mi.ðe' },
+      { en: 'Old', zh: 'viejo', pinyin: 'bje.xo' },
+      { en: 'History', zh: 'historia', pinyin: 'is.to.ɾja' },
+    ],
+  },
+  {
+    id: 'lucha-libre',
+    title: 'Lucha Libre',
+    icon: '🤼',
+    description: 'Cheer at an exciting wrestling match.',
+    vocab: [
+      { en: 'Fight', zh: 'lucha', pinyin: 'lu.tʃa' },
+      { en: 'Mask', zh: 'máscara', pinyin: 'mas.ka.ɾa' },
+      { en: 'Strong', zh: 'fuerte', pinyin: 'fweɾ.te' },
+    ],
+  },
+  {
+    id: 'cantina',
+    title: 'Local Cantina',
+    icon: '🍻',
+    description: 'Grab a drink and chat at a traditional cantina.',
+    vocab: [
+      { en: 'Beer', zh: 'cerveza', pinyin: 'seɾ.βe.sa' },
+      { en: 'Cheers', zh: 'salud', pinyin: 'sa.luð' },
+      { en: 'Friend', zh: 'amigo', pinyin: 'a.mi.ɣo' },
+    ],
+  },
+];
+
 export const SCENARIOS_BY_COUNTRY = {
   China: CHINA_SCENARIOS,
+  India: INDIA_SCENARIOS,
+  France: FRANCE_SCENARIOS,
+  Mexico: MEXICO_SCENARIOS,
 }
 
 export const SPECIAL_SCENARIO_BY_COUNTRY = {
   China: REAL_LIFE_SCENARIO,
+  India: {
+    ...REAL_LIFE_SCENARIO,
+    id: 'real-life-india',
+  },
+  France: {
+    ...REAL_LIFE_SCENARIO,
+    id: 'real-life-france',
+  },
+  Mexico: {
+    ...REAL_LIFE_SCENARIO,
+    id: 'real-life-mexico',
+  },
 }
 
 export const UNLOCK_COST = 100
