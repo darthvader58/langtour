@@ -705,7 +705,9 @@ export default function LandingPage({ tokens, unlockedCountries, glowCountry, le
                 }
               >
                 <span className="flex min-w-0 items-center gap-3.5 max-sm:gap-2">
-                  <span className={'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border bg-[#08121f] text-xl shadow-inner max-sm:h-9 max-sm:w-9 max-sm:text-base ' + (isUnlocked ? 'border-[#ff9a4d]/25' : 'border-white/10 opacity-45 grayscale')}>{country.flag}</span>
+                  <span className={'flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border bg-[#08121f] shadow-inner max-sm:h-9 max-sm:w-9 ' + (isUnlocked ? 'border-[#ff9a4d]/25' : 'border-white/10 opacity-45 grayscale')}>
+                    <img src={`https://flagcdn.com/${FLAG_CODE_BY_COUNTRY[country.name] ?? country.code}.svg`} alt={`${country.name} flag`} className="w-6 h-auto max-sm:w-5 rounded-[2px]" />
+                  </span>
                   <span>
                     <span className="block truncate text-sm font-extrabold uppercase tracking-[0.09em] max-sm:text-[11px]">{country.name}</span>
                     <span className="mt-0.5 block truncate text-[11px] font-semibold tracking-wide text-slate-500 max-sm:text-[9px]">{characters[country.name]?.type ?? 'New mission'}</span>
@@ -734,7 +736,9 @@ export default function LandingPage({ tokens, unlockedCountries, glowCountry, le
         <div className="pointer-events-auto absolute inset-0 z-30 flex items-center justify-center bg-[#02060d]/75 px-4 backdrop-blur-md animate-overlay-fade">
           <div className="animate-modal-pop w-full max-w-sm rounded-[1.6rem] border border-white/10 bg-[#0b1727] p-7 text-center shadow-[0_30px_100px_rgba(0,0,0,.65)]">
             <div className="flex justify-center mb-4">
-              <span className="flex h-20 w-20 items-center justify-center rounded-2xl border border-[#ff9a4d]/25 bg-[#07101d] text-4xl shadow-inner">{pendingCountry.flag}</span>
+              <span className="flex h-20 w-20 items-center justify-center rounded-2xl border border-[#ff9a4d]/25 bg-[#07101d] shadow-inner">
+                <img src={`https://flagcdn.com/${FLAG_CODE_BY_COUNTRY[pendingCountry.name] ?? pendingCountry.code}.svg`} alt={`${pendingCountry.name} flag`} className="w-10 h-auto rounded-sm" />
+              </span>
             </div>
             <h3 className="font-display text-xl font-extrabold mb-2 text-white">
               Unlock {pendingCountry.name}?
