@@ -1,11 +1,23 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
 import heroImg from './assets/hero.png'
 import './App.css'
+import VoiceTestPage from './pages/VoiceTestPage'
 
 function App() {
   const [count, setCount] = useState(0)
+  const [hash, setHash] = useState(window.location.hash)
+
+  useEffect(() => {
+    const onHashChange = () => setHash(window.location.hash);
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
+
+  if (hash === '#test') {
+    return <VoiceTestPage />
+  }
 
   return (
     <>
@@ -114,7 +126,11 @@ function App() {
       </section>
 
       <div className="ticks"></div>
-      <section id="spacer"></section>
+      <section id="spacer">
+        <a href="#test" style={{ padding: '12px 24px', background: '#ffc107', color: '#000', borderRadius: 8, textDecoration: 'none', fontWeight: 'bold' }}>
+          Go to Voice Test Page
+        </a>
+      </section>
     </>
   )
 }

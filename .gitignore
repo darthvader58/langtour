@@ -34,3 +34,6 @@ node_modules/
 dist
 dist-ssr
 build
+
+# Data directories
+voice-audio/
