@@ -1,3 +1,5 @@
+
+
 export const COUNTRIES = [
   { name: 'China', code: 'cn', flag: '\u{1F1E8}\u{1F1F3}', lat: 35.8617, lng: 104.1954, langCode: 'zh' },
   { name: 'India', code: 'in', flag: '🇮🇳', lat: 20.5937, lng: 78.9629, langCode: 'hi' },
@@ -12,37 +14,37 @@ export const CHINA = COUNTRIES[0]
 export const CHARACTERS = {
   China: {
     type: 'Spy',
-    icon: '\u{1F575}\u{FE0F}',
+    icon: 'VenetianMask',
     story: 'You are a spy sent to infiltrate a Shanghai black market. To blend in, you must master Mandarin.',
     gradient: 'from-[#3a0a0a] via-[#1F2937] to-[#0F1418]',
   },
   India: {
     type: 'Bollywood Actor',
-    icon: '🎬',
+    icon: 'Clapperboard',
     story: 'You are an aspiring Bollywood actor trying to make it big in Mumbai. To win over the directors, you must master Hindi.',
     gradient: 'from-[#331a00] via-[#1F2937] to-[#0F1418]',
   },
   France: {
     type: 'Art Thief',
-    icon: '\u{1F5BC}\u{FE0F}',
+    icon: 'Image',
     story: 'You are a master thief plotting a heist inside the Louvre. To move unseen, you must master French.',
     gradient: 'from-[#241a05] via-[#1F2937] to-[#0F1418]',
   },
   Mexico: {
     type: 'Treasure Hunter',
-    icon: '\u{1F5FA}\u{FE0F}',
+    icon: 'Map',
     story: "You are a treasure hunter chasing a lost Aztec relic through Mexico City. To win the locals' trust, you must master Spanish.",
     gradient: 'from-[#1f1404] via-[#1F2937] to-[#0F1418]',
   },
   Egypt: {
     type: 'Archaeologist',
-    icon: '\u{1F3FA}',
+    icon: 'Amphora',
     story: "You are an archaeologist racing to uncover a pharaoh's tomb before rivals do. To decode the secrets, you must master Arabic.",
     gradient: 'from-[#241704] via-[#1F2937] to-[#0F1418]',
   },
   Brazil: {
     type: 'Undercover Journalist',
-    icon: '\u{1F399}\u{FE0F}',
+    icon: 'Mic',
     story: 'You are an undercover journalist exposing a cartel in Rio de Janeiro. To gain access, you must master Portuguese.',
     gradient: 'from-[#031a14] via-[#1F2937] to-[#0F1418]',
   },
@@ -52,7 +54,7 @@ export const CHINA_SCENARIOS = [
   {
     id: 'street-market',
     title: 'Street Market',
-    icon: '\u{1F3EE}',
+    icon: 'Store',
     description: 'Haggle over prices and order street food from local vendors.',
     vocab: [
       { en: 'Market', zh: '市场', pinyin: 'shìchǎng' },
@@ -66,7 +68,7 @@ export const CHINA_SCENARIOS = [
   {
     id: 'restaurant',
     title: 'Restaurant',
-    icon: '\u{1F962}',
+    icon: 'Utensils',
     description: 'Order dishes, ask for recommendations, and pay the bill.',
     vocab: [
       { en: 'Menu', zh: '菜单', pinyin: 'càidān' },
@@ -80,7 +82,7 @@ export const CHINA_SCENARIOS = [
   {
     id: 'train-station',
     title: 'Train Station',
-    icon: '\u{1F684}',
+    icon: 'TrainFront',
     description: 'Buy tickets, ask for directions, and catch your train on time.',
     vocab: [
       { en: 'Ticket', zh: '票', pinyin: 'piào' },
@@ -94,7 +96,7 @@ export const CHINA_SCENARIOS = [
   {
     id: 'taxi-ride',
     title: 'Taxi Ride',
-    icon: '\u{1F695}',
+    icon: 'CarTaxiFront',
     description: 'Give directions to your destination and chat with the driver.',
     vocab: [
       { en: 'Address', zh: '地址', pinyin: 'dìzhǐ' },
@@ -108,7 +110,7 @@ export const CHINA_SCENARIOS = [
   {
     id: 'hotel-checkin',
     title: 'Hotel Check-in',
-    icon: '\u{1F6CE}\u{FE0F}',
+    icon: 'BellRing',
     description: 'Check into your room and ask about hotel amenities.',
     vocab: [
       { en: 'Reservation', zh: '预订', pinyin: 'yùdìng' },
@@ -122,7 +124,7 @@ export const CHINA_SCENARIOS = [
   {
     id: 'newspaper-reading',
     title: 'Newspaper Reading',
-    icon: '\u{1F4F0}',
+    icon: 'Newspaper',
     description: 'Read headlines and discuss current events with a local.',
     vocab: [
       { en: 'News', zh: '新闻', pinyin: 'xīnwén' },
@@ -136,7 +138,7 @@ export const CHINA_SCENARIOS = [
   {
     id: 'business-meeting',
     title: 'Business Meeting',
-    icon: '\u{1F4BC}',
+    icon: 'Briefcase',
     description: 'Negotiate a deal and exchange pleasantries with partners.',
     vocab: [
       { en: 'Contract', zh: '合同', pinyin: 'hétong' },
@@ -150,7 +152,7 @@ export const CHINA_SCENARIOS = [
   {
     id: 'politician-speech',
     title: 'Politician Speech',
-    icon: '\u{1F3A4}',
+    icon: 'Mic',
     description: 'Listen to a speech and discuss politics with citizens.',
     vocab: [
       { en: 'Speech', zh: '演讲', pinyin: 'yǎnjiǎng' },
@@ -166,7 +168,7 @@ export const CHINA_SCENARIOS = [
 export const REAL_LIFE_SCENARIO = {
   id: 'real-life-conversation',
   title: 'Real Life Conversation',
-  icon: '\u{1F451}',
+  icon: 'Crown',
   description: 'An unscripted, free-flowing conversation putting everything together.',
   special: true,
   vocab: [
@@ -181,7 +183,7 @@ export const INDIA_SCENARIOS = [
   {
     id: 'chai-stall',
     title: 'Chai Stall',
-    icon: '☕',
+    icon: 'Coffee',
     description: 'Order a cup of cutting chai and chat with the locals.',
     vocab: [
       { en: 'Tea', zh: 'चाय', pinyin: 'chaay' },
@@ -192,7 +194,7 @@ export const INDIA_SCENARIOS = [
   {
     id: 'rickshaw-ride',
     title: 'Rickshaw Ride',
-    icon: '🛺',
+    icon: 'CarTaxiFront',
     description: 'Negotiate the fare for an auto rickshaw ride.',
     vocab: [
       { en: 'Where', zh: 'कहाँ', pinyin: 'kahaan' },
@@ -203,7 +205,7 @@ export const INDIA_SCENARIOS = [
   {
     id: 'bollywood-set',
     title: 'Bollywood Set',
-    icon: '🎬',
+    icon: 'Clapperboard',
     description: 'Introduce yourself to the director on a movie set.',
     vocab: [
       { en: 'Actor', zh: 'अभिनेता', pinyin: 'abhineta' },
@@ -214,7 +216,7 @@ export const INDIA_SCENARIOS = [
   {
     id: 'spice-market',
     title: 'Spice Market',
-    icon: '🌶️',
+    icon: 'Flame',
     description: 'Buy fresh spices from a local vendor.',
     vocab: [
       { en: 'Spice', zh: 'मसाला', pinyin: 'masala' },
@@ -225,7 +227,7 @@ export const INDIA_SCENARIOS = [
   {
     id: 'yoga-ashram',
     title: 'Yoga Ashram',
-    icon: '🧘',
+    icon: 'Sun',
     description: 'Attend a morning yoga session.',
     vocab: [
       { en: 'Breathe', zh: 'साँस', pinyin: 'saans' },
@@ -236,7 +238,7 @@ export const INDIA_SCENARIOS = [
   {
     id: 'indian-railway',
     title: 'Indian Railway',
-    icon: '🚂',
+    icon: 'TrainFront',
     description: 'Find your platform at a busy railway station.',
     vocab: [
       { en: 'Train', zh: 'ट्रेन', pinyin: 'train' },
@@ -247,7 +249,7 @@ export const INDIA_SCENARIOS = [
   {
     id: 'tech-hub',
     title: 'Tech Hub',
-    icon: '💻',
+    icon: 'Laptop',
     description: 'Meet with software engineers in Bangalore.',
     vocab: [
       { en: 'Computer', zh: 'कंप्यूटर', pinyin: 'kampyutar' },
@@ -258,7 +260,7 @@ export const INDIA_SCENARIOS = [
   {
     id: 'wedding-party',
     title: 'Wedding Party',
-    icon: '🎊',
+    icon: 'PartyPopper',
     description: 'Celebrate and dance at an Indian wedding.',
     vocab: [
       { en: 'Dance', zh: 'नाच', pinyin: 'naach' },
@@ -272,7 +274,7 @@ export const FRANCE_SCENARIOS = [
   {
     id: 'cafe-terrace',
     title: 'Café Terrace',
-    icon: '🥐',
+    icon: 'Croissant',
     description: 'Order a croissant and coffee at a bustling Parisian café.',
     vocab: [
       { en: 'Coffee', zh: 'café', pinyin: 'ka.fe' },
@@ -283,7 +285,7 @@ export const FRANCE_SCENARIOS = [
   {
     id: 'louvre-museum',
     title: 'Louvre Museum',
-    icon: '🖼️',
+    icon: 'Image',
     description: 'Ask for directions to the Mona Lisa.',
     vocab: [
       { en: 'Where', zh: 'où', pinyin: 'u' },
@@ -294,7 +296,7 @@ export const FRANCE_SCENARIOS = [
   {
     id: 'metro-station',
     title: 'Metro Station',
-    icon: '🚇',
+    icon: 'TrainFront',
     description: 'Buy a train ticket and navigate the Paris Metro.',
     vocab: [
       { en: 'Train', zh: 'train', pinyin: 'tʁɛ̃' },
@@ -305,7 +307,7 @@ export const FRANCE_SCENARIOS = [
   {
     id: 'bakery',
     title: 'Bakery',
-    icon: '🥖',
+    icon: 'Store',
     description: 'Buy a fresh baguette from a local boulangerie.',
     vocab: [
       { en: 'Bread', zh: 'pain', pinyin: 'pɛ̃' },
@@ -316,7 +318,7 @@ export const FRANCE_SCENARIOS = [
   {
     id: 'fashion-boutique',
     title: 'Fashion Boutique',
-    icon: '👗',
+    icon: 'Shirt',
     description: 'Try on clothes in a high-end fashion boutique.',
     vocab: [
       { en: 'Clothes', zh: 'vêtements', pinyin: 'vɛt.mɑ̃' },
@@ -327,7 +329,7 @@ export const FRANCE_SCENARIOS = [
   {
     id: 'vineyard',
     title: 'Vineyard Tour',
-    icon: '🍷',
+    icon: 'Wine',
     description: 'Taste local wine and chat with the winemaker.',
     vocab: [
       { en: 'Wine', zh: 'vin', pinyin: 'vɛ̃' },
@@ -338,7 +340,7 @@ export const FRANCE_SCENARIOS = [
   {
     id: 'eiffel-tower',
     title: 'Eiffel Tower',
-    icon: '🗼',
+    icon: 'Landmark',
     description: 'Take photos and enjoy the view from the top.',
     vocab: [
       { en: 'Tower', zh: 'tour', pinyin: 'tuʁ' },
@@ -349,7 +351,7 @@ export const FRANCE_SCENARIOS = [
   {
     id: 'cheese-shop',
     title: 'Cheese Shop',
-    icon: '🧀',
+    icon: 'ShoppingCart',
     description: 'Sample different types of French cheese.',
     vocab: [
       { en: 'Cheese', zh: 'fromage', pinyin: 'fʁɔ.maʒ' },
@@ -363,7 +365,7 @@ export const MEXICO_SCENARIOS = [
   {
     id: 'taco-stand',
     title: 'Taco Stand',
-    icon: '🌮',
+    icon: 'Utensils',
     description: 'Order some street tacos and ask for extra salsa.',
     vocab: [
       { en: 'Taco', zh: 'taco', pinyin: 'ta.ko' },
@@ -374,7 +376,7 @@ export const MEXICO_SCENARIOS = [
   {
     id: 'local-mercado',
     title: 'Local Mercado',
-    icon: '🛍️',
+    icon: 'ShoppingBag',
     description: 'Haggle for souvenirs at a lively market.',
     vocab: [
       { en: 'How much', zh: 'cuánto', pinyin: 'kwan.to' },
@@ -385,7 +387,7 @@ export const MEXICO_SCENARIOS = [
   {
     id: 'beach-resort',
     title: 'Beach Resort',
-    icon: '🏖️',
+    icon: 'Umbrella',
     description: 'Relax at a resort in Cancún and ask for a towel.',
     vocab: [
       { en: 'Beach', zh: 'playa', pinyin: 'pla.ʝa' },
@@ -396,7 +398,7 @@ export const MEXICO_SCENARIOS = [
   {
     id: 'mariachi-plaza',
     title: 'Mariachi Plaza',
-    icon: '🎸',
+    icon: 'Guitar',
     description: 'Request a song from a local Mariachi band.',
     vocab: [
       { en: 'Music', zh: 'música', pinyin: 'mu.si.ka' },
@@ -407,7 +409,7 @@ export const MEXICO_SCENARIOS = [
   {
     id: 'cenote-swim',
     title: 'Cenote Swim',
-    icon: '🌊',
+    icon: 'Waves',
     description: 'Go swimming in a beautiful natural cenote.',
     vocab: [
       { en: 'Swim', zh: 'nadar', pinyin: 'na.ðaɾ' },
@@ -418,7 +420,7 @@ export const MEXICO_SCENARIOS = [
   {
     id: 'ruins-tour',
     title: 'Maya Ruins Tour',
-    icon: '🏛️',
+    icon: 'Landmark',
     description: 'Explore ancient pyramids and learn history.',
     vocab: [
       { en: 'Pyramid', zh: 'pirámide', pinyin: 'pi.ɾa.mi.ðe' },
@@ -429,7 +431,7 @@ export const MEXICO_SCENARIOS = [
   {
     id: 'lucha-libre',
     title: 'Lucha Libre',
-    icon: '🤼',
+    icon: 'Swords',
     description: 'Cheer at an exciting wrestling match.',
     vocab: [
       { en: 'Fight', zh: 'lucha', pinyin: 'lu.tʃa' },
@@ -440,7 +442,7 @@ export const MEXICO_SCENARIOS = [
   {
     id: 'cantina',
     title: 'Local Cantina',
-    icon: '🍻',
+    icon: 'Beer',
     description: 'Grab a drink and chat at a traditional cantina.',
     vocab: [
       { en: 'Beer', zh: 'cerveza', pinyin: 'seɾ.βe.sa' },

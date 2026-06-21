@@ -1,4 +1,8 @@
+import { ICON_MAP } from './iconMap'
+
 export default function CharacterStoryPopup({ country, character, onBeginMission }) {
+  const IconComponent = ICON_MAP[character.icon] || ICON_MAP.Crown;
+
   const words = character.story.split(' ')
   const buttonDelay = 0.7 + words.length * 0.055 + 0.4
 
@@ -9,10 +13,10 @@ export default function CharacterStoryPopup({ country, character, onBeginMission
 
       <div className="relative z-10 flex flex-col items-center justify-center text-center h-full max-w-xl mx-auto px-8">
         <div
-          className="text-8xl mb-6 animate-fade-in-up"
+          className="flex justify-center mb-6 animate-fade-in-up"
           style={{ animationDelay: '0.15s' }}
         >
-          {character.icon}
+          <IconComponent className="w-24 h-24 text-current" strokeWidth={1.5} />
         </div>
 
         <div

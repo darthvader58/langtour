@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import MissionBriefing from './components/MissionBriefing'
 import { getTheme } from './dynamicTheme'
+import { ICON_MAP } from './iconMap'
 
 function LockIcon({ className = 'w-6 h-6' }) {
   return (
@@ -19,26 +20,7 @@ function BackIcon() {
   )
 }
 
-function CrownIcon({ className = 'w-9 h-9' }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="none">
-      <defs>
-        <linearGradient id="crownGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#fff6c8" />
-          <stop offset="55%" stopColor="#facc15" />
-          <stop offset="100%" stopColor="#b45309" />
-        </linearGradient>
-      </defs>
-      <path
-        d="M3 8l3.5 3L12 4l5.5 7L21 8l-2 10H5L3 8z"
-        fill="url(#crownGradient)"
-        stroke="#92400e"
-        strokeWidth="0.75"
-        strokeLinejoin="round"
-      />
-    </svg>
-  )
-}
+
 
 function ProgressBar({ progress, gold, theme }) {
   return (
@@ -53,6 +35,7 @@ function ProgressBar({ progress, gold, theme }) {
 
 function ScenarioCard({ scenario, index, unlocked, progress, completed, onClick, theme }) {
   const isSpecial = Boolean(scenario.special)
+  const IconComponent = ICON_MAP[scenario.icon] || ICON_MAP.Crown;
 
   return (
     <button
@@ -70,11 +53,11 @@ function ScenarioCard({ scenario, index, unlocked, progress, completed, onClick,
       <div className={unlocked ? '' : 'opacity-40 grayscale'}>
         <div
           className={
-            'flex h-12 w-12 items-center justify-center rounded-2xl text-3xl mb-4 ' +
-            (isSpecial ? 'bg-[#FFC800]/20' : 'bg-[#2B4022]')
+            'flex h-12 w-12 items-center justify-center rounded-2xl mb-4 ' +
+            (isSpecial ? 'bg-[#FFC800]/20 text-[#FFC800]' : 'bg-[#2B4022] text-[#40DF01]')
           }
         >
-          {isSpecial ? <CrownIcon /> : <span>{scenario.icon}</span>}
+          <IconComponent className="w-7 h-7" />
         </div>
 
         <h3 className={`${theme.font} text-lg font-extrabold mb-1.5 ${theme.textPrimary}`}>
@@ -113,6 +96,8 @@ function ScenarioCard({ scenario, index, unlocked, progress, completed, onClick,
 }
 
 function LessonModal({ scenario, onClose, onStart, theme }) {
+  const IconComponent = ICON_MAP[scenario.icon] || ICON_MAP.Crown;
+
   return (
     <div className="absolute inset-0 flex items-center justify-center bg-black/40 pointer-events-auto animate-overlay-fade z-20">
       <div className={`animate-modal-pop w-[28rem] max-h-[85vh] overflow-y-auto rounded-3xl ${theme.bgPanel} border-2 ${theme.border} p-7 shadow-2xl`}>
@@ -125,8 +110,8 @@ function LessonModal({ scenario, onClose, onStart, theme }) {
           &times;
         </button>
 
-        <div className="flex items-center gap-3 mb-2">
-          <span className="text-3xl">{scenario.special ? '\u{1F451}' : scenario.icon}</span>
+        <div className={`flex items-center gap-3 mb-2 ${theme.textPrimary}`}>
+          <IconComponent className="w-8 h-8" strokeWidth={1.5} />
           <div>
             <h3 className={`${theme.font} text-xl font-extrabold ${theme.textPrimary}`}>{scenario.title}</h3>
             <p className={`text-xs ${theme.textSecondary} font-medium`}>{scenario.description}</p>

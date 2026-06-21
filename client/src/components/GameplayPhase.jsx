@@ -2,8 +2,11 @@ import { useState, useEffect } from 'react';
 import MicrophoneRecorder from './MicrophoneRecorder';
 import { authFetch } from '../api';
 import { getTheme } from '../dynamicTheme';
+import { User, Trophy } from 'lucide-react';
+import { ICON_MAP } from '../iconMap';
 
 export default function GameplayPhase({ scenario, targetWords, langCode, country, onEndScenario }) {
+  const IconComponent = ICON_MAP[scenario.icon] || ICON_MAP.Crown;
   const [state, setState] = useState('generating'); // generating, npc_turn, user_turn, evaluating, feedback, scenario_complete
   const [npcLine, setNpcLine] = useState(null);
   const [userResponse, setUserResponse] = useState('');
@@ -111,7 +114,7 @@ export default function GameplayPhase({ scenario, targetWords, langCode, country
       <div className="flex flex-col mb-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className={`${theme.font} font-extrabold text-2xl ${theme.textPrimary} flex items-center gap-2`}>
-            <span>{scenario.icon}</span> {scenario.title}
+            <IconComponent className="w-6 h-6" strokeWidth={2.5} /> {scenario.title}
           </h2>
           <div className="flex items-center gap-2">
             <button
@@ -158,7 +161,7 @@ export default function GameplayPhase({ scenario, targetWords, langCode, country
           {(state === 'npc_turn' || state === 'user_turn' || state === 'evaluating' || state === 'feedback') && npcLine && (
             <div className="flex gap-4 self-start max-w-[85%]">
               <div className={`w-10 h-10 rounded-full ${theme.bgAccentFaded} flex items-center justify-center shrink-0`}>
-                <span className="text-xl">👤</span>
+                <User className="w-6 h-6 text-current" strokeWidth={2} />
               </div>
               <div className={`${theme.bgPanel} border-2 ${theme.border} rounded-2xl rounded-tl-sm p-4 pr-12 relative flex flex-col gap-1 shadow-md`}>
                 <button
@@ -178,7 +181,7 @@ export default function GameplayPhase({ scenario, targetWords, langCode, country
           {state === 'generating' && (
             <div className="flex gap-4 self-start max-w-[85%]">
               <div className={`w-10 h-10 rounded-full ${theme.bgAccentFaded} flex items-center justify-center shrink-0`}>
-                <span className="text-xl">👤</span>
+                <User className="w-6 h-6 text-current" strokeWidth={2} />
               </div>
               <div className={`${theme.bgPanel} border-2 ${theme.border} rounded-2xl rounded-tl-sm p-4 flex items-center gap-2`}>
                 <div className={`w-2 h-2 rounded-full ${theme.bgAccent} animate-bounce`}></div>
@@ -242,7 +245,7 @@ export default function GameplayPhase({ scenario, targetWords, langCode, country
       {state === 'scenario_complete' && (
         <div className="flex-1 flex flex-col items-center justify-center animate-fade-in-up text-center">
           <div className={`w-24 h-24 ${theme.bgAccentMuted} rounded-full flex items-center justify-center text-6xl mb-6 ${theme.shadowGlow}`}>
-            🏆
+            <Trophy className="w-12 h-12 text-current" strokeWidth={1.5} />
           </div>
           <h2 className={`${theme.font} font-extrabold text-3xl ${theme.textPrimary} mb-2`}>Scenario Complete!</h2>
           <p className={`${theme.textSecondary} font-medium mb-8`}>You successfully mastered 4 new words in conversation.</p>
