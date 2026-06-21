@@ -1,24 +1,24 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
-const STARTING_TOKENS = 100
-
 export function useProfile() {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
-  const [localTokens, setLocalTokens] = useState(STARTING_TOKENS)
+  const [unlockedCountries, setUnlockedCountries] = useState([])
   const [completedScenarios, setCompletedScenarios] = useState([])
   const [authLoading, setAuthLoading] = useState(Boolean(supabase))
   const [authError, setAuthError] = useState('')
   const [authMessage, setAuthMessage] = useState('')
 
-  const loadProfile = useCallback(async (user) => {
-    if (!supabase || !user) {
+  const loadGameState = useCallback(async (sessionUser) => {
+    if (!supabase || !sessionUser) {
       setProfile(null)
+      setUnlockedCountries([])
+      setCompletedScenarios([])
       return
     }
 
-    const [{ data, error }, { data: completions, error: completionsError }] = await Promise.all([
+    const [profileResult, unlocksResult, completionsResult] = await Promise.all([
       supabase
         .from('profiles')
         .select(`
@@ -26,24 +26,20 @@ export function useProfile() {
           level:levels!profiles_level_id_fkey(id, code, name, minimum_xp, display_order),
           rank:ranks!profiles_rank_id_fkey(id, code, name, minimum_xp, display_order)
         `)
-        .eq('user_id', user.id)
+        .eq('user_id', sessionUser.id)
         .single(),
-      supabase
-        .from('scenario_completions')
-        .select('country_code, scenario_id')
-        .eq('user_id', user.id),
+      supabase.from('country_unlocks').select('country_code').eq('user_id', sessionUser.id),
+      supabase.from('scenario_completions').select('scenario_id').eq('user_id', sessionUser.id),
     ])
 
-    if (error) {
-      console.error('Unable to load Supabase profile:', error.message)
-      return
-    }
-    if (completionsError) {
-      console.error('Unable to load Supabase progression:', completionsError.message)
-    } else {
-      setCompletedScenarios(completions ?? [])
-    }
-    setProfile(data)
+    if (profileResult.error) console.error('Unable to load Supabase profile:', profileResult.error.message)
+    else setProfile(profileResult.data)
+
+    if (unlocksResult.error) console.error('Unable to load country unlocks:', unlocksResult.error.message)
+    else setUnlockedCountries((unlocksResult.data ?? []).map((row) => row.country_code))
+
+    if (completionsResult.error) console.error('Unable to load scenario completions:', completionsResult.error.message)
+    else setCompletedScenarios((completionsResult.data ?? []).map((row) => row.scenario_id))
   }, [])
 
   useEffect(() => {
@@ -53,75 +49,45 @@ export function useProfile() {
       if (error) setAuthError(error.message)
       const sessionUser = data.session?.user ?? null
       setUser(sessionUser)
-      loadProfile(sessionUser)
+      loadGameState(sessionUser)
       setAuthLoading(false)
     })
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       const sessionUser = session?.user ?? null
       setUser(sessionUser)
-      loadProfile(sessionUser)
+      loadGameState(sessionUser)
       setAuthLoading(false)
     })
 
     return () => listener.subscription.unsubscribe()
-  }, [loadProfile])
+  }, [loadGameState])
 
   const signInWithGoogle = useCallback(async () => {
-    if (!supabase) {
-      setAuthError('Supabase is not configured.')
-      return
-    }
-
-    setAuthError('')
-    setAuthMessage('')
-    setAuthLoading(true)
+    if (!supabase) { setAuthError('Supabase is not configured.'); return }
+    setAuthError(''); setAuthMessage(''); setAuthLoading(true)
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}${window.location.pathname}`,
-      },
+      options: { redirectTo: `${window.location.origin}${window.location.pathname}` },
     })
-
-    if (error) {
-      setAuthError(error.message)
-      setAuthLoading(false)
-    }
+    if (error) { setAuthError(error.message); setAuthLoading(false) }
   }, [])
 
   const signInWithEmail = useCallback(async (email, password) => {
-    if (!supabase) {
-      setAuthError('Supabase is not configured.')
-      return
-    }
-
-    setAuthError('')
-    setAuthMessage('')
-    setAuthLoading(true)
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    })
+    if (!supabase) { setAuthError('Supabase is not configured.'); return }
+    setAuthError(''); setAuthMessage(''); setAuthLoading(true)
+    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
     if (error) setAuthError(error.message)
     setAuthLoading(false)
   }, [])
 
   const signUpWithEmail = useCallback(async (email, password) => {
-    if (!supabase) {
-      setAuthError('Supabase is not configured.')
-      return
-    }
-
-    setAuthError('')
-    setAuthMessage('')
-    setAuthLoading(true)
+    if (!supabase) { setAuthError('Supabase is not configured.'); return }
+    setAuthError(''); setAuthMessage(''); setAuthLoading(true)
     const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
-      options: {
-        emailRedirectTo: `${window.location.origin}${window.location.pathname}`,
-      },
+      options: { emailRedirectTo: `${window.location.origin}${window.location.pathname}` },
     })
-
     if (error) setAuthError(error.message)
     else if (!data.session) setAuthMessage('Check your email to confirm your account.')
     setAuthLoading(false)
@@ -129,79 +95,67 @@ export function useProfile() {
 
   const signOut = useCallback(async () => {
     if (!supabase) return
-
-    setAuthError('')
-    setAuthMessage('')
-    setAuthLoading(true)
+    setAuthError(''); setAuthMessage(''); setAuthLoading(true)
     const { error } = await supabase.auth.signOut()
-    if (error) {
-      setAuthError(error.message)
-      setAuthLoading(false)
-    }
+    if (error) { setAuthError(error.message); setAuthLoading(false) }
   }, [])
 
-  const spendTokens = useCallback(async (amount) => {
-    if (!supabase || !user) {
-      if (localTokens < amount) return false
-      setLocalTokens((balance) => balance - amount)
-      return true
-    }
+  const unlockCountry = useCallback(async (countryCode, cost) => {
+    if (!supabase || !user) { setAuthError('Sign in to unlock countries.'); return null }
+    const { data, error } = await supabase.rpc('unlock_country_for_user', {
+      p_country_code: countryCode,
+      p_cost: cost,
+    })
+    if (error) { console.error('Unable to unlock country:', error.message); return null }
+    setProfile((current) => current ? { ...current, tokens: data.tokens } : current)
+    setUnlockedCountries(data.unlockedCountries ?? [])
+    return data
+  }, [user])
 
-    const { data: newBalance, error } = await supabase.rpc('spend_tokens', { amount })
-    if (error) {
-      console.error('Unable to spend tokens:', error.message)
-      return false
-    }
-
-    setProfile((current) => ({ ...current, tokens: newBalance }))
-    return true
-  }, [localTokens, user])
+  const awardTokens = useCallback(async (amount) => {
+    if (!supabase || !user) return null
+    const { data: newBalance, error } = await supabase.rpc('award_tokens', { p_amount: amount })
+    if (error) { console.error('Unable to award tokens:', error.message); return null }
+    setProfile((current) => current ? { ...current, tokens: newBalance } : current)
+    return newBalance
+  }, [user])
 
   const completeScenario = useCallback(async (countryCode, scenarioId) => {
-    if (!supabase || !user) {
-      const completion = { country_code: countryCode.toLowerCase(), scenario_id: scenarioId }
-      setCompletedScenarios((current) => current.some((item) =>
-        item.country_code === completion.country_code && item.scenario_id === scenarioId
-      ) ? current : [...current, completion])
-      return true
-    }
-
+    if (!supabase || !user) { setAuthError('Sign in to save scenario progress.'); return false }
     const { error } = await supabase.rpc('record_scenario_completion', {
       p_country_code: countryCode,
       p_scenario_id: scenarioId,
     })
-    if (error) {
-      console.error('Unable to save scenario completion:', error.message)
-      return false
-    }
-    await loadProfile(user)
+    if (error) { console.error('Unable to save scenario completion:', error.message); return false }
+    setCompletedScenarios((current) => current.includes(scenarioId) ? current : [...current, scenarioId])
+    await loadGameState(user)
     return true
-  }, [loadProfile, user])
+  }, [loadGameState, user])
 
-  const claimCountryReward = useCallback(async (countryCode, localReward) => {
-    if (!supabase || !user) {
-      setLocalTokens((balance) => balance + localReward)
-      return true
-    }
-
-    const { data: newBalance, error } = await supabase.rpc('claim_country_reward', {
-      p_country_code: countryCode,
-    })
-    if (error) {
-      console.error('Unable to claim country reward:', error.message)
-      return false
-    }
-    setProfile((current) => ({ ...current, tokens: newBalance }))
+  const claimCountryReward = useCallback(async (countryCode) => {
+    if (!supabase || !user) { setAuthError('Sign in to claim rewards.'); return false }
+    const { data: newBalance, error } = await supabase.rpc('claim_country_reward', { p_country_code: countryCode })
+    if (error) { console.error('Unable to claim country reward:', error.message); return false }
+    setProfile((current) => current ? { ...current, tokens: newBalance } : current)
     return true
   }, [user])
+
+  const resetProgress = useCallback(async () => {
+    if (!supabase || !user) return false
+    const { error } = await supabase.rpc('reset_user_progress')
+    if (error) { console.error('Unable to reset progress:', error.message); return false }
+    await loadGameState(user)
+    return true
+  }, [loadGameState, user])
 
   return {
     user,
     profile,
-    completedScenarios,
-    tokens: profile?.tokens ?? localTokens,
+    tokens: profile?.tokens ?? 0,
     level: profile?.level ?? null,
     rank: profile?.rank ?? null,
+    unlockedCountries,
+    completedScenarios,
     authLoading,
     authError,
     authMessage,
@@ -209,8 +163,10 @@ export function useProfile() {
     signInWithEmail,
     signUpWithEmail,
     signOut,
-    spendTokens,
+    unlockCountry,
+    awardTokens,
     completeScenario,
     claimCountryReward,
+    resetProgress,
   }
 }

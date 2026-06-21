@@ -33,14 +33,16 @@ export default function AuthModal({
   return (
     <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/70 px-4 backdrop-blur-md">
       <div className="relative w-full max-w-md rounded-3xl border border-white/15 bg-[#10131c]/95 p-7 shadow-[0_24px_80px_rgba(0,0,0,0.65)]">
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute right-5 top-4 text-2xl text-white/45 transition-colors hover:text-white"
-          aria-label="Close sign-in dialog"
-        >
-          ×
-        </button>
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="absolute right-5 top-4 text-2xl text-white/45 transition-colors hover:text-white"
+            aria-label="Close sign-in dialog"
+          >
+            ×
+          </button>
+        )}
 
         <h2 className="font-display text-2xl font-semibold">
           {mode === 'sign-up' ? 'Create your account' : 'Welcome back'}
