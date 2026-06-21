@@ -60,7 +60,7 @@ export default function CompletionScreen({ country, code, character, rewardToken
                 +{rewardTokens}
               </div>
               <div className="text-xs text-gray-400 font-bold uppercase tracking-widest">
-                Tokens Earned
+                LangCoins Earned
               </div>
             </div>
           </div>

@@ -9,6 +9,7 @@ import AuthModal from './components/AuthModal'
 import { API } from './api'
 import { useProfile } from './hooks/useProfile'
 import { COUNTRIES as LOCAL_COUNTRIES } from './gameData'
+import UserProfileOverlay from './components/profile/UserProfileOverlay'
 
 function App() {
   const profile = useProfile()
@@ -20,6 +21,7 @@ function App() {
   const [glowCountry, setGlowCountry] = useState(null)
   const [catalog, setCatalog] = useState(null)
   const [catalogError, setCatalogError] = useState('')
+  const [profileOpen, setProfileOpen] = useState(false)
 
   useEffect(() => {
     fetch(`${API}/api/catalog`)
@@ -157,22 +159,38 @@ function App() {
     )
   }
 
-  return <LandingPage
-           tokens={profile.tokens}
-           unlockedCountries={profile.unlockedCountries}
-           glowCountry={glowCountry}
-           level={profile.level}
-           rank={profile.rank}
-           auth={profile}
-           countries={countries}
-           characters={characters}
-           unlockCost={unlockCost}
-           onUnlockCountry={handleUnlockCountry}
-           onCountrySelect={(country) => {
-             setGlowCountry(current => current === country ? null : current);
-             setSelectedCountry(country);
-           }}
-         />
+  return (
+    <>
+      <LandingPage
+        tokens={profile.tokens}
+        unlockedCountries={profile.unlockedCountries}
+        glowCountry={glowCountry}
+        level={profile.level}
+        rank={profile.rank}
+        auth={profile}
+        countries={countries}
+        characters={characters}
+        unlockCost={unlockCost}
+        onUnlockCountry={handleUnlockCountry}
+        onOpenProfile={() => setProfileOpen(true)}
+        onCountrySelect={(country) => {
+          setGlowCountry(current => current === country ? null : current);
+          setSelectedCountry(country);
+        }}
+      />
+      <UserProfileOverlay
+        open={profileOpen}
+        onClose={() => setProfileOpen(false)}
+        user={profile.user}
+        profile={profile.profile}
+        tokens={profile.tokens}
+        level={profile.level}
+        rank={profile.rank}
+        unlockedCountries={profile.unlockedCountries}
+        completedScenarios={profile.completedScenarios}
+      />
+    </>
+  )
 }
 
 export default App

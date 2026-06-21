@@ -48,7 +48,7 @@ export default function AuthModal({
           {mode === 'sign-up' ? 'Create your account' : 'Welcome back'}
         </h2>
         <p className="mt-1 text-sm text-white/50">
-          Sign in to save your tokens and progress.
+          Sign in to save your LangCoins and progress.
         </p>
 
         <button
