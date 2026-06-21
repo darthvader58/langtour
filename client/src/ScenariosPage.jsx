@@ -1,133 +1,6 @@
 import { useState } from 'react'
 
-const CHINA_SCENARIOS = [
-  {
-    id: 'street-market',
-    title: 'Street Market',
-    icon: '\u{1F3EE}',
-    description: 'Haggle over prices and order street food from local vendors.',
-    vocab: [
-      { en: 'Market', zh: '市场', pinyin: 'shìchǎng' },
-      { en: 'How much?', zh: '多少钱？', pinyin: 'duōshao qián' },
-      { en: 'Too expensive', zh: '太贵了', pinyin: 'tài guì le' },
-      { en: 'Discount', zh: '打折', pinyin: 'dǎzhé' },
-      { en: 'Fresh', zh: '新鲜', pinyin: 'xīnxiān' },
-      { en: 'Bargain', zh: '还价', pinyin: 'huánjià' },
-    ],
-  },
-  {
-    id: 'restaurant',
-    title: 'Restaurant',
-    icon: '\u{1F962}',
-    description: 'Order dishes, ask for recommendations, and pay the bill.',
-    vocab: [
-      { en: 'Menu', zh: '菜单', pinyin: 'càidān' },
-      { en: 'Delicious', zh: '好吃', pinyin: 'hǎochī' },
-      { en: 'Check, please', zh: '买单', pinyin: 'mǎidān' },
-      { en: 'Spicy', zh: '辣', pinyin: 'là' },
-      { en: 'Waiter', zh: '服务员', pinyin: 'fúwùyuán' },
-      { en: 'Recommend', zh: '推荐', pinyin: 'tuījiàn' },
-    ],
-  },
-  {
-    id: 'train-station',
-    title: 'Train Station',
-    icon: '\u{1F684}',
-    description: 'Buy tickets, ask for directions, and catch your train on time.',
-    vocab: [
-      { en: 'Ticket', zh: '票', pinyin: 'piào' },
-      { en: 'Platform', zh: '站台', pinyin: 'zhàntái' },
-      { en: 'Departure', zh: '出发', pinyin: 'chūfā' },
-      { en: 'Arrival', zh: '到达', pinyin: 'dàodá' },
-      { en: 'Schedule', zh: '时间表', pinyin: 'shíjiānbiǎo' },
-      { en: 'Delay', zh: '延误', pinyin: 'yánwù' },
-    ],
-  },
-  {
-    id: 'taxi-ride',
-    title: 'Taxi Ride',
-    icon: '\u{1F695}',
-    description: 'Give directions to your destination and chat with the driver.',
-    vocab: [
-      { en: 'Address', zh: '地址', pinyin: 'dìzhǐ' },
-      { en: 'Turn left', zh: '左转', pinyin: 'zuǒ zhuǎn' },
-      { en: 'Turn right', zh: '右转', pinyin: 'yòu zhuǎn' },
-      { en: 'Straight ahead', zh: '直走', pinyin: 'zhízǒu' },
-      { en: 'Fare', zh: '车费', pinyin: 'chēfèi' },
-      { en: 'Stop here', zh: '在这里停', pinyin: 'zài zhèlǐ tíng' },
-    ],
-  },
-  {
-    id: 'hotel-checkin',
-    title: 'Hotel Check-in',
-    icon: '\u{1F6CE}\u{FE0F}',
-    description: 'Check into your room and ask about hotel amenities.',
-    vocab: [
-      { en: 'Reservation', zh: '预订', pinyin: 'yùdìng' },
-      { en: 'Room key', zh: '房卡', pinyin: 'fángkǎ' },
-      { en: 'Check-in', zh: '入住', pinyin: 'rùzhù' },
-      { en: 'Check-out', zh: '退房', pinyin: 'tuìfáng' },
-      { en: 'Breakfast', zh: '早餐', pinyin: 'zǎocān' },
-      { en: 'Wi-Fi password', zh: 'Wi-Fi密码', pinyin: 'Wi-Fi mìmǎ' },
-    ],
-  },
-  {
-    id: 'newspaper-reading',
-    title: 'Newspaper Reading',
-    icon: '\u{1F4F0}',
-    description: 'Read headlines and discuss current events with a local.',
-    vocab: [
-      { en: 'News', zh: '新闻', pinyin: 'xīnwén' },
-      { en: 'Headline', zh: '头条', pinyin: 'tóutiáo' },
-      { en: 'Economy', zh: '经济', pinyin: 'jīngjì' },
-      { en: 'Government', zh: '政府', pinyin: 'zhèngfǔ' },
-      { en: 'Report', zh: '报道', pinyin: 'bàodào' },
-      { en: 'Opinion', zh: '观点', pinyin: 'guāndiǎn' },
-    ],
-  },
-  {
-    id: 'business-meeting',
-    title: 'Business Meeting',
-    icon: '\u{1F4BC}',
-    description: 'Negotiate a deal and exchange pleasantries with partners.',
-    vocab: [
-      { en: 'Contract', zh: '合同', pinyin: 'hétong' },
-      { en: 'Partner', zh: '合作伙伴', pinyin: 'hézuò huǒbàn' },
-      { en: 'Negotiate', zh: '谈判', pinyin: 'tánpàn' },
-      { en: 'Agreement', zh: '协议', pinyin: 'xiéyì' },
-      { en: 'Deadline', zh: '截止日期', pinyin: 'jiézhǐ rìqī' },
-      { en: 'Profit', zh: '利润', pinyin: 'lìrùn' },
-    ],
-  },
-  {
-    id: 'politician-speech',
-    title: 'Politician Speech',
-    icon: '\u{1F3A4}',
-    description: 'Listen to a speech and discuss politics with citizens.',
-    vocab: [
-      { en: 'Speech', zh: '演讲', pinyin: 'yǎnjiǎng' },
-      { en: 'Policy', zh: '政策', pinyin: 'zhèngcè' },
-      { en: 'Citizen', zh: '公民', pinyin: 'gōngmín' },
-      { en: 'Election', zh: '选举', pinyin: 'xuǎnjǔ' },
-      { en: 'Vote', zh: '投票', pinyin: 'tóupiào' },
-      { en: 'Reform', zh: '改革', pinyin: 'gǎigé' },
-    ],
-  },
-]
-
-const REAL_LIFE_SCENARIO = {
-  id: 'real-life-conversation',
-  title: 'Real Life Conversation',
-  icon: '\u{1F451}',
-  description: 'An unscripted, free-flowing conversation putting everything together.',
-  special: true,
-  vocab: [
-    { en: 'Free conversation', zh: '自由对话', pinyin: 'zìyóu duìhuà' },
-    { en: 'Fluency', zh: '流利', pinyin: 'liúlì' },
-    { en: 'Practice', zh: '练习', pinyin: 'liànxí' },
-    { en: 'Confidence', zh: '自信', pinyin: 'zìxìn' },
-  ],
-}
+import { SCENARIOS_BY_COUNTRY, SPECIAL_SCENARIO_BY_COUNTRY } from './gameData'
 
 function LockIcon({ className = 'w-6 h-6' }) {
   return (
@@ -293,8 +166,10 @@ function LessonModal({ scenario, onClose, onStart }) {
   )
 }
 
-export default function ScenariosPage({ country = 'China', completedScenarios = [], onBack, onScenarioStart }) {
-  const progress = CHINA_SCENARIOS.map(sc => completedScenarios.includes(sc.id) ? 100 : 0)
+export default function ScenariosPage({ country = 'China', flag = '', completedScenarios = [], onBack, onScenarioStart }) {
+  const scenarios = SCENARIOS_BY_COUNTRY[country] || [];
+  const specialScenario = SPECIAL_SCENARIO_BY_COUNTRY[country];
+  const progress = scenarios.map(sc => completedScenarios.includes(sc.id) ? 100 : 0)
   const [activeScenario, setActiveScenario] = useState(null)
 
   const allCompleted = progress.every((p) => p >= 100)
@@ -329,7 +204,7 @@ export default function ScenariosPage({ country = 'China', completedScenarios = 
         </button>
 
         <div className="flex items-center gap-3">
-          <span className="text-3xl">{'\u{1F1E8}\u{1F1F3}'}</span>
+          <span className="text-3xl">{flag || '\u{1F1E8}\u{1F1F3}'}</span>
           <div>
             <h1 className="font-display text-2xl font-extrabold text-white">{country}</h1>
             <p className="text-[11px] text-gray-400 font-bold uppercase tracking-[0.2em]">Choose a Scenario</p>
@@ -338,7 +213,7 @@ export default function ScenariosPage({ country = 'China', completedScenarios = 
 
         <div className="flex items-center gap-2 rounded-full bg-[#1F2937] border-2 border-[#37464F] px-5 py-2.5 shadow-sm">
           <span className="font-display text-lg font-extrabold tabular-nums text-[#58CC02]">
-            {completedCount}/{CHINA_SCENARIOS.length}
+            {completedCount}/{scenarios.length}
           </span>
           <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">completed</span>
         </div>
@@ -346,7 +221,7 @@ export default function ScenariosPage({ country = 'China', completedScenarios = 
 
       <main className="relative z-10 px-8 pb-16">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-          {CHINA_SCENARIOS.map((scenario, index) => {
+          {scenarios.map((scenario, index) => {
             const unlocked = isUnlocked(index)
             return (
               <ScenarioCard
@@ -360,14 +235,16 @@ export default function ScenariosPage({ country = 'China', completedScenarios = 
               />
             )
           })}
-          <ScenarioCard
-            scenario={REAL_LIFE_SCENARIO}
-            index={CHINA_SCENARIOS.length}
-            unlocked={allCompleted}
-            progress={allCompleted ? 0 : 0}
-            completed={false}
-            onClick={() => handleCardClick(REAL_LIFE_SCENARIO, allCompleted)}
-          />
+          {specialScenario && (
+            <ScenarioCard
+              scenario={specialScenario}
+              index={scenarios.length}
+              unlocked={allCompleted}
+              progress={allCompleted ? 0 : 0}
+              completed={false}
+              onClick={() => handleCardClick(specialScenario, allCompleted)}
+            />
+          )}
         </div>
       </main>
 

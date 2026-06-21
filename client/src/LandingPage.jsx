@@ -151,7 +151,7 @@ function CoinIcon() {
   )
 }
 
-export default function LandingPage({ tokens, unlockedCountries = ["China"], onUnlockCountry, onCountrySelect }) {
+export default function LandingPage({ tokens, unlockedCountries = ["China"], glowCountry, onUnlockCountry, onCountrySelect }) {
   const mountRef = useRef(null)
   const triggerTravelRef = useRef(() => {})
   const onCountrySelectRef = useRef(onCountrySelect)
@@ -497,17 +497,12 @@ export default function LandingPage({ tokens, unlockedCountries = ["China"], onU
         </div>
 
         <div className="pointer-events-auto flex items-center gap-4">
-          <button 
-            onClick={async () => {
-              if (window.confirm("Are you sure you want to completely reset your progress and the database?")) {
-                await fetch(`${API}/api/admin/reset`, { method: 'POST' });
-                window.location.reload();
-              }
-            }}
-            className="flex items-center justify-center rounded-2xl bg-[#FF4B4B] hover:bg-[#FF5555] active:translate-y-0.5 border-2 border-[#EA1B1B] border-b-4 active:border-b-2 px-4 py-2 font-display text-sm font-extrabold uppercase tracking-widest text-white transition-all shadow-md"
-          >
-            Reset Progress
-          </button>
+          <div className="flex items-center gap-2 rounded-full bg-[#1F2937] border-2 border-[#37464F] px-4 py-2.5 shadow-md">
+            <span className="text-lg">{'\u{1F30D}'}</span>
+            <span className="font-display text-sm font-extrabold text-white">
+              Level {unlockedCountries.length}
+            </span>
+          </div>
           
           <div className="flex items-center gap-2.5 rounded-full bg-[#1F2937] border-2 border-[#37464F] px-5 py-2.5 shadow-md">
             <CoinIcon />
@@ -538,7 +533,8 @@ export default function LandingPage({ tokens, unlockedCountries = ["China"], onU
                 className={
                   'w-full flex items-center justify-between rounded-2xl px-3 py-2.5 text-left transition-all duration-150 border-2 ' +
                   (isUnlocked
-                    ? 'bg-[#58CC02] hover:bg-[#61D908] active:translate-y-0.5 cursor-pointer text-white font-extrabold border-[#46A302] border-b-4 active:border-b-2'
+                    ? 'bg-[#58CC02] hover:bg-[#61D908] active:translate-y-0.5 cursor-pointer text-white font-extrabold border-[#46A302] border-b-4 active:border-b-2' +
+                      (glowCountry === country.name ? ' animate-country-glow' : '')
                     : 'bg-[#1F2937] hover:bg-[#28323c] active:translate-y-0.5 text-gray-300 cursor-pointer border-[#37464F] border-b-4 active:border-b-2')
                 }
               >
@@ -602,6 +598,18 @@ export default function LandingPage({ tokens, unlockedCountries = ["China"], onU
       {showFlash && (
         <div className="absolute inset-0 bg-white animate-cinematic-flash pointer-events-none" />
       )}
+
+      <button 
+        onClick={async () => {
+          if (window.confirm("Are you sure you want to completely reset your progress and the database?")) {
+            await fetch(`${API}/api/admin/reset`, { method: 'POST' });
+            window.location.reload();
+          }
+        }}
+        className="absolute bottom-6 right-6 pointer-events-auto flex items-center justify-center rounded-2xl bg-[#FF4B4B] hover:bg-[#FF5555] active:translate-y-0.5 border-2 border-[#EA1B1B] border-b-4 active:border-b-2 px-4 py-2 font-display text-sm font-extrabold uppercase tracking-widest text-white transition-all shadow-md z-50"
+      >
+        Reset
+      </button>
     </div>
   )
 }

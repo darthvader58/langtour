@@ -52,6 +52,17 @@ async function startServer() {
     }
   });
 
+  app.post('/api/user/earn', (req, res) => {
+    try {
+      const { amount } = req.body;
+      db.prepare('UPDATE user_profile SET tokens = tokens + ? WHERE id = 1').run(amount);
+      const profile = db.prepare('SELECT tokens FROM user_profile WHERE id = 1').get();
+      res.json({ success: true, tokens: profile.tokens });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   app.post('/api/user/complete-scenario', (req, res) => {
     try {
       const { scenarioId } = req.body;

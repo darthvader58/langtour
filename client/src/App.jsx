@@ -3,6 +3,9 @@ import LandingPage from './LandingPage'
 import ScenariosPage from './ScenariosPage'
 import VoiceTestPage from './pages/VoiceTestPage'
 import ScenarioRunner from './components/ScenarioRunner'
+import CharacterStoryPopup from './CharacterStoryPopup'
+import CompletionScreen from './CompletionScreen'
+import { COUNTRIES, SCENARIOS_BY_COUNTRY, REWARD_TOKENS } from './gameData'
 import { API } from './api'
 
 function App() {
@@ -12,6 +15,9 @@ function App() {
   const [tokens, setTokens] = useState(0)
   const [unlockedCountries, setUnlockedCountries] = useState([])
   const [hash, setHash] = useState(window.location.hash)
+  const [storySeen, setStorySeen] = useState([])
+  const [completionCountry, setCompletionCountry] = useState(null)
+  const [glowCountry, setGlowCountry] = useState(null)
 
   useEffect(() => {
     fetch(`${API}/api/user/state`)
@@ -50,6 +56,7 @@ function App() {
       if (data.success) {
         setTokens(data.tokens);
         setUnlockedCountries(data.unlockedCountries);
+        setGlowCountry(countryName);
         return true;
       }
       return false;
@@ -69,13 +76,40 @@ function App() {
     return <VoiceTestPage />
   }
 
+  if (completionCountry) {
+    const flag = COUNTRIES.find((c) => c.name === completionCountry)?.flag ?? ''
+    return (
+      <CompletionScreen
+        country={completionCountry}
+        flag={flag}
+        onReturn={async () => {
+          setCompletionCountry(null);
+          setSelectedCountry(null);
+          try {
+            const res = await fetch(`${API}/api/user/earn`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ amount: REWARD_TOKENS })
+            });
+            const data = await res.json();
+            if (data.success) setTokens(data.tokens);
+          } catch (e) {
+            console.error(e);
+          }
+        }}
+      />
+    )
+  }
+
   if (activeScenario) {
     return (
       <ScenarioRunner 
         scenario={activeScenario}
         onEndScenario={async (result) => {
+          let updatedCompleted = completedScenarios;
           if (result?.completed && result?.id && !completedScenarios.includes(result.id)) {
-            setCompletedScenarios([...completedScenarios, result.id]);
+            updatedCompleted = [...completedScenarios, result.id];
+            setCompletedScenarios(updatedCompleted);
             try {
               await fetch(`${API}/api/user/complete-scenario`, {
                 method: 'POST',
@@ -87,15 +121,34 @@ function App() {
             }
           }
           setActiveScenario(null);
+
+          if (selectedCountry) {
+            const allScenarios = SCENARIOS_BY_COUNTRY[selectedCountry] || [];
+            const allIds = allScenarios.map(s => s.id);
+            if (allIds.length > 0 && allIds.every(id => updatedCompleted.includes(id))) {
+              setCompletionCountry(selectedCountry);
+            }
+          }
         }}
       />
     )
   }
 
+  if (selectedCountry && !storySeen.includes(selectedCountry)) {
+    return (
+      <CharacterStoryPopup
+        country={selectedCountry}
+        onBeginMission={() => setStorySeen([...storySeen, selectedCountry])}
+      />
+    )
+  }
+
   if (selectedCountry) {
+    const flag = COUNTRIES.find((c) => c.name === selectedCountry)?.flag ?? ''
     return (
       <ScenariosPage
         country={selectedCountry}
+        flag={flag}
         completedScenarios={completedScenarios}
         onBack={() => setSelectedCountry(null)}
         onScenarioStart={(scenario) => setActiveScenario(scenario)}
@@ -106,8 +159,12 @@ function App() {
   return <LandingPage 
            tokens={tokens} 
            unlockedCountries={unlockedCountries}
+           glowCountry={glowCountry}
            onUnlockCountry={handleUnlockCountry} 
-           onCountrySelect={(country) => setSelectedCountry(country)} 
+           onCountrySelect={(country) => {
+             setGlowCountry(current => current === country ? null : current);
+             setSelectedCountry(country);
+           }} 
          />
 }
 
