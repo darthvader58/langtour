@@ -3,9 +3,9 @@ import LandingPage from './LandingPage'
 import ScenariosPage from './ScenariosPage'
 import VoiceTestPage from './pages/VoiceTestPage'
 import ScenarioRunner from './components/ScenarioRunner'
-import CharacterStoryPopup from './CharacterStoryPopup'
+import CountryBriefingModal from './components/CountryBriefingModal'
 import LevelUpAnimation from './components/LevelUpAnimation'
-import PassportStamp from './components/PassportStamp'
+import PassportCompletion from './components/PassportCompletion'
 import AmbientParticles from './components/AmbientParticles'
 import { API } from './api'
 import {
@@ -26,8 +26,9 @@ function App() {
   const [activeScenario,     setActiveScenario]      = useState(null)
   const [hash,               setHash]                = useState(window.location.hash)
 
-  // Persisted via the node backend (/api/user/state)
-  const [tokens,             setTokens]              = useState(0)
+  // Persisted via the node backend (/api/user/state). Seeded at 100 so the
+  // HUD shows a full purse immediately on first load for the demo.
+  const [tokens,             setTokens]              = useState(100)
   const [unlockedCountries,  setUnlockedCountries]   = useState([ALWAYS_UNLOCKED])
   const [completedScenarios, setCompletedScenarios]  = useState([])
 
@@ -184,13 +185,13 @@ function App() {
 
   // ── Screen priority ──────────────────────────────────────────
   if (passportData) {
+    const vocabMastered = (passportData.scenarios ?? []).reduce((sum, s) => sum + (s.vocab?.length ?? 0), 0)
     return (
-      <PassportStamp
+      <PassportCompletion
         country={passportData.country}
-        flag={passportData.flag}
-        progress={passportData.progress}
-        scenarios={passportData.scenarios}
-        onClaim={handlePassportClaim}
+        ducatsEarned={REWARD_TOKENS}
+        vocabMastered={vocabMastered}
+        onReturn={handlePassportClaim}
       />
     )
   }
@@ -210,6 +211,7 @@ function App() {
     return (
       <ScenarioRunner
         scenario={activeScenario}
+        country={selectedCountry}
         onEndScenario={handleEndScenario}
       />
     )
@@ -217,9 +219,10 @@ function App() {
 
   if (selectedCountry && !storySeen.includes(selectedCountry)) {
     return (
-      <CharacterStoryPopup
+      <CountryBriefingModal
         country={selectedCountry}
-        onBeginMission={() => setStorySeen(seen => [...seen, selectedCountry])}
+        onAccept={() => setStorySeen(seen => [...seen, selectedCountry])}
+        onClose={() => setSelectedCountry(null)}
       />
     )
   }
@@ -240,6 +243,7 @@ function App() {
       <AmbientParticles />
       <LandingPage
         tokens={tokens}
+        level={levelForCompleted(completedScenarios.length)}
         unlockedCountries={unlockedCountries}
         glowCountry={glowCountry}
         progressByCountry={buildProgressByCountry()}

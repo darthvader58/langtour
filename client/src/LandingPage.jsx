@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import { CHINA, COUNTRIES, UNLOCK_COST } from './gameData'
-import SackboyCharacter from './components/SackboyCharacter'
+import { CHINA, COUNTRIES, UNLOCK_COST, AGENT_AVATARS } from './gameData'
 import { useProfile } from './hooks/useProfile'
 import AuthModal from './components/AuthModal'
 
@@ -49,6 +48,7 @@ function createRadialTexture(innerColor, outerColor = 'rgba(0,0,0,0)') {
   ctx.fillRect(0, 0, size, size)
   return new THREE.CanvasTexture(canvas)
 }
+
 
 function createStarField() {
   const starCount = 2600
@@ -113,87 +113,6 @@ function createChinaMarker() {
   return { group, hitMesh, dot, rings }
 }
 
-function LockIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="5" y="11" width="14" height="9" rx="2" />
-      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-    </svg>
-  )
-}
-
-function AstrolabeFrame() {
-  const ticks = Array.from({ length: 72 }, (_, i) => {
-    const angle = (i * 5 * Math.PI) / 180
-    const major = i % 9 === 0
-    const r1 = 272, r2 = major ? 257 : 265
-    const cos = Math.cos(angle - Math.PI / 2)
-    const sin = Math.sin(angle - Math.PI / 2)
-    return { x1: cos * r1, y1: sin * r1, x2: cos * r2, y2: sin * r2, major }
-  })
-
-  const dotRing = Array.from({ length: 12 }, (_, i) => {
-    const a = (i * 30 * Math.PI) / 180
-    return { cx: Math.cos(a - Math.PI / 2) * 218, cy: Math.sin(a - Math.PI / 2) * 218 }
-  })
-
-  const compassPoints = [
-    { x: 0, y: -258, label: 'N' }, { x: 258, y: 0, label: 'E' },
-    { x: 0, y: 258, label: 'S' }, { x: -258, y: 0, label: 'W' },
-  ]
-
-  return (
-    <svg width="580" height="580" viewBox="-290 -290 580 580" className="pointer-events-none select-none">
-      {/* Outer ring */}
-      <circle r="276" fill="none" stroke="#C9A84C" strokeWidth="1" opacity="0.45" />
-      <circle r="268" fill="none" stroke="#C9A84C" strokeWidth="0.4" opacity="0.15" />
-
-      {/* Degree ticks */}
-      {ticks.map((t, i) => (
-        <line key={i} x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2}
-          stroke="#C9A84C" strokeWidth={t.major ? '1.5' : '0.6'}
-          opacity={t.major ? '0.55' : '0.2'}
-        />
-      ))}
-
-      {/* Compass NESW */}
-      {compassPoints.map(({ x, y, label }) => (
-        <text key={label} x={x} y={y}
-          textAnchor="middle" dominantBaseline="middle"
-          fill="#C9A84C" fontSize="10" fontFamily="Cinzel" fontWeight="700" opacity="0.65"
-        >{label}</text>
-      ))}
-
-      {/* North arrow */}
-      <polygon points="0,-280 -3,-265 3,-265" fill="#C9A84C" opacity="0.6" />
-
-      {/* Slowly rotating middle ring */}
-      <g>
-        <animateTransform attributeName="transform" type="rotate" from="0 0 0" to="360 0 0" dur="120s" repeatCount="indefinite" />
-        <circle r="240" fill="none" stroke="#C9A84C" strokeWidth="0.5" strokeDasharray="5 9" opacity="0.25" />
-        <line x1="-240" y1="0" x2="240" y2="0" stroke="#C9A84C" strokeWidth="0.3" opacity="0.12" />
-        <line x1="0" y1="-240" x2="0" y2="240" stroke="#C9A84C" strokeWidth="0.3" opacity="0.12" />
-        {[45, 135, 225, 315].map((deg, i) => {
-          const a = (deg * Math.PI) / 180
-          return <circle key={i} cx={Math.cos(a) * 240} cy={Math.sin(a) * 240} r="2.5" fill="none" stroke="#C9A84C" strokeWidth="1" opacity="0.35" />
-        })}
-      </g>
-
-      {/* Counter-rotating inner ring */}
-      <g>
-        <animateTransform attributeName="transform" type="rotate" from="0 0 0" to="-360 0 0" dur="80s" repeatCount="indefinite" />
-        <circle r="218" fill="none" stroke="#C9A84C" strokeWidth="0.5" opacity="0.18" />
-        {dotRing.map((d, i) => (
-          <circle key={i} cx={d.cx} cy={d.cy} r="1.5" fill="#C9A84C" opacity="0.3" />
-        ))}
-      </g>
-
-      {/* Innermost static ring */}
-      <circle r="194" fill="none" stroke="#C9A84C" strokeWidth="0.3" opacity="0.12" />
-    </svg>
-  )
-}
-
 function CoinIcon() {
   return (
     <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none">
@@ -222,8 +141,34 @@ const HEAT_ZONE_COLORS = {
   Brazil: [ 34, 197,  94],
 }
 
+// Per-country glow used for the roster card hover effect.
+const CARD_GLOW = {
+  China:  '#C81E1E', // red
+  Japan:  '#F5F0E8', // white
+  France: '#2A6BD6', // blue
+  Mexico: '#2BA45A', // green
+  Egypt:  '#E8C547', // gold
+  Brazil: '#16A34A', // green
+}
+
+// Countries shown as linked on the globe even before they are unlocked, so the
+// China <-> Japan agent data-link is always visible for the demo.
+const DEMO_LINKED = ['China', 'Japan']
+
+const TICKER_MESSAGES = [
+  '🌏 3 explorers are out adventuring around the world right now',
+  '🎉 New mission just unlocked in Tokyo!',
+  '🥢 Someone ordered street food in Shanghai',
+  '🇫🇷 A French phrase was practiced near Paris',
+  '⭐ Vocabulary mastery level increased!',
+  '🏆 Restaurant mission completed in China',
+  '🗺️ A new scenario opened in the Beijing market',
+  '🔥 Daily streak extended — keep it going!',
+]
+
 export default function LandingPage({
   tokens,
+  level = 1,
   unlockedCountries,
   glowCountry,
   progressByCountry = {},
@@ -237,6 +182,7 @@ export default function LandingPage({
   const heatZoneSpritesRef = useRef({})
   const heatZonePropsRef   = useRef({})
   const overlayRefs        = useRef({})
+  const unlockedRef        = useRef(unlockedCountries)
 
   const triggerDiveRef = useRef(() => {})
 
@@ -325,19 +271,25 @@ export default function LandingPage({
     heatZonePropsRef.current = props
   }, [progressByCountry])
 
+  // Keep the active-country list available to the (run-once) Three.js loop
+  useEffect(() => {
+    unlockedRef.current = unlockedCountries
+  }, [unlockedCountries])
+
   useEffect(() => {
     const mount = mountRef.current
     const width = mount.clientWidth
     const height = mount.clientHeight
 
     const scene = new THREE.Scene()
-    scene.background = new THREE.Color(0x05060a)
+    // Left transparent so the CSS deep-background (hex mesh, matrix rain, nebula)
+    // shows through the empty space around the globe.
 
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000)
     camera.position.set(0, 0, 6)
     const baseFov = camera.fov
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true })
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     renderer.setSize(width, height)
     mount.appendChild(renderer.domElement)
@@ -405,7 +357,7 @@ export default function LandingPage({
 
     const atmosphereGeometry = new THREE.SphereGeometry(GLOBE_RADIUS * 1.22, 64, 64)
     const atmosphereMaterial = new THREE.ShaderMaterial({
-      uniforms: { glowColor: { value: new THREE.Color(0x4fc3ff) } },
+      uniforms: { glowColor: { value: new THREE.Color(0x8fb8ff) } },
       vertexShader: `
         varying vec3 vNormal;
         varying vec3 vViewDir;
@@ -450,6 +402,36 @@ export default function LandingPage({
       planetGroup.add(sprite)
       heatZoneSpritesRef.current[country.name] = sprite
     })
+
+    // ── Agent data-link arcs between active countries (hub from China) ──
+    const linkDotTexture = createRadialTexture('rgba(201,168,76,0.95)')
+    const connections = COUNTRIES
+      .filter((c) => c.name !== CHINA.name)
+      .map((target, i) => {
+        const start = latLngToDirection(CHINA.lat, CHINA.lng).multiplyScalar(GLOBE_RADIUS * 1.01)
+        const end   = latLngToDirection(target.lat, target.lng).multiplyScalar(GLOBE_RADIUS * 1.01)
+        const mid   = start.clone().add(end).multiplyScalar(0.5).normalize().multiplyScalar(GLOBE_RADIUS * 1.34)
+        const curve = new THREE.QuadraticBezierCurve3(start, mid, end)
+        const geometry = new THREE.BufferGeometry().setFromPoints(curve.getPoints(48))
+        const material = new THREE.LineBasicMaterial({
+          color: 0xE8C547, transparent: true, opacity: 0.6,
+          depthWrite: false, blending: THREE.AdditiveBlending,
+        })
+        const line = new THREE.Line(geometry, material)
+        line.visible = false
+        planetGroup.add(line)
+
+        const dotMaterial = new THREE.SpriteMaterial({
+          map: linkDotTexture, transparent: true,
+          depthWrite: false, blending: THREE.AdditiveBlending,
+        })
+        const dot = new THREE.Sprite(dotMaterial)
+        dot.scale.set(0.16, 0.16, 1)
+        dot.visible = false
+        planetGroup.add(dot)
+
+        return { name: target.name, curve, line, material, dot, dotMaterial, geometry, offset: i * 0.27 }
+      })
 
     const raycaster = new THREE.Raycaster()
     const pointerNdc = new THREE.Vector2()
@@ -583,6 +565,17 @@ export default function LandingPage({
         ring.material.opacity = (1 - phase) * (hovered ? 0.85 : 0.45)
       })
 
+      // Animate the agent data-link arcs and their travelling dots
+      connections.forEach((conn, i) => {
+        const active = DEMO_LINKED.includes(conn.name) || unlockedRef.current.includes(conn.name)
+        conn.line.visible = active
+        conn.dot.visible = active
+        if (!active) return
+        const flow = (t * 0.32 + conn.offset) % 1
+        conn.dot.position.copy(conn.curve.getPointAt(flow))
+        conn.material.opacity = 0.35 + Math.abs(Math.sin(t * 2 + i)) * 0.4
+      })
+
       // Animate heat zone glows
       Object.entries(heatZoneSpritesRef.current).forEach(([name, sprite], i) => {
         const props = heatZonePropsRef.current[name]
@@ -635,6 +628,12 @@ export default function LandingPage({
       cloudMaterial.dispose()
       atmosphereGeometry.dispose()
       atmosphereMaterial.dispose()
+      linkDotTexture.dispose()
+      connections.forEach((conn) => {
+        conn.geometry.dispose()
+        conn.material.dispose()
+        conn.dotMaterial.dispose()
+      })
       mount.removeChild(renderer.domElement)
     }
   }, [])
@@ -648,19 +647,19 @@ export default function LandingPage({
   }
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-[#0A0A0A] text-[#F5F0E8] font-mono">
+    <div className="relative w-screen h-screen overflow-hidden text-white font-sans"
+      style={{ background: 'radial-gradient(ellipse 90% 70% at 50% 30%, #1E2C5A 0%, #131D3B 55%, #0D1530 100%)' }}
+    >
+      {/* Soft friendly star sparkles glow, top-right */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{ background: 'radial-gradient(ellipse 40% 35% at 85% 10%, rgba(140,184,255,0.18), transparent 70%)' }}
+      />
+
       {/* Three.js canvas */}
       <div ref={mountRef} className="absolute inset-0" />
 
-      {/* Vignette */}
-      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,_transparent_38%,_rgba(0,0,0,0.65)_100%)]" />
-
-      {/* Astrolabe frame centered on globe */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[1]" style={{ opacity: 0.5 }}>
-        <AstrolabeFrame />
-      </div>
-
-      {/* Tiny sackboy agents sitting on their countries on the globe */}
+      {/* Country avatars floating over their locations on the globe */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none z-[6]">
         {countries.map((country) => (
           <button
@@ -668,25 +667,27 @@ export default function LandingPage({
             type="button"
             ref={(el) => { overlayRefs.current[country.name] = el }}
             onClick={() => handleGlobeClick(country)}
-            className="globe-sackboy group"
+            className="globe-sackboy group flex flex-col items-center"
             style={{ opacity: 0 }}
             title={country.unlocked ? `Fly to ${country.name}` : `Recruit ${country.name}`}
           >
-            <SackboyCharacter
-              country={country.name}
-              size={42}
-              state={
-                celebrating === country.name
-                  ? 'dance'
-                  : country.unlocked
-                    ? 'wave'
-                    : 'locked'
-              }
-              hoverDance={country.unlocked}
-            />
+            {/* soft toy shadow base */}
             <span
-              className="globe-sackboy__label block text-center -mt-1 font-mono text-[8px] font-bold uppercase tracking-widest text-[#C9A84C] drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]"
-            >
+              className="absolute left-1/2 -translate-x-1/2 pointer-events-none"
+              style={{ top: '42px', width: '34px', height: '9px', borderRadius: '50%', background: 'rgba(0,0,0,0.4)', filter: 'blur(3px)' }}
+            />
+            <img
+              src={AGENT_AVATARS[country.name]}
+              alt={`${country.name} agent`}
+              draggable="false"
+              className={
+                'w-12 h-12 drop-shadow-[0_6px_10px_rgba(0,0,0,0.5)] transition-transform duration-300 ease-out ' +
+                (country.unlocked
+                  ? 'sackboy-bob group-hover:-translate-y-2 group-hover:scale-110'
+                  : 'grayscale opacity-50')
+              }
+            />
+            <span className="block text-center mt-0.5 font-display text-[9px] font-extrabold text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
               {country.name}
             </span>
           </button>
@@ -696,32 +697,31 @@ export default function LandingPage({
       {/* Header */}
       <header className="absolute top-0 left-0 right-0 flex items-center justify-between px-6 py-5 pointer-events-none z-10">
         <div className="pointer-events-auto">
-          <h1 className="font-display text-3xl font-bold tracking-wider text-[#C9A84C] animate-gold-shimmer drop-shadow-[0_0_12px_rgba(201,168,76,0.3)]">
-            LANGTOUR
+          <h1 className="font-display text-4xl font-black tracking-tight text-white drop-shadow-[0_3px_0_rgba(0,0,0,0.35)]">
+            Lang<span className="text-[#FFC93C]">tour</span>
           </h1>
-          <p className="font-mono text-[9px] text-[#C9A84C]/40 tracking-[0.45em] uppercase mt-0.5">
-            A Very Serious Spy Academy™
+          <p className="font-display text-xs font-bold text-sky-200/80 tracking-wide mt-0.5">
+            Your passport to the world 🌍
           </p>
         </div>
 
         <div className="pointer-events-auto flex items-center gap-3">
-          {/* Field rank */}
-          <div className="flex items-center gap-2 bg-[#0D0B08] rounded-2xl border-[2.5px] border-[#C9A84C]/30 px-4 py-2 shadow-[inset_0_0_8px_rgba(0,0,0,0.5)]">
-            <span className="font-mono text-[9px] text-[#C9A84C]/35 tracking-widest uppercase">Agents</span>
-            <span className="font-display text-sm font-bold text-[#C9A84C] ml-1">
-              {unlockedCountries.length}
+          {/* Level chip */}
+          <div className="flex items-center gap-2 bg-[#22305C] rounded-2xl border-4 border-[#34457C] px-4 py-2 shadow-[0_5px_0_0_rgba(0,0,0,0.35)]">
+            <span className="text-lg leading-none">⭐</span>
+            <span className="font-display text-[10px] font-extrabold uppercase tracking-wide text-sky-200/70">Level</span>
+            <span className="font-display text-lg font-black tabular-nums text-white">
+              {level}
             </span>
           </div>
 
-          {/* Token / ducat counter */}
-          <div className="flex items-center gap-2.5 bg-[#0D0B08] rounded-2xl border-[2.5px] border-[#C9A84C]/30 px-5 py-2 shadow-[inset_0_0_8px_rgba(0,0,0,0.5)]">
+          {/* Token counter chip (gold reward) */}
+          <div className="flex items-center gap-2 bg-[#22305C] rounded-2xl border-4 border-[#FFC93C]/70 px-4 py-2 shadow-[0_5px_0_0_rgba(0,0,0,0.35)] animate-token-pulse">
             <CoinIcon />
-            <span className="font-display text-xl font-bold tabular-nums text-[#C9A84C]">
+            <span className="font-display text-2xl font-black tabular-nums text-[#FFC93C]">
               {tokens}
             </span>
-            <span className="font-mono text-[9px] text-[#C9A84C]/35 uppercase tracking-widest">
-              ducats
-            </span>
+            <span className="font-display text-[10px] font-bold uppercase tracking-wide text-[#FFC93C]/70">tokens</span>
           </div>
 
           {/* Agent identity / sign-in */}
@@ -731,19 +731,19 @@ export default function LandingPage({
               onClick={() => { setShowAuth(false); signOut() }}
               disabled={authLoading}
               title={`Signed in as ${user.email}. Click to sign out.`}
-              className="btn-chunky flex items-center gap-2 bg-[#0D0B08] rounded-2xl border-[2.5px] border-[#C9A84C]/30 pl-2 pr-3 py-1.5 disabled:opacity-50"
+              className="flex items-center gap-2 bg-[#22305C] rounded-2xl border-4 border-[#34457C] pl-2 pr-3 py-1.5 shadow-[0_5px_0_0_rgba(0,0,0,0.35)] hover:-translate-y-0.5 active:translate-y-0.5 transition-transform disabled:opacity-50"
             >
               <span
-                className="flex h-7 w-7 items-center justify-center rounded-full font-display font-bold text-[#0A0805]"
-                style={{ background: 'radial-gradient(circle at 35% 30%, #E8C547, #8B6914)' }}
+                className="flex h-8 w-8 items-center justify-center rounded-full font-display font-black text-[#3A2E0A]"
+                style={{ background: 'radial-gradient(circle at 35% 30%, #FFE08A, #FFC93C)' }}
               >
                 {(user.user_metadata?.full_name || user.email || '?').charAt(0).toUpperCase()}
               </span>
               <span className="flex flex-col items-start leading-tight">
-                <span className="max-w-32 truncate font-mono text-xs text-[#F5F0E8]">
+                <span className="max-w-32 truncate font-display text-xs font-bold text-white">
                   {user.user_metadata?.full_name || user.email}
                 </span>
-                <span className="font-mono text-[8px] uppercase tracking-widest text-[#C9A84C]/45">Sign out</span>
+                <span className="font-display text-[9px] font-bold uppercase tracking-wide text-sky-200/60">Sign out</span>
               </span>
             </button>
           ) : (
@@ -751,7 +751,7 @@ export default function LandingPage({
               type="button"
               onClick={() => setShowAuth(true)}
               disabled={authLoading}
-              className="btn-chunky flex items-center gap-2 bg-[#C9A84C]/12 rounded-2xl border-[2.5px] border-[#C9A84C]/45 px-5 py-2 font-display font-bold text-sm text-[#C9A84C] uppercase tracking-wider disabled:opacity-60"
+              className="bg-[#FFC93C] text-[#3A2E0A] rounded-2xl border-4 border-[#E0A91E] px-6 py-2.5 font-display font-black text-sm uppercase tracking-wide shadow-[0_5px_0_0_#B8860B] hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0.5 active:shadow-[0_2px_0_0_#B8860B] transition-all disabled:opacity-60"
             >
               {authLoading ? 'Connecting…' : 'Sign In'}
             </button>
@@ -760,105 +760,112 @@ export default function LandingPage({
       </header>
 
       {/* Country selection — agent roster panel */}
-      <aside className="absolute top-1/2 left-6 -translate-y-1/2 w-64 max-h-[88vh] overflow-y-auto pointer-events-auto z-10 rounded-[28px] shadow-[5px_6px_0_rgba(0,0,0,0.8),_0_0_28px_rgba(0,0,0,0.6)]"
-        style={{ background: 'linear-gradient(160deg, #1A1208 0%, #0D0A05 100%)', border: '3px solid rgba(201,168,76,0.3)' }}
+      <aside className="absolute top-1/2 left-6 -translate-y-1/2 w-64 max-h-[88vh] pointer-events-auto z-10 rounded-3xl overflow-hidden"
+        style={{ background: 'linear-gradient(180deg, #243154 0%, #1A2647 100%)', border: '4px solid #34457C', boxShadow: '0 10px 0 0 rgba(0,0,0,0.3)' }}
       >
-        <div className="p-3.5">
-          <div className="flex items-center gap-2 mb-3 mt-1">
-            <div className="flex-1 h-px bg-[#C9A84C]/15" />
-            <span className="font-display text-[10px] font-bold uppercase tracking-[0.3em] text-[#C9A84C]/55 px-1">
+        <div className="p-3.5 max-h-[88vh] overflow-y-auto">
+          <div className="flex items-center justify-center gap-2 mb-4 mt-1">
+            <span className="text-lg">🌐</span>
+            <span className="font-display text-sm font-extrabold uppercase tracking-wide text-white">
               Agent Roster
             </span>
-            <div className="flex-1 h-px bg-[#C9A84C]/15" />
           </div>
 
-          <ul className="flex flex-col gap-2.5">
-            {countries.map((country) => (
-              <li key={country.name}>
-                <button
-                  type="button"
-                  disabled={isTraveling || (!country.unlocked && tokens < UNLOCK_COST)}
-                  onClick={() => handleSelectCountry(country)}
-                  title={
-                    country.unlocked
-                      ? `Deploy to ${country.name}`
-                      : tokens >= UNLOCK_COST
-                        ? `Recruit ${country.name}`
-                        : 'Not enough ducats'
-                  }
-                  className={
-                    'group btn-chunky w-full flex flex-col items-center gap-1 px-3 pt-2.5 pb-3 rounded-2xl text-center disabled:cursor-not-allowed border-[2.5px] ' +
-                    (country.unlocked
-                      ? 'bg-[radial-gradient(circle_at_50%_0%,_rgba(201,168,76,0.16),_transparent_70%)] border-[#C9A84C]/45 hover:border-[#C9A84C]/80 text-[#F5F0E8] cursor-pointer '
-                        + (glowCountry === country.name ? 'animate-country-glow' : '')
-                      : 'bg-[#0D0A05]/60 border-[#3D2E0D]/55 text-[#5A4A2A]')
-                  }
-                >
-                  <SackboyCharacter
-                    country={country.name}
-                    size={54}
-                    state={country.unlocked ? 'wave' : 'locked'}
-                    hoverDance={country.unlocked}
-                  />
-                  <span className="font-display text-sm font-bold tracking-wide leading-none">
-                    {country.name}
-                  </span>
-                  {country.unlocked ? (
-                    <span className="flex items-center gap-1 font-mono text-[8px] uppercase tracking-widest text-[#6EE7B7]">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#6EE7B7] shadow-[0_0_6px_#6EE7B7]" />
-                      On Duty
+          <ul className="flex flex-col gap-3.5">
+            {countries.map((country) => {
+              const accent = CARD_GLOW[country.name] ?? '#FFC93C'
+              return (
+                <li key={country.name}>
+                  <button
+                    type="button"
+                    disabled={isTraveling || (!country.unlocked && tokens < UNLOCK_COST)}
+                    onClick={() => handleSelectCountry(country)}
+                    style={{
+                      borderColor: country.unlocked ? accent : '#2A3760',
+                      boxShadow: country.unlocked ? '0 6px 0 0 rgba(0,0,0,0.35)' : 'none',
+                    }}
+                    title={
+                      country.unlocked
+                        ? `Deploy to ${country.name}`
+                        : tokens >= UNLOCK_COST
+                          ? `Recruit ${country.name}`
+                          : 'Not enough ducats'
+                    }
+                    className={
+                      'group w-full flex flex-col items-center gap-1.5 px-3 pt-3 pb-4 rounded-2xl border-4 text-center transition-all duration-200 ease-out disabled:cursor-not-allowed ' +
+                      (country.unlocked
+                        ? 'bg-[#2C3A63] hover:-translate-y-2 active:translate-y-0 cursor-pointer '
+                          + (glowCountry === country.name ? 'ring-4 ring-[#FFC93C]/60' : '')
+                        : 'bg-[#1B2645] opacity-70')
+                    }
+                  >
+                    <img
+                      src={AGENT_AVATARS[country.name]}
+                      alt={`${country.name} agent`}
+                      draggable="false"
+                      className={
+                        'w-20 h-20 drop-shadow-2xl transition-transform duration-300 ease-out '
+                        + (country.unlocked ? 'group-hover:-translate-y-3 group-hover:scale-110 cursor-pointer' : 'grayscale opacity-60')
+                      }
+                    />
+                    <span className={'font-display text-base font-extrabold leading-none ' + (country.unlocked ? 'text-white' : 'text-sky-200/55')}>
+                      {country.name}
                     </span>
-                  ) : (
-                    <span className="flex items-center gap-1 font-mono text-[8px] uppercase tracking-widest text-[#8B6914]">
-                      <LockIcon />
-                      {UNLOCK_COST} ducats
-                    </span>
-                  )}
-                </button>
-              </li>
-            ))}
+                    {country.unlocked ? (
+                      <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#58CC02]/20 font-display text-[10px] font-extrabold uppercase tracking-wide text-[#7CE04F]">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#7CE04F] animate-heartbeat" />
+                        On Duty
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 font-display text-[11px] font-bold uppercase tracking-wide text-sky-200/55">
+                        🔒 {UNLOCK_COST} 🪙
+                      </span>
+                    )}
+                  </button>
+                </li>
+              )
+            })}
           </ul>
         </div>
       </aside>
 
       {/* Travel status */}
       {isTraveling && !showFlash && (
-        <div
-          className="absolute bottom-10 left-1/2 -translate-x-1/2 px-6 py-2.5 bg-[#0D0B08] rounded-full border-[2.5px] border-[#C9A84C]/35 font-display font-bold text-sm text-[#C9A84C] tracking-widest uppercase animate-pulse pointer-events-none shadow-[0_0_16px_rgba(201,168,76,0.18)]"
-        >
+        <div className="absolute bottom-14 left-1/2 -translate-x-1/2 px-6 py-3 bg-[#22305C] rounded-2xl border-4 border-[#FFC93C]/70 font-display font-extrabold text-sm text-white tracking-wide pointer-events-none shadow-[0_5px_0_0_rgba(0,0,0,0.35)] flex items-center gap-2">
+          <span className="animate-pulse">✈️</span>
           {travelLabel}
         </div>
       )}
 
       {/* Unlock confirm modal */}
       {pendingCountry && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/65 pointer-events-auto animate-overlay-fade z-20">
+        <div className="absolute inset-0 flex items-center justify-center bg-[#0D1530]/80 backdrop-blur-sm pointer-events-auto animate-overlay-fade z-20">
           <div
-            className="animate-modal-pop w-80 p-7 text-center rounded-[28px] shadow-[0_0_60px_rgba(0,0,0,0.9)]"
-            style={{ background: '#0D0B08', border: '3px solid rgba(201,168,76,0.32)' }}
+            className="animate-modal-pop relative w-80 p-7 text-center rounded-3xl"
+            style={{ background: 'linear-gradient(180deg, #2A3A66, #1C294B)', border: '4px solid #FFC93C', boxShadow: '0 10px 0 0 rgba(0,0,0,0.35)' }}
           >
-            <div className="flex justify-center mb-2">
-              <SackboyCharacter country={pendingCountry.name} size={92} state="locked" />
+            <div className="flex justify-center mb-3">
+              <img src={AGENT_AVATARS[pendingCountry.name]} alt={`${pendingCountry.name} agent`} className="w-24 h-24 drop-shadow-2xl" />
             </div>
-            <h3 className="font-display text-lg font-bold mb-2 text-[#F5F0E8] tracking-wider">
+            <h3 className="font-display text-xl font-black mb-2 text-white">
               Recruit the {pendingCountry.name} agent?
             </h3>
-            <p className="font-mono text-sm text-[#8B7355] mb-6">
-              Springs them from the bench for{' '}
-              <span className="font-bold text-[#C9A84C]">{UNLOCK_COST} ducats</span>
+            <p className="font-display text-sm font-semibold text-sky-200/70 mb-6">
+              Bring them onto your team for{' '}
+              <span className="font-black text-[#FFC93C]">{UNLOCK_COST} 🪙</span>
             </p>
             <div className="flex gap-3">
               <button
                 type="button"
                 onClick={() => setPendingCountry(null)}
-                className="btn-chunky flex-1 py-2.5 rounded-2xl bg-transparent border-[2.5px] border-[#3D2E0D] hover:border-[#C9A84C]/30 font-display font-bold text-sm text-[#5A4A2A] hover:text-[#C9A84C]/60 uppercase tracking-wider"
+                className="flex-1 py-3 rounded-2xl bg-[#22305C] border-4 border-[#34457C] font-display font-extrabold text-sm text-sky-100 shadow-[0_4px_0_0_rgba(0,0,0,0.35)] hover:-translate-y-0.5 active:translate-y-0.5 transition-transform"
               >
                 Not Yet
               </button>
               <button
                 type="button"
                 onClick={handleConfirmUnlock}
-                className="btn-chunky flex-1 py-2.5 rounded-2xl bg-[#C9A84C]/12 border-[2.5px] border-[#C9A84C]/55 hover:bg-[#C9A84C]/20 font-display font-bold text-sm text-[#C9A84C] uppercase tracking-wider"
+                className="flex-1 py-3 rounded-2xl bg-[#FFC93C] text-[#3A2E0A] border-4 border-[#E0A91E] font-display font-black text-sm uppercase shadow-[0_4px_0_0_#B8860B] hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0.5 active:shadow-[0_1px_0_0_#B8860B] transition-all"
               >
                 Recruit!
               </button>
@@ -886,6 +893,29 @@ export default function LandingPage({
           onEmailSignUp={signUpWithEmail}
         />
       )}
+
+      {/* Global Activity ticker — friendly notification banner at the bottom */}
+      <div
+        className="fixed bottom-0 left-0 right-0 z-30 h-9 flex items-center overflow-hidden border-t-4 border-[#FFC93C]"
+        style={{ background: 'linear-gradient(90deg, #2A3A66, #22305C)' }}
+      >
+        <span className="relative z-10 shrink-0 h-full flex items-center gap-1.5 px-3.5 bg-[#FFC93C] text-[#3A2E0A] font-display text-[11px] font-black uppercase tracking-wide">
+          <span className="w-2 h-2 rounded-full bg-[#3A2E0A] animate-pulse" />
+          Global Activity
+        </span>
+        <div className="intel-ticker__track relative z-0">
+          {[0, 1].map((half) => (
+            <div key={half} className="flex items-center shrink-0" aria-hidden={half === 1 ? 'true' : undefined}>
+              {TICKER_MESSAGES.map((msg, i) => (
+                <span key={i} className="flex items-center shrink-0">
+                  <span className="mx-5 text-[#FFC93C] text-lg leading-none">•</span>
+                  <span className="font-display text-[13px] font-bold text-sky-100">{msg}</span>
+                </span>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
 
       {showFlash && (
         <div className="absolute inset-0 bg-white animate-cinematic-flash pointer-events-none" />
