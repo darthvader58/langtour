@@ -7,6 +7,7 @@ export function useProfile() {
   const [unlockedCountries, setUnlockedCountries] = useState([])
   const [completedScenarios, setCompletedScenarios] = useState([])
   const [authLoading, setAuthLoading] = useState(Boolean(supabase))
+  const [gameStateLoading, setGameStateLoading] = useState(Boolean(supabase))
   const [authError, setAuthError] = useState('')
   const [authMessage, setAuthMessage] = useState('')
 
@@ -15,30 +16,36 @@ export function useProfile() {
       setProfile(null)
       setUnlockedCountries([])
       setCompletedScenarios([])
+      setGameStateLoading(false)
       return
     }
 
-    const [profileResult, unlocksResult, completionsResult] = await Promise.all([
-      supabase
-        .from('profiles')
-        .select(`
-          user_id, tokens, experience_points, rank_id,
-          rank:ranks!profiles_rank_id_fkey(id, code, name, minimum_xp, display_order)
-        `)
-        .eq('user_id', sessionUser.id)
-        .single(),
-      supabase.from('country_unlocks').select('country_code').eq('user_id', sessionUser.id),
-      supabase.from('scenario_completions').select('scenario_id').eq('user_id', sessionUser.id),
-    ])
+    setGameStateLoading(true)
+    try {
+      const [profileResult, unlocksResult, completionsResult] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select(`
+            user_id, tokens, experience_points, rank_id,
+            rank:ranks!profiles_rank_id_fkey(id, code, name, minimum_xp, display_order)
+          `)
+          .eq('user_id', sessionUser.id)
+          .single(),
+        supabase.from('country_unlocks').select('country_code').eq('user_id', sessionUser.id),
+        supabase.from('scenario_completions').select('scenario_id').eq('user_id', sessionUser.id),
+      ])
 
-    if (profileResult.error) console.error('Unable to load Supabase profile:', profileResult.error.message)
-    else setProfile(profileResult.data)
+      if (profileResult.error) console.error('Unable to load Supabase profile:', profileResult.error.message)
+      else setProfile(profileResult.data)
 
-    if (unlocksResult.error) console.error('Unable to load country unlocks:', unlocksResult.error.message)
-    else setUnlockedCountries((unlocksResult.data ?? []).map((row) => row.country_code))
+      if (unlocksResult.error) console.error('Unable to load country unlocks:', unlocksResult.error.message)
+      else setUnlockedCountries((unlocksResult.data ?? []).map((row) => row.country_code))
 
-    if (completionsResult.error) console.error('Unable to load scenario completions:', completionsResult.error.message)
-    else setCompletedScenarios((completionsResult.data ?? []).map((row) => row.scenario_id))
+      if (completionsResult.error) console.error('Unable to load scenario completions:', completionsResult.error.message)
+      else setCompletedScenarios((completionsResult.data ?? []).map((row) => row.scenario_id))
+    } finally {
+      setGameStateLoading(false)
+    }
   }, [])
 
   useEffect(() => {
@@ -157,7 +164,7 @@ export function useProfile() {
     rank: profile?.rank ?? null,
     unlockedCountries,
     completedScenarios,
-    authLoading,
+    authLoading: authLoading || (gameStateLoading && !profile),
     authError,
     authMessage,
     signInWithGoogle,
