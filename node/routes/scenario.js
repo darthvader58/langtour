@@ -5,7 +5,7 @@ import { GEMINI_API_KEY } from '../lib/config.js';
 const google = createGoogleGenerativeAI({
   apiKey: GEMINI_API_KEY,
 });
-import { db } from '../lib/db/db.js';
+import { getWordByExpression } from '../lib/db/db.js';
 import { getDiscoveryWords } from '../lib/graph/graph.js';
 import { updateWordFSRS } from '../lib/srs/fsrs_update.js';
 
@@ -98,9 +98,9 @@ Return ONLY a JSON object:
 
       // If passed, we update FSRS ratings for the usedWord.
       if (parsed.status === "passed" && parsed.usedWord) {
-        const wordRow = db.prepare('SELECT id FROM words WHERE expression = ?').get(parsed.usedWord);
+        const wordRow = await getWordByExpression(parsed.usedWord);
         if (wordRow) {
-          updateWordFSRS(db, wordRow.id, 3); // 3 = Good
+          await updateWordFSRS(wordRow.id, 3); // 3 = Good
         }
       }
 

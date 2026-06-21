@@ -5,7 +5,12 @@ import { GEMINI_API_KEY } from '../config.js';
 const google = createGoogleGenerativeAI({
   apiKey: GEMINI_API_KEY,
 });
-import { db } from '../db/db.js';
+import {
+  getAllWordEmbeddings,
+  getWordEmbeddingRow,
+  listWords,
+  saveWordEmbedding,
+} from '../db/db.js';
 import { retrievability, reviewPriority } from '../srs/fsrs_metrics.js';
 
 // Calculate cosine similarity between two vectors
@@ -32,22 +37,22 @@ export async function generateEmbedding(text) {
 
 // Get or create embedding for a word
 export async function getWordEmbedding(wordId, text) {
-  const row = db.prepare('SELECT embedding_json FROM word_embeddings WHERE word_id = ?').get(wordId);
+  const row = await getWordEmbeddingRow(wordId);
   if (row) {
-    return JSON.parse(row.embedding_json);
+    return row.embedding;
   }
   
   const embedding = await generateEmbedding(text);
-  db.prepare('INSERT OR IGNORE INTO word_embeddings (word_id, embedding_json) VALUES (?, ?)').run(wordId, JSON.stringify(embedding));
+  await saveWordEmbedding(wordId, embedding);
   return embedding;
 }
 
 // Get all known embeddings into memory (fast for small datasets)
-export function loadAllEmbeddings() {
-  const rows = db.prepare('SELECT word_id, embedding_json FROM word_embeddings').all();
+export async function loadAllEmbeddings() {
+  const rows = await getAllWordEmbeddings();
   const embeddings = new Map();
   for (const row of rows) {
-    embeddings.set(row.word_id, JSON.parse(row.embedding_json));
+    embeddings.set(row.word_id, row.embedding);
   }
   return embeddings;
 }
@@ -58,7 +63,7 @@ export function loadAllEmbeddings() {
  */
 export async function getDiscoveryWords(scenarioTopic, limit = 4) {
   // 1. Due filter for known words
-  const knownWordsRows = db.prepare('SELECT * FROM words WHERE reps > 0').all();
+  const knownWordsRows = await listWords({ repsGt: 0 });
   
   const dueWords = knownWordsRows
     .map(w => {
@@ -82,9 +87,9 @@ export async function getDiscoveryWords(scenarioTopic, limit = 4) {
   const scenarioEmbedding = await generateEmbedding(scenarioTopic);
   
   // Identify user's known anchors (high stability words)
-  const anchorWords = db.prepare('SELECT id, expression, meaning FROM words WHERE stability >= 2').all();
+  const anchorWords = await listWords({ stabilityGte: 2, columns: 'id,expression,meaning' });
   
-  const unknownWords = db.prepare('SELECT * FROM words WHERE reps = 0').all();
+  const unknownWords = await listWords({ repsEq: 0 });
   
   if (unknownWords.length === 0) {
     return selectedDue.map(sanitize);
@@ -99,7 +104,7 @@ export async function getDiscoveryWords(scenarioTopic, limit = 4) {
     await getWordEmbedding(word.id, `${word.expression} (${word.meaning})`);
   }
   
-  const allEmbeddings = loadAllEmbeddings();
+  const allEmbeddings = await loadAllEmbeddings();
   const anchorEmbeddings = anchorWords.map(w => allEmbeddings.get(w.id)).filter(Boolean);
   
   const candidates = [];

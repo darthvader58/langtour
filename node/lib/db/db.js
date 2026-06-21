@@ -1,112 +1,198 @@
-import Database from 'better-sqlite3';
-import { DB_PATH } from '../config.js';
+import { createClient } from '@supabase/supabase-js';
+import { SUPABASE_SERVICE_ROLE_KEY, SUPABASE_URL } from '../config.js';
 import { STARTER_VOCAB } from '../srs/onboarding_vocab.js';
+import {
+  CHARACTERS,
+  COUNTRIES,
+  SCENARIOS_BY_COUNTRY,
+  SPECIAL_SCENARIO_BY_COUNTRY,
+  REWARD_TOKENS,
+  UNLOCK_COST,
+} from '../../../client/src/gameData.js';
 
-const db = new Database(DB_PATH);
-db.pragma('journal_mode = WAL');
+if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required by the backend');
+}
 
-function initDb() {
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS words (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      expression TEXT UNIQUE NOT NULL,
-      reading TEXT NOT NULL,
-      meaning TEXT NOT NULL,
-      topic TEXT,
-      level TEXT,
-      
-      -- FSRS and Memory State
-      state INTEGER DEFAULT 0, -- 0: New, 1: Learning, 2: Review, 3: Relearning
-      stability REAL DEFAULT 0,
-      difficulty REAL DEFAULT 0,
-      lapses INTEGER DEFAULT 0,
-      reps INTEGER DEFAULT 0,
-      last_review_at DATETIME,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
+export const db = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false },
+});
 
-    CREATE TABLE IF NOT EXISTS review_logs (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      word_id INTEGER NOT NULL,
-      rating INTEGER NOT NULL, -- 1: Again, 2: Hard, 3: Good, 4: Easy
-      state INTEGER NOT NULL,
-      elapsed_ms INTEGER,
-      review_datetime DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY(word_id) REFERENCES words(id)
-    );
+function assertResult(result, context) {
+  if (result.error) throw new Error(`${context}: ${result.error.message}`);
+  return result.data;
+}
 
-    CREATE TABLE IF NOT EXISTS word_embeddings (
-      word_id INTEGER PRIMARY KEY,
-      embedding_json TEXT NOT NULL,
-      FOREIGN KEY(word_id) REFERENCES words(id)
-    );
-    
-    CREATE TABLE IF NOT EXISTS scenarios (
-      id TEXT PRIMARY KEY,
-      status TEXT DEFAULT 'locked', -- locked, unlocked, completed
-      completed_at DATETIME
-    );
+export async function initializeDatabase() {
+  const countRows = async (table) => {
+    const result = await db.from(table).select('*', { count: 'exact', head: true });
+    if (result.error) throw new Error(`Check ${table}: ${result.error.message}`);
+    return result.count ?? 0;
+  };
 
-    CREATE TABLE IF NOT EXISTS user_profile (
-      id INTEGER PRIMARY KEY,
-      tokens INTEGER DEFAULT 100,
-      unlocked_countries TEXT DEFAULT '[]'
-    );
-  `);
-
-  const countStmt = db.prepare('SELECT COUNT(*) as count FROM words');
-  const { count } = countStmt.get();
-
-  if (count === 0) {
-    const insertWord = db.prepare(`
-      INSERT INTO words (expression, reading, meaning, topic, level)
-      VALUES (?, ?, ?, ?, ?)
-    `);
-    
-    const seedTx = db.transaction(() => {
-      for (const [level, words] of Object.entries(STARTER_VOCAB)) {
-        if (!Array.isArray(words)) continue;
-        for (const [expression, reading, meaning, topics] of words) {
-          const topic = Array.isArray(topics) ? topics[0] : topics;
-          insertWord.run(expression, reading, meaning, topic, level);
-        }
-      }
-      
-      const insertScenario = db.prepare(`INSERT INTO scenarios (id, status) VALUES (?, ?)`);
-      insertScenario.run('street-market', 'unlocked');
-      insertScenario.run('train-station', 'locked');
-      insertScenario.run('restaurant', 'locked');
-
-      const insertProfile = db.prepare(`INSERT OR IGNORE INTO user_profile (id, tokens, unlocked_countries) VALUES (?, ?, ?)`);
-      insertProfile.run(1, 100, '[]');
-    });
-    
-    seedTx();
-    console.log('Seeded database with starter vocabulary and scenarios.');
+  const wordRows = Object.entries(STARTER_VOCAB).flatMap(([level, words]) =>
+    words.map(([expression, reading, meaning, topics]) => ({
+      expression,
+      reading,
+      meaning,
+      topic: Array.isArray(topics) ? topics[0] : topics,
+      level,
+    })),
+  );
+  if (await countRows('learning_words') === 0) {
+    assertResult(await db.from('learning_words').insert(wordRows), 'Seed vocabulary');
   }
+
+  const countryRows = COUNTRIES.map((country, index) => {
+    const character = CHARACTERS[country.name];
+    return {
+      code: country.name.toLowerCase(),
+      name: country.name,
+      flag: country.flag,
+      latitude: country.lat,
+      longitude: country.lng,
+      display_order: index,
+      character_type: character.type,
+      character_icon: character.icon,
+      character_story: character.story,
+      character_gradient: character.gradient,
+    };
+  });
+  if (await countRows('game_countries') === 0) {
+    assertResult(await db.from('game_countries').insert(countryRows), 'Seed countries');
+  }
+
+  const scenarioRows = [];
+  const vocabularyRows = [];
+  for (const country of COUNTRIES) {
+    const countryCode = country.name.toLowerCase();
+    const scenarios = SCENARIOS_BY_COUNTRY[country.name] ?? [];
+    const special = SPECIAL_SCENARIO_BY_COUNTRY[country.name];
+    for (const [index, scenario] of [...scenarios, ...(special ? [special] : [])].entries()) {
+      scenarioRows.push({
+        id: scenario.id,
+        country_code: countryCode,
+        title: scenario.title,
+        icon: scenario.icon,
+        description: scenario.description,
+        is_special: Boolean(scenario.special),
+        display_order: index,
+      });
+      for (const [vocabIndex, word] of (scenario.vocab ?? []).entries()) {
+        vocabularyRows.push({
+          scenario_id: scenario.id,
+          display_order: vocabIndex,
+          english: word.en,
+          chinese: word.zh,
+          pinyin: word.pinyin,
+        });
+      }
+    }
+  }
+  if (await countRows('game_scenarios') === 0) {
+    assertResult(await db.from('game_scenarios').insert(scenarioRows), 'Seed scenarios');
+    assertResult(await db.from('game_scenario_vocabulary').insert(vocabularyRows), 'Seed scenario vocabulary');
+  }
+  assertResult(await db.from('game_settings').upsert([
+    { key: 'unlock_cost', value: UNLOCK_COST },
+    { key: 'reward_tokens', value: REWARD_TOKENS },
+  ], { onConflict: 'key', ignoreDuplicates: true }), 'Seed game settings');
 }
 
-initDb();
+export async function getCatalog() {
+  const [countriesResult, scenariosResult, vocabResult, settingsResult] = await Promise.all([
+    db.from('game_countries').select('*').order('display_order'),
+    db.from('game_scenarios').select('id,country_code,title,icon,description,is_special,display_order').order('display_order'),
+    db.from('game_scenario_vocabulary').select('*').order('display_order'),
+    db.from('game_settings').select('key,value'),
+  ]);
+  const countriesData = assertResult(countriesResult, 'Load countries');
+  const scenariosData = assertResult(scenariosResult, 'Load scenarios');
+  const vocabData = assertResult(vocabResult, 'Load scenario vocabulary');
+  const settingsData = assertResult(settingsResult, 'Load game settings');
+  const settings = Object.fromEntries(settingsData.map((row) => [row.key, row.value]));
+  const vocabByScenario = new Map();
+  for (const row of vocabData) {
+    if (!vocabByScenario.has(row.scenario_id)) vocabByScenario.set(row.scenario_id, []);
+    vocabByScenario.get(row.scenario_id).push(row);
+  }
 
-export function resetDatabase() {
-  db.exec(`
-    DROP TABLE IF EXISTS user_profile;
-    DROP TABLE IF EXISTS review_logs;
-    DROP TABLE IF EXISTS word_embeddings;
-    DROP TABLE IF EXISTS scenarios;
-    DROP TABLE IF EXISTS words;
-  `);
-  initDb();
+  const countries = countriesData.map((row) => ({
+    name: row.name,
+    flag: row.flag,
+    lat: Number(row.latitude),
+    lng: Number(row.longitude),
+  }));
+  const characters = Object.fromEntries(countriesData.map((row) => [row.name, {
+    type: row.character_type,
+    icon: row.character_icon,
+    story: row.character_story,
+    gradient: row.character_gradient,
+  }]));
+  const scenariosByCountry = {};
+  const specialScenarioByCountry = {};
+  for (const row of scenariosData) {
+    const country = countriesData.find((item) => item.code === row.country_code)?.name;
+    if (!country) continue;
+    const scenario = {
+      id: row.id,
+      title: row.title,
+      icon: row.icon,
+      description: row.description,
+      ...(row.is_special ? { special: true } : {}),
+      vocab: (vocabByScenario.get(row.id) ?? []).map((word) => ({
+        en: word.english,
+        zh: word.chinese,
+        pinyin: word.pinyin,
+      })),
+    };
+    if (row.is_special) specialScenarioByCountry[country] = scenario;
+    else (scenariosByCountry[country] ??= []).push(scenario);
+  }
+  return {
+    countries,
+    characters,
+    scenariosByCountry,
+    specialScenarioByCountry,
+    unlockCost: settings.unlock_cost,
+    rewardTokens: settings.reward_tokens,
+  };
 }
 
-export function getWordsByIds(ids) {
-  if (!ids || ids.length === 0) return [];
-  const placeholders = ids.map(() => '?').join(',');
-  return db.prepare(`SELECT * FROM words WHERE id IN (${placeholders})`).all(...ids);
+export async function getWordsByIds(ids) {
+  if (!ids?.length) return [];
+  return assertResult(await db.from('learning_words').select('*').in('id', ids).order('id'), 'Load words by id');
 }
 
-export function getScenario(id) {
-  return db.prepare('SELECT * FROM scenarios WHERE id = ?').get(id);
+export async function getWordByExpression(expression) {
+  return assertResult(await db.from('learning_words').select('*').eq('expression', expression).maybeSingle(), 'Load word');
 }
 
-export { db };
+export async function listWords(filters = {}) {
+  let query = db.from('learning_words').select(filters.columns ?? '*');
+  if (filters.repsGt != null) query = query.gt('reps', filters.repsGt);
+  if (filters.repsEq != null) query = query.eq('reps', filters.repsEq);
+  if (filters.stabilityGte != null) query = query.gte('stability', filters.stabilityGte);
+  query = query.order('id');
+  return assertResult(await query, 'Load words');
+}
+
+export async function updateWord(wordId, values) {
+  assertResult(await db.from('learning_words').update(values).eq('id', wordId), 'Update word');
+}
+
+export async function insertReviewLog(values) {
+  assertResult(await db.from('learning_review_logs').insert(values), 'Insert review log');
+}
+
+export async function getWordEmbeddingRow(wordId) {
+  return assertResult(await db.from('learning_word_embeddings').select('embedding').eq('word_id', wordId).maybeSingle(), 'Load embedding');
+}
+
+export async function saveWordEmbedding(wordId, embedding) {
+  assertResult(await db.from('learning_word_embeddings').upsert({ word_id: wordId, embedding }, { onConflict: 'word_id', ignoreDuplicates: true }), 'Save embedding');
+}
+
+export async function getAllWordEmbeddings() {
+  return assertResult(await db.from('learning_word_embeddings').select('word_id,embedding'), 'Load embeddings');
+}
