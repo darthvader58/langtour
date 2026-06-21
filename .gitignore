@@ -42,3 +42,10 @@ voice-audio/
 *.db
 *.db-shm
 *.db-wal
+
+# Build cache
+.vite/
+**/.vite/
+
+# Local tooling
+.claude/settings.local.json

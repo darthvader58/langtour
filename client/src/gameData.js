@@ -800,6 +800,19 @@ export const SPECIAL_SCENARIO_BY_COUNTRY = {
   Brazil: BRAZIL_REAL_LIFE,
 }
 
+// DiceBear "micah" cartoon avatar per country (Playground avatar system).
+const DICEBEAR = (seed, facialHair = 0) =>
+  `https://api.dicebear.com/7.x/micah/svg?seed=${seed}&backgroundColor=transparent&facialHairProbability=${facialHair}`
+
+export const AGENT_AVATARS = {
+  China:  DICEBEAR('Jasmine'),
+  Japan:  DICEBEAR('Kenji'),
+  France: DICEBEAR('Chloe'),
+  Mexico: DICEBEAR('Mateo', 100),
+  Egypt:  DICEBEAR('Amira'),
+  Brazil: DICEBEAR('Tiago', 100),
+}
+
 // Per-country accent palette [primary, secondary, tertiary] and field-op flavor text.
 export const COUNTRY_THEMES = {
   China:  { accents: ['#C9A84C', '#8B0000', '#E8C547'], flavor: 'INFILTRATION: Shanghai Sector' },

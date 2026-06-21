@@ -7,16 +7,18 @@ body,
   padding: 0;
   width: 100%;
   height: 100%;
-  background: #0A0A0A;
+  /* Deep, friendly midnight blue (Playground theme) */
+  background: #131D3B;
 }
 
 body {
-  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-family: 'Nunito', 'Quicksand', system-ui, sans-serif;
 }
 
-/* Cinzel for display headings */
+/* Rounded, friendly display font for headers + UI (Playground theme) */
 .font-display {
-  font-family: 'Cinzel', Georgia, 'Times New Roman', serif;
+  font-family: 'Nunito', 'Quicksand', system-ui, sans-serif;
+  letter-spacing: 0;
 }
 
 /* JetBrains Mono for tech/data */
@@ -75,10 +77,10 @@ body {
 /* Gold glow pulse for country buttons */
 @keyframes country-glow {
   0%, 100% {
-    box-shadow: 0 0 0 0 rgba(201,168,76,0.5), 0 0 12px 2px rgba(201,168,76,0.25) inset;
+    box-shadow: 0 0 0 0 rgba(201,168,76,0.55), 0 0 12px 2px rgba(201,168,76,0.3) inset;
   }
   50% {
-    box-shadow: 0 0 0 5px rgba(201,168,76,0), 0 0 22px 5px rgba(201,168,76,0.45) inset;
+    box-shadow: 0 0 0 5px rgba(201,168,76,0), 0 0 22px 5px rgba(201,168,76,0.5) inset;
   }
 }
 .animate-country-glow {
@@ -361,6 +363,287 @@ body {
   transition: opacity 0.18s ease;
 }
 .globe-sackboy:hover .globe-sackboy__label { opacity: 1; }
+
+/* little jump (country cards on hover) */
+@keyframes sackboy-jump {
+  0%, 100% { transform: translateY(0)     scaleY(1); }
+  28%       { transform: translateY(-24%)  scaleY(1.06); }
+  52%       { transform: translateY(0)     scaleY(0.94); }
+  72%       { transform: translateY(-9%)   scaleY(1.02); }
+}
+.group:hover .sackboy-hoverjump { animation: sackboy-jump 0.62s ease-in-out infinite; }
+
+/* wave on hover (globe mascots): only the arm moves */
+.group:hover .sackboy-arm-hoverwave { animation: sackboy-arm-wave 0.7s ease-in-out infinite; }
+
+/* ── Country card accent glow on hover ── */
+.country-card {
+  transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.country-card:hover {
+  border-color: var(--card-accent, #C9A84C) !important;
+  box-shadow: 0 0 26px 1px color-mix(in srgb, var(--card-accent, #C9A84C) 70%, transparent),
+              inset 0 0 16px rgba(0, 0, 0, 0.45);
+}
+
+/* ── Intel ops ticker ── */
+@keyframes intel-ticker {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.intel-ticker {
+  /* Positioning is supplied by the `fixed bottom-0` utilities in the markup;
+     this class only handles the look. (Setting `position` here would override
+     those utilities and knock the bar back into normal flow at the top.) */
+  overflow: hidden;
+  background: linear-gradient(180deg, #03090F 0%, #02050A 100%);
+  border-top: 2px solid rgba(201, 168, 76, 0.4);
+  box-shadow: 0 -4px 18px rgba(201, 168, 76, 0.12);
+}
+.intel-ticker::after {
+  /* subtle scanline sheen */
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.28) 2px,
+    rgba(0, 0, 0, 0.28) 3px
+  );
+}
+.intel-ticker__track {
+  display: inline-flex;
+  white-space: nowrap;
+  will-change: transform;
+  animation: intel-ticker 48s linear infinite;
+}
+.intel-ticker:hover .intel-ticker__track { animation-play-state: paused; }
+
+/* ═══════════════════════════════════════════════════════════════
+   Cyberpunk / holographic HUD system
+   ═══════════════════════════════════════════════════════════════ */
+:root {
+  /* Gold-on-black: the primary accent is now gold; "cyan"/"purple" names kept
+     so existing var() references resolve, but they point at gold tones. */
+  --hud-cyan:   #E8C547;
+  --hud-purple: #C9A84C;
+  --hud-gold:   #E8C547;
+}
+
+/* HUD corner brackets (rendered as 4 absolutely-positioned spans) */
+.hud-corner {
+  position: absolute;
+  width: 13px;
+  height: 13px;
+  border-color: var(--hud-cyan);
+  border-style: solid;
+  border-width: 0;
+  pointer-events: none;
+  filter: drop-shadow(0 0 4px rgba(201, 168, 76, 0.7));
+}
+.hud-corner--tl { top: -1px; left: -1px;  border-top-width: 2px; border-left-width: 2px; }
+.hud-corner--tr { top: -1px; right: -1px; border-top-width: 2px; border-right-width: 2px; }
+.hud-corner--bl { bottom: -1px; left: -1px;  border-bottom-width: 2px; border-left-width: 2px; }
+.hud-corner--br { bottom: -1px; right: -1px; border-bottom-width: 2px; border-right-width: 2px; }
+
+@keyframes hud-bracket-pulse {
+  0%, 100% { opacity: 0.5; filter: drop-shadow(0 0 2px rgba(201, 168, 76, 0.4)); }
+  50%      { opacity: 1;   filter: drop-shadow(0 0 8px rgba(201, 168, 76, 0.95)); }
+}
+.hud-corner--pulse { animation: hud-bracket-pulse 2.6s ease-in-out infinite; }
+
+/* Glowing cyan top edge for cards/panels */
+.hud-topline {
+  position: absolute;
+  top: -1.5px; left: 12%; right: 12%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--hud-cyan), transparent);
+  box-shadow: 0 0 8px rgba(201, 168, 76, 0.7);
+  pointer-events: none;
+}
+
+/* Diamond / triangle section separators */
+.hud-diamond {
+  width: 6px; height: 6px;
+  transform: rotate(45deg);
+  background: var(--hud-cyan);
+  box-shadow: 0 0 6px rgba(201, 168, 76, 0.8);
+}
+
+/* Title glitch flicker (occasional) */
+@keyframes hud-glitch {
+  0%, 88%, 100% { transform: translate(0, 0); text-shadow: 0 0 12px rgba(201, 168, 76, 0.55); }
+  89% { transform: translate(-2px, 1px);  text-shadow: -2px 0 var(--hud-purple), 2px 0 var(--hud-cyan); opacity: 0.85; }
+  91% { transform: translate(2px, -1px);  text-shadow: 2px 0 var(--hud-purple), -2px 0 var(--hud-cyan); }
+  93% { transform: translate(-1px, 1px);  opacity: 0.92; }
+  95% { transform: translate(1px, 0);     text-shadow: 0 0 14px rgba(201, 168, 76, 0.7); }
+}
+.animate-glitch { animation: hud-glitch 6.5s linear infinite; }
+
+/* Heartbeat-monitor pulse for the ON DUTY dot */
+@keyframes hud-heartbeat {
+  0%, 45%, 100% { transform: scale(1);   box-shadow: 0 0 4px #00FF9D; }
+  15%           { transform: scale(1.7); box-shadow: 0 0 12px #00FF9D, 0 0 20px rgba(0,255,157,0.5); }
+  30%           { transform: scale(1);   box-shadow: 0 0 4px #00FF9D; }
+}
+.animate-heartbeat { animation: hud-heartbeat 1.5s ease-in-out infinite; }
+
+/* Token glow pulse */
+@keyframes hud-token-pulse {
+  0%, 100% { text-shadow: 0 0 6px rgba(201, 168, 76, 0.45); }
+  50%      { text-shadow: 0 0 16px rgba(232, 197, 71, 0.9); }
+}
+.animate-token-pulse { animation: hud-token-pulse 2.2s ease-in-out infinite; }
+
+/* Holographic data readout flicker (AGENTS counter) */
+@keyframes hud-readout-flicker {
+  0%, 100% { opacity: 1; }
+  47% { opacity: 1; }
+  48% { opacity: 0.45; }
+  49% { opacity: 1; }
+  92% { opacity: 1; }
+  93% { opacity: 0.6; }
+  94% { opacity: 1; }
+}
+.animate-readout { animation: hud-readout-flicker 4s linear infinite; }
+
+/* Left-to-right cyan highlight sweep on card hover */
+.card-sweep {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+}
+.card-sweep::before {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0;
+  left: -60%;
+  width: 45%;
+  background: linear-gradient(90deg, transparent, rgba(201, 168, 76, 0.22), transparent);
+  transform: skewX(-18deg);
+  opacity: 0;
+}
+.group:hover .card-sweep::before { animation: hud-card-sweep 0.75s ease; }
+@keyframes hud-card-sweep {
+  0%   { left: -60%; opacity: 0; }
+  18%  { opacity: 1; }
+  100% { left: 130%; opacity: 0; }
+}
+
+/* Red holographic scan lines over locked cards */
+.locked-scan {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+}
+.locked-scan::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0;
+  height: 200%;
+  top: -100%;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0, transparent 5px,
+    rgba(255, 45, 60, 0.12) 5px, rgba(255, 45, 60, 0.12) 6px
+  );
+  animation: hud-scan-down 4s linear infinite;
+}
+@keyframes hud-scan-down {
+  from { transform: translateY(0); }
+  to   { transform: translateY(50%); }
+}
+
+/* Background holographic triangular/hex mesh */
+.holo-mesh {
+  background-image:
+    linear-gradient(60deg,  rgba(201, 168, 76, 0.045) 1px, transparent 1px),
+    linear-gradient(-60deg, rgba(201, 168, 76, 0.045) 1px, transparent 1px),
+    linear-gradient(0deg,   rgba(201, 168, 76, 0.035) 1px, transparent 1px);
+  background-size: 46px 80px;
+  animation: hud-mesh-drift 24s linear infinite;
+}
+@keyframes hud-mesh-drift {
+  from { background-position: 0 0, 0 0, 0 0; }
+  to   { background-position: 46px 80px, -46px 80px, 0 80px; }
+}
+
+/* Matrix-style cyan data streams */
+@keyframes hud-matrix-fall {
+  0%   { transform: translateY(-30%); opacity: 0; }
+  10%  { opacity: 0.55; }
+  88%  { opacity: 0.4; }
+  100% { transform: translateY(108vh); opacity: 0; }
+}
+.matrix-stream {
+  position: absolute;
+  top: 0;
+  width: 1.5px;
+  height: 22vh;
+  background: linear-gradient(180deg, transparent, rgba(201, 168, 76, 0.55), rgba(201, 168, 76, 0));
+  animation: hud-matrix-fall linear infinite;
+}
+
+/* Sci-fi button hover glow */
+.hud-btn { transition: box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease; }
+.hud-btn:hover:not(:disabled) {
+  box-shadow: 0 0 18px rgba(201, 168, 76, 0.55), inset 0 0 14px rgba(201, 168, 76, 0.18);
+  border-color: var(--hud-cyan) !important;
+}
+
+/* Ticker data-viz equalizer bars */
+@keyframes hud-data-bar {
+  0%, 100% { transform: scaleY(0.3); }
+  50%      { transform: scaleY(1); }
+}
+.data-bar {
+  width: 2px;
+  background: var(--hud-cyan);
+  transform-origin: bottom;
+  box-shadow: 0 0 4px rgba(201, 168, 76, 0.7);
+  animation: hud-data-bar 0.9s ease-in-out infinite;
+}
+
+/* Glowing gold "terminal" button pulse */
+@keyframes terminal-glow {
+  0%, 100% { box-shadow: 0 0 12px rgba(201, 168, 76, 0.4),  inset 0 0 10px rgba(201, 168, 76, 0.1); }
+  50%      { box-shadow: 0 0 26px rgba(232, 197, 71, 0.75), inset 0 0 16px rgba(201, 168, 76, 0.2); }
+}
+.animate-terminal-glow { animation: terminal-glow 2.1s ease-in-out infinite; }
+
+/* Passport stamp slam-down */
+@keyframes stamp-slam {
+  0%   { opacity: 0; transform: scale(3) rotate(-26deg); filter: blur(5px); }
+  55%  { opacity: 1; transform: scale(0.88) rotate(-9deg); filter: blur(0); }
+  72%  {            transform: scale(1.08) rotate(-13deg); }
+  86%  {            transform: scale(0.97) rotate(-10.5deg); }
+  100% { opacity: 1; transform: scale(1) rotate(-11deg); }
+}
+.animate-stamp-slam { animation: stamp-slam 0.62s cubic-bezier(0.2, 1.1, 0.4, 1) both; }
+
+/* Brief screen jolt when the stamp lands */
+@keyframes stamp-shake {
+  0%, 100% { transform: translate(0, 0); }
+  30%      { transform: translate(-4px, 3px); }
+  45%      { transform: translate(5px, -2px); }
+  60%      { transform: translate(-3px, 2px); }
+  75%      { transform: translate(2px, -1px); }
+}
+.animate-stamp-shake { animation: stamp-shake 0.45s ease-out 0.32s both; }
+
+/* Count-up flicker for readouts */
+@keyframes value-glow {
+  0%, 100% { text-shadow: 0 0 8px rgba(201, 168, 76, 0.45); }
+  50%      { text-shadow: 0 0 18px rgba(232, 197, 71, 0.85); }
+}
+.animate-value-glow { animation: value-glow 1.8s ease-in-out infinite; }
 
 /* Shared card bg helper */
 .scenario-bg {
