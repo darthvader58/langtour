@@ -192,7 +192,16 @@ function CoinIcon() {
   )
 }
 
-export default function LandingPage({ tokens, unlockedCountries, glowCountry, level, rank, auth, countries, characters, unlockCost, onUnlockCountry, onCountrySelect }) {
+function LogoutIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+      <path d="M10 17l5-5-5-5M15 12H3" />
+      <path d="M14 3h5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5" />
+    </svg>
+  )
+}
+
+export default function LandingPage({ tokens, unlockedCountries, glowCountry, level, rank, auth, countries, characters, unlockCost, onUnlockCountry, onCountrySelect, onOpenProfile }) {
   const mountRef = useRef(null)
   const triggerTravelRef = useRef(() => {})
   const onCountrySelectRef = useRef(onCountrySelect)
@@ -216,6 +225,10 @@ export default function LandingPage({ tokens, unlockedCountries, glowCountry, le
     signUpWithEmail,
     signOut,
   } = auth
+  const avatarUrl = user?.user_metadata?.avatar_url || user?.user_metadata?.picture
+  const avatarLabel = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || 'Player'
+  const avatarInitial = avatarLabel.trim().charAt(0).toUpperCase() || 'P'
+  const visibleAuthError = authError?.replace(/\btokens?\b/gi, 'LangCoins')
 
   useEffect(() => {
     onCountrySelectRef.current = onCountrySelect
@@ -634,21 +647,33 @@ export default function LandingPage({ tokens, unlockedCountries, glowCountry, le
           
           <div className="flex h-9 items-center justify-center gap-1 rounded-xl border border-amber-300/15 bg-[#0b1727]/85 px-2.5 text-[9px] font-bold uppercase tracking-[0.08em] text-slate-100 shadow-[0_12px_35px_rgba(0,0,0,.28)] backdrop-blur-xl tabular-nums sm:h-11 sm:gap-2 sm:rounded-2xl sm:px-4 sm:text-xs sm:tracking-[0.12em]">
             <CoinIcon />
-            <span>{tokens} tokens</span>
+            <span>{tokens} LangCoins</span>
           </div>
           {user ? (
-            <button
-              type="button"
-              onClick={() => {
-                setShowAuth(false)
-                signOut()
-              }}
-              disabled={authLoading}
-              title={`Signed in as ${user.email}. Click to sign out.`}
-              className="flex h-11 items-center justify-center rounded-2xl border border-white/10 bg-[#0b1727]/85 px-4 text-xs font-bold uppercase tracking-[0.12em] text-slate-300 shadow-[0_12px_35px_rgba(0,0,0,.28)] backdrop-blur-xl transition-colors hover:bg-[#14243a] hover:text-white disabled:pointer-events-none disabled:opacity-50"
-            >
-              Sign out
-            </button>
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <button
+                type="button"
+                onClick={onOpenProfile}
+                title={`Open ${avatarLabel}'s profile`}
+                aria-label={`Open ${avatarLabel}'s profile`}
+                className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl border border-[#ffb77f]/25 bg-[#0b1727]/90 text-sm font-extrabold text-[#ffc08f] shadow-[0_12px_35px_rgba(0,0,0,.28)] backdrop-blur-xl transition hover:border-[#ffb77f]/55 hover:bg-[#14243a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff9a4d] sm:h-11 sm:w-11 sm:rounded-2xl"
+              >
+                {avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" /> : avatarInitial}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAuth(false)
+                  signOut()
+                }}
+                disabled={authLoading}
+                title={`Sign out ${user.email ?? ''}`.trim()}
+                aria-label="Sign out"
+                className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-[#0b1727]/85 text-slate-400 shadow-[0_12px_35px_rgba(0,0,0,.28)] backdrop-blur-xl transition-colors hover:bg-[#14243a] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff9a4d] disabled:pointer-events-none disabled:opacity-50 sm:h-11 sm:w-11 sm:rounded-2xl"
+              >
+                <LogoutIcon />
+              </button>
+            </div>
           ) : (
             <button
               type="button"
@@ -664,14 +689,14 @@ export default function LandingPage({ tokens, unlockedCountries, glowCountry, le
 
       {authError && !showAuth && (
         <div className="absolute right-6 top-24 z-30 max-w-sm rounded-xl border border-red-400/30 bg-red-950/80 px-4 py-3 text-sm text-red-100 backdrop-blur-xl">
-          {authError}
+          {visibleAuthError}
         </div>
       )}
 
       {showAuth && !user && (
         <AuthModal
           loading={authLoading}
-          error={authError}
+          error={visibleAuthError}
           message={authMessage}
           onClose={() => setShowAuth(false)}
           onGoogle={signInWithGoogle}
@@ -695,7 +720,7 @@ export default function LandingPage({ tokens, unlockedCountries, glowCountry, le
                 type="button"
                 disabled={isTraveling}
                 onClick={() => handleSelectCountry(country)}
-                title={isUnlocked ? `Travel to ${country.name}` : `Unlock ${country.name} (${unlockCost} tokens)`}
+                title={isUnlocked ? `Travel to ${country.name}` : `Unlock ${country.name} (${unlockCost} LangCoins)`}
                 className={
                   'group w-full flex items-center justify-between rounded-2xl px-3.5 py-3 text-left transition-all border max-sm:px-2.5 max-sm:py-2 ' +
                   (isUnlocked
@@ -740,7 +765,7 @@ export default function LandingPage({ tokens, unlockedCountries, glowCountry, le
               Unlock {pendingCountry.name}?
             </h3>
             <p className="text-sm text-gray-400 font-medium mb-6">
-              This will cost <span className="text-white font-extrabold">{unlockCost} tokens</span>.
+              This will cost <span className="text-white font-extrabold">{unlockCost} LangCoins</span>.
             </p>
             <div className="flex gap-3">
               <button
@@ -768,7 +793,7 @@ export default function LandingPage({ tokens, unlockedCountries, glowCountry, le
 
       <button
         onClick={async () => {
-          if (window.confirm("Reset your progress? This wipes your unlocked countries, completed scenarios, tokens, and XP.")) {
+          if (window.confirm("Reset your progress? This wipes your unlocked countries, completed scenarios, LangCoins, and XP.")) {
             const ok = await auth.resetProgress();
             if (ok) window.location.reload();
           }

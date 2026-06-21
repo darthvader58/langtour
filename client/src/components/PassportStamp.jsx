@@ -146,13 +146,13 @@ export default function PassportStamp({ country, flag, character, rewardTokens, 
         className="absolute bottom-14 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 transition-all duration-500"
         style={{ opacity: canClaim ? 1 : 0, transform: `translateX(-50%) translateY(${canClaim ? 0 : 16}px)` }}
       >
-        <p className="text-gray-500 text-sm font-medium">+{rewardTokens} tokens awarded</p>
+        <p className="text-gray-500 text-sm font-medium">+{rewardTokens} LangCoins awarded</p>
         <button
           type="button"
           onClick={onClaim}
           className="px-12 py-4 rounded-2xl bg-[#40DF01] hover:bg-[#61D908] border-2 border-[#46A302] border-b-4 active:border-b-2 active:translate-y-0.5 transition-all text-white font-display font-extrabold text-lg uppercase tracking-widest shadow-[0_0_32px_rgba(64, 223, 1,0.35)]"
         >
-          Claim Tokens
+          Claim LangCoins
         </button>
       </div>
     </div>
