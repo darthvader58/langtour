@@ -317,33 +317,30 @@ export default function ScenariosPage({ country = 'China', onBack, onScenarioSta
   }
 
   return (
-    <div className="relative w-screen h-screen overflow-y-auto overflow-x-hidden bg-[#05060a] text-white font-sans">
-      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(34,211,238,0.08),_transparent_55%)]" />
-      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_bottom,_rgba(99,102,241,0.08),_transparent_55%)]" />
-
+    <div className="relative w-screen h-screen overflow-y-auto overflow-x-hidden bg-[#0F1418] text-white font-sans">
       <header className="relative z-10 flex items-center justify-between px-8 py-6">
         <button
           type="button"
           onClick={onBack}
-          className="flex items-center gap-2 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/15 backdrop-blur-xl px-4 py-2 transition-colors"
+          className="flex items-center gap-2 rounded-full bg-[#1F2937] hover:bg-[#28323c] border-2 border-[#37464F] border-b-4 active:border-b-2 active:translate-y-0.5 px-4 py-2 transition-all font-extrabold text-gray-400"
         >
           <BackIcon />
-          <span className="text-sm font-medium">Back to Globe</span>
+          <span className="text-sm">Back to Globe</span>
         </button>
 
         <div className="flex items-center gap-3">
-          <span className="text-3xl drop-shadow-lg">{'\u{1F1E8}\u{1F1F3}'}</span>
+          <span className="text-3xl">{'\u{1F1E8}\u{1F1F3}'}</span>
           <div>
-            <h1 className="font-display text-2xl font-bold text-gradient-animated">{country}</h1>
-            <p className="text-[11px] text-white/45 uppercase tracking-[0.2em]">Choose a Scenario</p>
+            <h1 className="font-display text-2xl font-extrabold text-white">{country}</h1>
+            <p className="text-[11px] text-gray-400 font-bold uppercase tracking-[0.2em]">Choose a Scenario</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 rounded-full bg-gradient-to-br from-white/10 to-white/[0.03] border border-cyan-300/20 backdrop-blur-xl px-5 py-2.5 shadow-[0_0_25px_-5px_rgba(34,211,238,0.35)]">
-          <span className="font-display text-lg font-bold tabular-nums text-cyan-200">
+        <div className="flex items-center gap-2 rounded-full bg-[#1F2937] border-2 border-[#37464F] px-5 py-2.5 shadow-sm">
+          <span className="font-display text-lg font-extrabold tabular-nums text-[#58CC02]">
             {completedCount}/{CHINA_SCENARIOS.length}
           </span>
-          <span className="text-[10px] text-white/45 uppercase tracking-widest">completed</span>
+          <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">completed</span>
         </div>
       </header>
 
