@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 const CHINA_SCENARIOS = [
   {
     id: 'street-market',
@@ -290,31 +292,93 @@ function LessonModal({ scenario, onClose, onStart }) {
 }
 
 export default function ScenariosPage({ country = 'China', onBack, onScenarioStart }) {
+  const [progress] = useState(() => CHINA_SCENARIOS.map(() => 0))
+  const [activeScenario, setActiveScenario] = useState(null)
+
+  const allCompleted = progress.every((p) => p >= 100)
+  const completedCount = progress.filter((p) => p >= 100).length
+
+  function isUnlocked(index) {
+    return index === 0 || progress[index - 1] >= 100
+  }
+
+  function handleCardClick(scenario, unlocked) {
+    if (!unlocked) return
+    setActiveScenario(scenario)
+  }
+
+  function handleStartScenario() {
+    const scenario = activeScenario
+    if (!scenario) return
+    setActiveScenario(null)
+    onScenarioStart?.(scenario)
+  }
+
   return (
-    <div className="relative w-screen h-screen bg-[#05060a] text-white font-sans">
-      <p>
-        {country} scenarios coming soon for {onBack ? 'this traveler' : 'everyone'}.
-      </p>
-      <span hidden>
-        <BackIcon />
-      </span>
-      <ScenarioCard
-        scenario={CHINA_SCENARIOS[0]}
-        unlocked
-        progress={0}
-        completed={false}
-        index={0}
-        onClick={() => {}}
-      />
-      <ScenarioCard
-        scenario={REAL_LIFE_SCENARIO}
-        unlocked={false}
-        progress={0}
-        completed={false}
-        index={1}
-        onClick={() => {}}
-      />
-      <LessonModal scenario={CHINA_SCENARIOS[0]} onClose={() => {}} onStart={() => onScenarioStart?.(CHINA_SCENARIOS[0])} />
+    <div className="relative w-screen h-screen overflow-y-auto overflow-x-hidden bg-[#05060a] text-white font-sans">
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(34,211,238,0.08),_transparent_55%)]" />
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_bottom,_rgba(99,102,241,0.08),_transparent_55%)]" />
+
+      <header className="relative z-10 flex items-center justify-between px-8 py-6">
+        <button
+          type="button"
+          onClick={onBack}
+          className="flex items-center gap-2 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/15 backdrop-blur-xl px-4 py-2 transition-colors"
+        >
+          <BackIcon />
+          <span className="text-sm font-medium">Back to Globe</span>
+        </button>
+
+        <div className="flex items-center gap-3">
+          <span className="text-3xl drop-shadow-lg">{'\u{1F1E8}\u{1F1F3}'}</span>
+          <div>
+            <h1 className="font-display text-2xl font-bold text-gradient-animated">{country}</h1>
+            <p className="text-[11px] text-white/45 uppercase tracking-[0.2em]">Choose a Scenario</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 rounded-full bg-gradient-to-br from-white/10 to-white/[0.03] border border-cyan-300/20 backdrop-blur-xl px-5 py-2.5 shadow-[0_0_25px_-5px_rgba(34,211,238,0.35)]">
+          <span className="font-display text-lg font-bold tabular-nums text-cyan-200">
+            {completedCount}/{CHINA_SCENARIOS.length}
+          </span>
+          <span className="text-[10px] text-white/45 uppercase tracking-widest">completed</span>
+        </div>
+      </header>
+
+      <main className="relative z-10 px-8 pb-16">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+          {CHINA_SCENARIOS.map((scenario, index) => {
+            const unlocked = isUnlocked(index)
+            return (
+              <ScenarioCard
+                key={scenario.id}
+                scenario={scenario}
+                index={index}
+                unlocked={unlocked}
+                progress={progress[index]}
+                completed={progress[index] >= 100}
+                onClick={() => handleCardClick(scenario, unlocked)}
+              />
+            )
+          })}
+          <ScenarioCard
+            scenario={REAL_LIFE_SCENARIO}
+            index={CHINA_SCENARIOS.length}
+            unlocked={allCompleted}
+            progress={allCompleted ? 0 : 0}
+            completed={false}
+            onClick={() => handleCardClick(REAL_LIFE_SCENARIO, allCompleted)}
+          />
+        </div>
+      </main>
+
+      {activeScenario && (
+        <LessonModal
+          scenario={activeScenario}
+          onClose={() => setActiveScenario(null)}
+          onStart={handleStartScenario}
+        />
+      )}
     </div>
   )
 }
