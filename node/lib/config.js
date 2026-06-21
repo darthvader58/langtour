@@ -8,3 +8,4 @@ dotenv.config({ path: join(__dirname, '..', '..', '.env') });
 export const PORT = process.env.PORT || 8765;
 export const DEEPGRAM_API_KEY = process.env.DEEPGRAM_API_KEY || '';
 export const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
+export const DB_PATH = process.env.DB_PATH || join(__dirname, '..', '..', 'db', 'langtour.db');

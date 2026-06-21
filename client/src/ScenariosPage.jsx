@@ -293,8 +293,8 @@ function LessonModal({ scenario, onClose, onStart }) {
   )
 }
 
-export default function ScenariosPage({ country = 'China', onBack, onScenarioStart }) {
-  const [progress] = useState(() => CHINA_SCENARIOS.map(() => 0))
+export default function ScenariosPage({ country = 'China', completedScenarios = [], onBack, onScenarioStart }) {
+  const progress = CHINA_SCENARIOS.map(sc => completedScenarios.includes(sc.id) ? 100 : 0)
   const [activeScenario, setActiveScenario] = useState(null)
 
   const allCompleted = progress.every((p) => p >= 100)
