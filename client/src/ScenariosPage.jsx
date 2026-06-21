@@ -165,6 +165,79 @@ function CrownIcon({ className = 'w-9 h-9' }) {
   )
 }
 
+function ProgressBar({ progress, gold }) {
+  return (
+    <div className="h-1.5 w-full rounded-full bg-white/10 overflow-hidden">
+      <div
+        className={
+          'h-full rounded-full transition-all duration-500 ' +
+          (gold
+            ? 'bg-gradient-to-r from-amber-300 to-yellow-500'
+            : 'bg-gradient-to-r from-cyan-400 to-emerald-400')
+        }
+        style={{ width: `${progress}%` }}
+      />
+    </div>
+  )
+}
+
+function ScenarioCard({ scenario, unlocked, progress, completed, index, onClick }) {
+  const isSpecial = Boolean(scenario.special)
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={!unlocked}
+      style={{ animationDelay: `${index * 70}ms` }}
+      className={
+        'group relative animate-fade-in-up text-left rounded-2xl p-5 border backdrop-blur-xl transition-all duration-300 overflow-hidden ' +
+        (isSpecial
+          ? 'border-yellow-400/50 bg-gradient-to-br from-amber-500/10 via-white/[0.04] to-white/[0.02] ' +
+            (unlocked ? 'pulse-glow-gold-ring hover:scale-[1.03]' : '')
+          : 'border-white/10 bg-white/[0.05] ' +
+            (unlocked ? 'pulse-glow-cyan hover:scale-[1.03] hover:border-cyan-300/40' : ''))
+      }
+    >
+      <div
+        className={
+          'flex h-12 w-12 items-center justify-center rounded-xl text-3xl mb-4 ' +
+          (isSpecial ? 'bg-yellow-400/10' : 'bg-white/10')
+        }
+      >
+        {isSpecial ? <CrownIcon /> : <span>{scenario.icon}</span>}
+      </div>
+
+      <h3 className={'font-display text-lg font-semibold mb-1.5 ' + (isSpecial ? 'text-yellow-200' : 'text-white')}>
+        {scenario.title}
+      </h3>
+      <p className="text-sm text-white/55 leading-snug mb-4 min-h-[2.5rem]">
+        {scenario.description}
+      </p>
+
+      <div className="flex items-center justify-between gap-3">
+        <ProgressBar progress={progress} gold={isSpecial} />
+        <span className="text-[11px] tabular-nums text-white/40 shrink-0">{progress}%</span>
+      </div>
+
+      {completed && (
+        <span className="absolute top-3 right-3 text-[10px] font-semibold uppercase tracking-wide text-emerald-300 bg-emerald-400/10 border border-emerald-300/30 rounded-full px-2 py-0.5">
+          Done
+        </span>
+      )}
+
+      {!unlocked && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-2xl bg-black/75 backdrop-blur-sm cursor-not-allowed">
+          <LockIcon className={'w-7 h-7 ' + (isSpecial ? 'text-yellow-300/70' : 'text-white/50')} />
+          <span className={'text-[11px] uppercase tracking-widest ' + (isSpecial ? 'text-yellow-300/60' : 'text-white/40')}>
+            {isSpecial ? 'Complete all scenarios' : 'Locked'}
+          </span>
+        </div>
+      )}
+    </button>
+  )
+}
+
 export default function ScenariosPage({ country = 'China', onBack, onScenarioStart }) {
   return (
     <div className="relative w-screen h-screen bg-[#05060a] text-white font-sans">
@@ -172,14 +245,25 @@ export default function ScenariosPage({ country = 'China', onBack, onScenarioSta
         {country} scenarios coming soon for {onBack ? 'this traveler' : 'everyone'}.
         {onScenarioStart ? '' : ''}
       </p>
-      {[...CHINA_SCENARIOS, REAL_LIFE_SCENARIO].map((scenario) => (
-        <span key={scenario.id} hidden>
-          <LockIcon />
-          <BackIcon />
-          <CrownIcon />
-          {scenario.title}
-        </span>
-      ))}
+      <span hidden>
+        <BackIcon />
+      </span>
+      <ScenarioCard
+        scenario={CHINA_SCENARIOS[0]}
+        unlocked
+        progress={0}
+        completed={false}
+        index={0}
+        onClick={() => {}}
+      />
+      <ScenarioCard
+        scenario={REAL_LIFE_SCENARIO}
+        unlocked={false}
+        progress={0}
+        completed={false}
+        index={1}
+        onClick={() => {}}
+      />
     </div>
   )
 }
