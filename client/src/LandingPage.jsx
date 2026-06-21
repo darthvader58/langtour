@@ -632,7 +632,7 @@ export default function LandingPage({ tokens, unlockedCountries, glowCountry, le
             <span className="text-[#ff9a4d]">tour</span>
           </h1>
           <p className="mt-1 hidden text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400 sm:block">
-            A world of stories awaits
+            Speak the World
           </p>
         </div>
 
@@ -705,7 +705,7 @@ export default function LandingPage({ tokens, unlockedCountries, glowCountry, le
         />
       )}
 
-      <aside className="pointer-events-auto absolute left-7 top-1/2 z-20 w-[clamp(18rem,28vw,22rem)] -translate-y-1/2 rounded-[1.8rem] border border-white/10 bg-[#091525]/90 p-5 shadow-[0_28px_90px_rgba(0,0,0,.5)] backdrop-blur-2xl max-sm:bottom-[max(.75rem,env(safe-area-inset-bottom))] max-sm:left-3 max-sm:right-3 max-sm:top-auto max-sm:max-h-[52dvh] max-sm:w-auto max-sm:translate-y-0 max-sm:overflow-y-auto max-sm:p-3 [@media(max-height:720px)]:max-h-[76dvh] [@media(max-height:720px)]:overflow-y-auto [@media(max-height:720px)]:p-3">
+      <aside className="pointer-events-auto absolute left-7 top-1/2 z-20 w-[clamp(18rem,28vw,22rem)] origin-left -translate-y-1/2 scale-75 rounded-[1.8rem] border border-white/10 bg-[#091525]/90 p-5 shadow-[0_28px_90px_rgba(0,0,0,.5)] backdrop-blur-2xl max-sm:bottom-[max(.75rem,env(safe-area-inset-bottom))] max-sm:left-3 max-sm:right-3 max-sm:top-auto max-sm:max-h-[52dvh] max-sm:w-auto max-sm:translate-y-0 max-sm:scale-100 max-sm:overflow-y-auto max-sm:p-3 [@media(max-height:720px)]:max-h-[76dvh] [@media(max-height:720px)]:overflow-y-auto [@media(max-height:720px)]:p-3">
         <div className="mb-4 px-2 pt-1 max-sm:mb-2">
           <p className="text-[10px] font-extrabold uppercase tracking-[0.28em] text-[#ff9a4d]">Your next mission</p>
           <h2 className="mt-1.5 font-display text-2xl font-extrabold tracking-tight text-white max-sm:text-lg">Choose your tale</h2>
