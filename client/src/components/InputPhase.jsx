@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 export default function InputPhase({ words, onComplete }) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [loading, setLoading] = useState(false);
 
   // In the future, this will fetch from the backend:
   // /api/scenario/discovery?scenarioId=...
@@ -24,7 +23,7 @@ export default function InputPhase({ words, onComplete }) {
     window.speechSynthesis.speak(utterance);
   };
 
-  if (loading || !currentWord) {
+  if (!currentWord) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#58CC02]"></div>

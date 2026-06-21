@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import MicrophoneRecorder from './MicrophoneRecorder';
 import { API } from '../api';
 
@@ -12,36 +12,35 @@ export default function GameplayPhase({ scenario, targetWords, onEndScenario }) 
   const TOTAL_TURNS = 4;
 
   useEffect(() => {
-    if (state === 'generating') {
-      const controller = new AbortController();
-      generateNpcLine(controller.signal);
-      return () => controller.abort();
-    }
-  }, [state]);
+    if (state !== 'generating') return undefined;
+    const controller = new AbortController();
 
-  const generateNpcLine = async (signal) => {
-    try {
-      const response = await fetch(`${API}/api/scenario/generate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          scenarioContext: scenario.title,
-          targetWords,
-          previousTurns
-        }),
-        signal
-      });
-      const data = await response.json();
-      setNpcLine(data);
-      setState('npc_turn');
-    } catch (e) {
-      if (e.name === 'AbortError') return;
-      console.error(e);
-      // Fallback in case of error
-      setNpcLine({ zh: "你好！你想买什么？", pinyin: "nǐ hǎo! nǐ xiǎng mǎi shénme?", en: "Hello! What would you like to buy?" });
-      setState('npc_turn');
+    async function generateNpcLine() {
+      try {
+        const response = await fetch(`${API}/api/scenario/generate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            scenarioContext: scenario.title,
+            targetWords,
+            previousTurns
+          }),
+          signal: controller.signal
+        });
+        const data = await response.json();
+        setNpcLine(data);
+        setState('npc_turn');
+      } catch (e) {
+        if (e.name === 'AbortError') return;
+        console.error(e);
+        setNpcLine({ zh: "你好！你想买什么？", pinyin: "nǐ hǎo! nǐ xiǎng mǎi shénme?", en: "Hello! What would you like to buy?" });
+        setState('npc_turn');
+      }
     }
-  };
+
+    generateNpcLine();
+    return () => controller.abort();
+  }, [previousTurns, scenario.title, state, targetWords]);
 
   const playNpcAudio = () => {
     if (!npcLine) return;
