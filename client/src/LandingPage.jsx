@@ -3,6 +3,8 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { CHINA, COUNTRIES, UNLOCK_COST } from './gameData'
 import SackboyCharacter from './components/SackboyCharacter'
+import { useProfile } from './hooks/useProfile'
+import AuthModal from './components/AuthModal'
 
 const EARTH_TEXTURE_URL =
   'https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg'
@@ -243,6 +245,20 @@ export default function LandingPage({
   const [travelLabel, setTravelLabel] = useState('')
   const [showFlash, setShowFlash] = useState(false)
   const [celebrating, setCelebrating] = useState(null)
+
+  // Supabase auth (Google OAuth + email). Token/progress state stays in App;
+  // this only layers the agent's identity on top of the field ops HUD.
+  const {
+    user,
+    authLoading,
+    authError,
+    authMessage,
+    signInWithGoogle,
+    signInWithEmail,
+    signUpWithEmail,
+    signOut,
+  } = useProfile()
+  const [showAuth, setShowAuth] = useState(false)
 
   const countries = COUNTRIES.map((country) => ({
     ...country,
@@ -707,6 +723,39 @@ export default function LandingPage({
               ducats
             </span>
           </div>
+
+          {/* Agent identity / sign-in */}
+          {user ? (
+            <button
+              type="button"
+              onClick={() => { setShowAuth(false); signOut() }}
+              disabled={authLoading}
+              title={`Signed in as ${user.email}. Click to sign out.`}
+              className="btn-chunky flex items-center gap-2 bg-[#0D0B08] rounded-2xl border-[2.5px] border-[#C9A84C]/30 pl-2 pr-3 py-1.5 disabled:opacity-50"
+            >
+              <span
+                className="flex h-7 w-7 items-center justify-center rounded-full font-display font-bold text-[#0A0805]"
+                style={{ background: 'radial-gradient(circle at 35% 30%, #E8C547, #8B6914)' }}
+              >
+                {(user.user_metadata?.full_name || user.email || '?').charAt(0).toUpperCase()}
+              </span>
+              <span className="flex flex-col items-start leading-tight">
+                <span className="max-w-32 truncate font-mono text-xs text-[#F5F0E8]">
+                  {user.user_metadata?.full_name || user.email}
+                </span>
+                <span className="font-mono text-[8px] uppercase tracking-widest text-[#C9A84C]/45">Sign out</span>
+              </span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowAuth(true)}
+              disabled={authLoading}
+              className="btn-chunky flex items-center gap-2 bg-[#C9A84C]/12 rounded-2xl border-[2.5px] border-[#C9A84C]/45 px-5 py-2 font-display font-bold text-sm text-[#C9A84C] uppercase tracking-wider disabled:opacity-60"
+            >
+              {authLoading ? 'Connecting…' : 'Sign In'}
+            </button>
+          )}
         </div>
       </header>
 
@@ -816,6 +865,26 @@ export default function LandingPage({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Auth error toast */}
+      {authError && !showAuth && (
+        <div className="absolute right-6 top-24 max-w-sm rounded-2xl border-[2.5px] border-[#8B0000]/45 bg-[#1a0606]/85 px-4 py-3 font-mono text-sm text-red-100 z-20 shadow-[0_0_24px_rgba(0,0,0,0.6)]">
+          {authError}
+        </div>
+      )}
+
+      {/* Sign-in dialog */}
+      {showAuth && !user && (
+        <AuthModal
+          loading={authLoading}
+          error={authError}
+          message={authMessage}
+          onClose={() => setShowAuth(false)}
+          onGoogle={signInWithGoogle}
+          onEmailSignIn={signInWithEmail}
+          onEmailSignUp={signUpWithEmail}
+        />
       )}
 
       {showFlash && (
