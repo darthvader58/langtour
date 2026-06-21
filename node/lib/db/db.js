@@ -143,6 +143,7 @@ export async function getCatalog() {
 
   const countries = countriesData.map((row) => ({
     name: row.name,
+    code: COUNTRIES.find((c) => c.name === row.name)?.code ?? 'us',
     flag: row.flag,
     lat: Number(row.latitude),
     lng: Number(row.longitude),

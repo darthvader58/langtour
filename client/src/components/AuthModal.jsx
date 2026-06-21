@@ -55,7 +55,7 @@ export default function AuthModal({
           type="button"
           onClick={onGoogle}
           disabled={loading}
-          className="mt-6 flex w-full items-center justify-center gap-3 rounded-xl bg-white px-4 py-3 font-semibold text-slate-900 transition-colors hover:bg-slate-100 disabled:opacity-60"
+          className="mt-6 flex w-full items-center justify-center gap-3 rounded-2xl border-2 border-slate-200 bg-white hover:bg-slate-100 px-4 py-2 font-display text-sm font-extrabold uppercase tracking-widest text-slate-900 transition-all shadow-md disabled:opacity-50 disabled:pointer-events-none"
         >
           <GoogleIcon />
           Continue with Google
@@ -100,7 +100,7 @@ export default function AuthModal({
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-xl bg-cyan-300 px-4 py-3 font-semibold text-slate-950 transition-colors hover:bg-cyan-200 disabled:cursor-wait disabled:opacity-60"
+            className="flex w-full items-center justify-center rounded-2xl border-2 border-cyan-400 bg-cyan-300 hover:bg-cyan-200 px-4 py-2 font-display text-sm font-extrabold uppercase tracking-widest text-slate-950 transition-all shadow-md disabled:cursor-wait disabled:opacity-50"
           >
             {loading ? 'Please wait…' : mode === 'sign-up' ? 'Create account' : 'Sign in'}
           </button>

@@ -27,7 +27,7 @@ export default function InputPhase({ words, langCode, onComplete }) {
   if (!currentWord) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#58CC02]"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#40DF01]"></div>
       </div>
     );
   }
@@ -63,7 +63,7 @@ export default function InputPhase({ words, langCode, onComplete }) {
       <button
         type="button"
         onClick={handleNext}
-        className="w-full py-3.5 rounded-2xl bg-[#58CC02] hover:bg-[#61D908] border-2 border-[#46A302] border-b-4 active:border-b-2 active:translate-y-0.5 transition-all text-white font-display font-extrabold uppercase tracking-wide text-lg"
+        className="w-full py-3.5 rounded-2xl bg-[#40DF01] hover:bg-[#61D908] border-2 border-[#46A302] border-b-4 active:border-b-2 active:translate-y-0.5 transition-all text-white font-display font-extrabold uppercase tracking-wide text-lg"
       >
         {currentIndex < words.length - 1 ? 'Continue' : 'Start Scenario'}
       </button>

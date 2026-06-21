@@ -26,7 +26,7 @@ export default function CharacterStoryPopup({ country, character, onBeginMission
           className="font-display text-4xl font-extrabold text-white mb-8 animate-fade-in-up"
           style={{ animationDelay: '0.45s' }}
         >
-          You are a <span className="text-[#58CC02]">{character.type}</span>
+          You are a <span className="text-[#40DF01]">{character.type}</span>
         </h2>
 
         <p className="text-xl text-gray-300 font-medium leading-relaxed mb-14">
@@ -44,7 +44,7 @@ export default function CharacterStoryPopup({ country, character, onBeginMission
         <button
           type="button"
           onClick={onBeginMission}
-          className="animate-fade-in-up px-10 py-4 rounded-2xl bg-[#58CC02] hover:bg-[#61D908] border-2 border-[#46A302] border-b-4 active:border-b-2 active:translate-y-0.5 transition-all text-white font-display font-extrabold text-lg uppercase tracking-widest shadow-2xl"
+          className="animate-fade-in-up px-10 py-4 rounded-2xl bg-[#40DF01] hover:bg-[#61D908] border-2 border-[#46A302] border-b-4 active:border-b-2 active:translate-y-0.5 transition-all text-white font-display font-extrabold text-lg uppercase tracking-widest shadow-2xl"
           style={{ animationDelay: `${buttonDelay}s` }}
         >
           Begin Mission

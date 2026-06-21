@@ -10,7 +10,7 @@ const STAMP_COLORS = {
 }
 
 function PassportPage({ country, flag, character, completedCount, topVocab, stampVisible }) {
-  const color = STAMP_COLORS[country] ?? '#58CC02'
+  const color = STAMP_COLORS[country] ?? '#40DF01'
 
   return (
     <div className="relative w-full h-full rounded-r-2xl bg-[#f5f0e8] flex flex-col overflow-hidden">
@@ -95,7 +95,7 @@ export default function PassportStamp({ country, flag, character, rewardTokens, 
 
   return (
     <div className="fixed inset-0 z-40 bg-[#05060a] flex items-center justify-center animate-overlay-fade">
-      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,_rgba(88,204,2,0.04)_0%,_transparent_65%)]" />
+      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,_rgba(64, 223, 1,0.04)_0%,_transparent_65%)]" />
 
       {/* Passport book */}
       <div
@@ -117,8 +117,8 @@ export default function PassportStamp({ country, flag, character, rewardTokens, 
             <div className="text-5xl">{flag}</div>
             <div className="font-display text-2xl font-extrabold text-white tracking-wide text-center">{country}</div>
             <div className="font-display text-[10px] font-extrabold uppercase tracking-[0.3em] text-gray-500">Mission Passport</div>
-            <div className="w-16 h-px bg-[#58CC02]/30 mt-2" />
-            <div className="text-[#58CC02]/50 text-xs font-bold uppercase tracking-widest">Classified</div>
+            <div className="w-16 h-px bg-[#40DF01]/30 mt-2" />
+            <div className="text-[#40DF01]/50 text-xs font-bold uppercase tracking-widest">Classified</div>
           </div>
         </div>
 
@@ -150,7 +150,7 @@ export default function PassportStamp({ country, flag, character, rewardTokens, 
         <button
           type="button"
           onClick={onClaim}
-          className="px-12 py-4 rounded-2xl bg-[#58CC02] hover:bg-[#61D908] border-2 border-[#46A302] border-b-4 active:border-b-2 active:translate-y-0.5 transition-all text-white font-display font-extrabold text-lg uppercase tracking-widest shadow-[0_0_32px_rgba(88,204,2,0.35)]"
+          className="px-12 py-4 rounded-2xl bg-[#40DF01] hover:bg-[#61D908] border-2 border-[#46A302] border-b-4 active:border-b-2 active:translate-y-0.5 transition-all text-white font-display font-extrabold text-lg uppercase tracking-widest shadow-[0_0_32px_rgba(64, 223, 1,0.35)]"
         >
           Claim Tokens
         </button>

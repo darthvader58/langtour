@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 
-export default function CompletionScreen({ country, flag, character, rewardTokens, onReturn }) {
+export default function CompletionScreen({ country, code, character, rewardTokens, onReturn }) {
   const [showStamp, setShowStamp] = useState(false)
   const [showReward, setShowReward] = useState(false)
   const [showButton, setShowButton] = useState(false)
@@ -20,12 +20,12 @@ export default function CompletionScreen({ country, flag, character, rewardToken
       <div className="relative z-10 flex flex-col items-center justify-center text-center h-full max-w-lg mx-auto px-8">
         {/* Passport stamp */}
         <div className={`mb-8 ${showStamp ? 'animate-stamp' : 'opacity-0'}`}>
-          <div className="relative w-40 h-40 rounded-full border-[8px] border-[#58CC02] flex flex-col items-center justify-center bg-[#0F1418]/90 shadow-[0_0_60px_rgba(88,204,2,0.45)]">
-            <span className="text-5xl">{flag}</span>
-            <span className="font-display text-[9px] font-extrabold uppercase tracking-[0.25em] text-[#58CC02] mt-1.5">
+          <div className="relative w-40 h-40 rounded-full border-[8px] border-[#40DF01] flex flex-col items-center justify-center bg-[#0F1418]/90 shadow-[0_0_60px_rgba(64, 223, 1,0.45)]">
+            <img src={`https://flagcdn.com/${code ?? 'us'}.svg`} alt={country} className="w-12 rounded shadow-sm" />
+            <span className="font-display text-[9px] font-extrabold uppercase tracking-[0.25em] text-[#40DF01] mt-2">
               Mastered
             </span>
-            <div className="absolute inset-2 rounded-full border border-[#58CC02]/30" />
+            <div className="absolute inset-2 rounded-full border border-[#40DF01]/30" />
           </div>
         </div>
 
@@ -40,7 +40,7 @@ export default function CompletionScreen({ country, flag, character, rewardToken
           className="font-display text-4xl font-extrabold text-white mb-2 animate-fade-in-up"
           style={{ animationDelay: '0.2s' }}
         >
-          {country} <span className="text-[#58CC02]">Mastered!</span>
+          {country} <span className="text-[#40DF01]">Mastered!</span>
         </h2>
 
         <p
@@ -68,7 +68,7 @@ export default function CompletionScreen({ country, flag, character, rewardToken
           <button
             type="button"
             onClick={onReturn}
-            className="animate-fade-in-up px-10 py-4 rounded-2xl bg-[#58CC02] hover:bg-[#61D908] border-2 border-[#46A302] border-b-4 active:border-b-2 active:translate-y-0.5 transition-all text-white font-display font-extrabold text-lg uppercase tracking-widest shadow-2xl"
+            className="flex h-[56px] items-center justify-center animate-fade-in-up px-10 rounded-2xl bg-[#40DF01] hover:bg-[#61D908] border-2 border-[#46A302] transition-all text-white font-display font-extrabold text-lg uppercase tracking-widest shadow-2xl"
           >
             Return to Globe
           </button>
