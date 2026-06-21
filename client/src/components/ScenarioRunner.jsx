@@ -35,14 +35,14 @@ export default function ScenarioRunner({ scenario, langCode, onEndScenario }) {
 
   if (phase === 'input') {
     return (
-      <div className="w-screen h-screen flex flex-col items-center justify-center gap-4 bg-[#0F1418] text-white font-sans animate-fade-in-up">
+      <div className="w-screen h-screen flex flex-col items-center justify-center gap-4 bg-[#0F1418] text-white font-display animate-fade-in-up">
         <InputPhase words={targetWords} langCode={langCode} onComplete={() => setPhase('gameplay')} />
       </div>
     );
   }
 
   return (
-    <div className="w-screen h-screen bg-[#0F1418] font-sans">
+    <div className="w-screen h-screen bg-[#0F1418] font-display">
       <GameplayPhase 
         scenario={scenario} 
         targetWords={targetWords} 

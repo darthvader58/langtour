@@ -115,13 +115,13 @@ export default function GameplayPhase({ scenario, targetWords, langCode, onEndSc
             <button
               onClick={handleDevSkip}
               title="Dev Skip Turn"
-              className="text-gray-400 font-bold text-sm bg-[#1F2937] px-3 py-1.5 rounded-xl border-2 border-[#37464F] hover:text-[#1CB0F6] hover:border-[#1CB0F6] transition-colors flex items-center justify-center"
+              className="flex h-[46px] w-[46px] items-center justify-center rounded-2xl border-2 border-[#37464F] bg-[#1F2937] text-gray-400 transition-all hover:border-[#1CB0F6] hover:bg-[#28323c] hover:text-[#1CB0F6]"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
             </button>
             <button
               onClick={() => onEndScenario()}
-              className="text-gray-400 font-bold text-sm bg-[#1F2937] px-3 py-1.5 rounded-xl border-2 border-[#37464F] hover:text-white transition-colors"
+              className="flex h-[46px] items-center justify-center rounded-2xl border-2 border-[#37464F] bg-[#1F2937] px-4 font-display text-sm font-extrabold uppercase tracking-widest text-gray-400 transition-all hover:bg-[#28323c] hover:text-white shadow-md"
             >
               Quit
             </button>
@@ -131,7 +131,7 @@ export default function GameplayPhase({ scenario, targetWords, langCode, onEndSc
         {/* Progress Bar */}
         <div className="w-full h-3 bg-[#1F2937] rounded-full overflow-hidden border-2 border-[#37464F]">
           <div
-            className="h-full bg-[#58CC02] transition-all duration-500 ease-out"
+            className="h-full bg-[#40DF01] transition-all duration-500 ease-out"
             style={{ width: `${(turnsCompleted / TOTAL_TURNS) * 100}%` }}
           />
         </div>
@@ -141,7 +141,7 @@ export default function GameplayPhase({ scenario, targetWords, langCode, onEndSc
       {state !== 'scenario_complete' && (
         <div className="flex gap-2 mb-8 flex-wrap">
           {targetWords.map(w => (
-            <div key={w.en} className={`px-3 py-1 rounded-lg text-xs font-bold border-2 ${feedback?.status === 'passed' && feedback.usedWord === w.expression ? 'bg-[#58CC02]/20 border-[#58CC02] text-[#58CC02]' : 'bg-[#1F2937] border-[#37464F] text-gray-400'}`}>
+            <div key={w.en} className={`px-3 py-1 rounded-lg text-xs font-bold border-2 ${feedback?.status === 'passed' && feedback.usedWord === w.expression ? 'bg-[#40DF01]/20 border-[#40DF01] text-[#40DF01]' : 'bg-[#1F2937] border-[#37464F] text-gray-400'}`}>
               {w.zh}
             </div>
           ))}
@@ -189,7 +189,7 @@ export default function GameplayPhase({ scenario, targetWords, langCode, onEndSc
           {/* User Bubble (When transcript exists) */}
           {(state === 'evaluating' || state === 'feedback') && userResponse && (
             <div className="flex gap-4 self-end max-w-[85%] flex-row-reverse mt-2">
-              <div className="bg-[#58CC02] rounded-2xl rounded-tr-sm p-4 text-white shadow-md">
+              <div className="bg-[#40DF01] rounded-2xl rounded-tr-sm p-4 text-white shadow-md">
                 <span className="font-display font-bold text-xl">{userResponse}</span>
               </div>
             </div>
@@ -203,17 +203,17 @@ export default function GameplayPhase({ scenario, targetWords, langCode, onEndSc
 
           {/* Feedback Banner */}
           {state === 'feedback' && feedback && (
-            <div className={`mt-4 p-5 rounded-2xl border-2 \${feedback.status === 'passed' ? 'bg-[#58CC02]/10 border-[#58CC02]' : 'bg-[#FF4B4B]/10 border-[#FF4B4B]'}`}>
-              <h3 className={`font-display font-extrabold text-xl mb-2 \${feedback.status === 'passed' ? 'text-[#58CC02]' : 'text-[#FF4B4B]'}`}>
+            <div className={`mt-4 p-5 rounded-2xl border-2 \${feedback.status === 'passed' ? 'bg-[#40DF01]/10 border-[#40DF01]' : 'bg-[#FF4B4B]/10 border-[#FF4B4B]'}`}>
+              <h3 className={`font-display font-extrabold text-xl mb-2 \${feedback.status === 'passed' ? 'text-[#40DF01]' : 'text-[#FF4B4B]'}`}>
                 {feedback.status === 'passed' ? 'Excellent!' : 'Not quite right'}
               </h3>
               <p className="text-gray-300 font-medium">{feedback.feedback}</p>
               {feedback.status === 'passed' && feedback.usedWord && (
-                <p className="mt-2 text-sm text-[#58CC02] font-bold">✓ FSRS updated for "{feedback.usedWord}"</p>
+                <p className="mt-2 text-sm text-[#40DF01] font-bold">✓ FSRS updated for "{feedback.usedWord}"</p>
               )}
               <button
                 onClick={handleNextTurn}
-                className={`mt-4 w-full py-3 rounded-xl font-display font-extrabold uppercase tracking-widest text-white transition-colors \${feedback.status === 'passed' ? 'bg-[#58CC02] hover:bg-[#61D908]' : 'bg-[#FF4B4B] hover:bg-[#FF5555]'}`}
+                className={`mt-4 w-full py-3 rounded-xl font-display font-extrabold uppercase tracking-widest text-white transition-colors \${feedback.status === 'passed' ? 'bg-[#40DF01] hover:bg-[#61D908]' : 'bg-[#FF4B4B] hover:bg-[#FF5555]'}`}
               >
                 {feedback.status === 'passed' ? 'Continue Scenario' : 'Try Again'}
               </button>
@@ -246,7 +246,7 @@ export default function GameplayPhase({ scenario, targetWords, langCode, onEndSc
           <p className="text-gray-400 font-medium mb-8">You successfully mastered 4 new words in conversation.</p>
           <button
             onClick={() => onEndScenario({ completed: true, id: scenario.id })}
-            className="w-full py-4 rounded-2xl bg-[#58CC02] hover:bg-[#61D908] border-2 border-[#46A302] border-b-4 active:border-b-2 active:translate-y-0.5 transition-all text-white font-display font-extrabold uppercase tracking-wide text-lg"
+            className="w-full py-4 rounded-2xl bg-[#40DF01] hover:bg-[#61D908] border-2 border-[#46A302] border-b-4 active:border-b-2 active:translate-y-0.5 transition-all text-white font-display font-extrabold uppercase tracking-wide text-lg"
           >
             Return to Map
           </button>

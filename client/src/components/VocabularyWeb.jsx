@@ -11,7 +11,7 @@ const SCENARIO_COLORS = {
   'business-meeting':  '#facc15',
   'politician-speech': '#ec4899',
 }
-const DEFAULT_COLOR = '#58CC02'
+const DEFAULT_COLOR = '#40DF01'
 
 export default function VocabularyWeb({ allVocabData, currentScenarioId, onClose }) {
   const svgRef = useRef(null)
@@ -144,7 +144,7 @@ export default function VocabularyWeb({ allVocabData, currentScenarioId, onClose
 
   return (
     <div className="fixed inset-0 z-40 bg-[#05060a] animate-overlay-fade flex flex-col">
-      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,_rgba(88,204,2,0.04)_0%,_transparent_65%)]" />
+      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,_rgba(64, 223, 1,0.04)_0%,_transparent_65%)]" />
 
       <header className="relative z-10 shrink-0 flex items-center justify-between px-8 py-5">
         <div>
@@ -156,7 +156,7 @@ export default function VocabularyWeb({ allVocabData, currentScenarioId, onClose
         <button
           type="button"
           onClick={onClose}
-          className="px-7 py-2.5 rounded-2xl bg-[#58CC02] hover:bg-[#61D908] border-2 border-[#46A302] border-b-4 active:border-b-2 active:translate-y-0.5 transition-all text-white font-display font-extrabold uppercase tracking-wide"
+          className="px-7 py-2.5 rounded-2xl bg-[#40DF01] hover:bg-[#61D908] border-2 border-[#46A302] border-b-4 active:border-b-2 active:translate-y-0.5 transition-all text-white font-display font-extrabold uppercase tracking-wide"
         >
           Continue
         </button>
@@ -166,7 +166,7 @@ export default function VocabularyWeb({ allVocabData, currentScenarioId, onClose
 
       <footer className="relative z-10 shrink-0 flex items-center justify-center gap-8 px-8 py-4">
         {[
-          { color: '#58CC02', label: 'Mastered' },
+          { color: '#40DF01', label: 'Mastered' },
           { color: '#facc15', label: 'Learning'  },
           { color: '#3b82f6', label: 'New'        },
         ].map(({ color, label }) => (

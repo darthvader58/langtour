@@ -42,7 +42,7 @@ export default function LevelUpAnimation({ oldLevel, newLevel, character, onDone
     dist:  90 + seededFraction(i, 1) * 80,
     delay: seededFraction(i, 2) * 0.4,
     size:  4 + seededFraction(i, 3) * 6,
-    color: ['#58CC02', '#FFC800', '#1CB0F6', '#FF4B4B', '#FFFFFF'][Math.floor(seededFraction(i, 4) * 5)],
+    color: ['#40DF01', '#FFC800', '#1CB0F6', '#FF4B4B', '#FFFFFF'][Math.floor(seededFraction(i, 4) * 5)],
   }))
 
   return (
@@ -92,17 +92,17 @@ export default function LevelUpAnimation({ oldLevel, newLevel, character, onDone
 
             <h1
               className="font-display font-extrabold uppercase tracking-widest text-white animate-fade-in-up"
-              style={{ fontSize: 'clamp(3rem,8vw,5.5rem)', animationDelay: '0.25s', textShadow: '0 0 40px rgba(88,204,2,0.6), 0 0 80px rgba(88,204,2,0.3)' }}
+              style={{ fontSize: 'clamp(3rem,8vw,5.5rem)', animationDelay: '0.25s', textShadow: '0 0 40px rgba(64, 223, 1,0.6), 0 0 80px rgba(64, 223, 1,0.3)' }}
             >
               Level Up
             </h1>
 
             <div className="flex items-center gap-5 mt-6 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
               <span className="font-display text-5xl font-extrabold text-gray-500 tabular-nums">{oldLevel}</span>
-              <span className="text-2xl text-[#58CC02]">→</span>
+              <span className="text-2xl text-[#40DF01]">→</span>
               <span
-                className="font-display text-6xl font-extrabold tabular-nums text-[#58CC02]"
-                style={{ textShadow: '0 0 24px rgba(88,204,2,0.8)' }}
+                className="font-display text-6xl font-extrabold tabular-nums text-[#40DF01]"
+                style={{ textShadow: '0 0 24px rgba(64, 223, 1,0.8)' }}
               >
                 <Counter from={oldLevel} to={newLevel} />
               </span>

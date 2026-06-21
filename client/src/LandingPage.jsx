@@ -489,38 +489,33 @@ export default function LandingPage({ tokens, unlockedCountries, glowCountry, le
   }
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-[#05060a] text-white font-sans">
+    <div className="relative w-screen h-screen overflow-hidden bg-[#05060a] text-white font-display">
       <div ref={mountRef} className="absolute inset-0" />
 
       <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,_transparent_40%,_rgba(0,0,0,0.55)_100%)]" />
 
-      <header className="absolute top-0 left-0 right-0 flex items-center justify-between p-6 pointer-events-none">
-        <div className="pointer-events-auto">
+      <header className="absolute top-0 left-0 right-0 flex flex-wrap items-center justify-between gap-4 p-6 pointer-events-none">
+        <div className="pointer-events-auto shrink-0">
           <h1 className="font-display text-3xl font-extrabold tracking-wide drop-shadow-md">
             <span className="text-white">Lang</span>
-            <span className="text-[#58CC02]">tour</span>
+            <span className="text-[#40DF01]">tour</span>
           </h1>
           <p className="text-xs text-white/60 font-bold tracking-[0.2em] uppercase">
             Speak the world
           </p>
         </div>
 
-        <div className="pointer-events-auto flex items-center gap-4">
-          <div className="flex items-center gap-2 rounded-full bg-[#1F2937] border-2 border-[#37464F] px-4 py-2.5 shadow-md">
-            <span className="text-lg">{'\u{1F30D}'}</span>
-            <span className="font-display text-sm font-extrabold text-white">
+        <div className="pointer-events-auto flex flex-wrap justify-end items-center gap-4">
+          <div className="flex h-[46px] items-center justify-center gap-2 rounded-2xl border-2 border-[#37464F] bg-[#1F2937] px-4 font-display text-sm font-extrabold uppercase tracking-widest text-white shadow-md">
+            <span>
               Level {level?.display_order ?? unlockedCountries.length}
             </span>
-            {rank?.name && <span className="text-[10px] font-bold uppercase tracking-wider text-[#58CC02]">{rank.name}</span>}
+            {rank?.name && <span className="text-[10px] font-bold tracking-wider text-[#40DF01] ml-1">{rank.name}</span>}
           </div>
           
-          <div className="flex items-center gap-2.5 rounded-full bg-[#1F2937] border-2 border-[#37464F] px-5 py-2.5 shadow-md">
-            <CoinIcon />
-            <span className="font-display text-xl font-extrabold tabular-nums text-white">
-              {tokens}
-            </span>
-            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
-              tokens
+          <div className="flex h-[46px] items-center justify-center rounded-2xl border-2 border-[#37464F] bg-[#1F2937] px-4 font-display text-sm font-extrabold uppercase tracking-widest text-white shadow-md tabular-nums">
+            <span>
+              {tokens} TOKENS
             </span>
           </div>
           {user ? (
@@ -532,7 +527,7 @@ export default function LandingPage({ tokens, unlockedCountries, glowCountry, le
               }}
               disabled={authLoading}
               title={`Signed in as ${user.email}. Click to sign out.`}
-              className="rounded-full border-2 border-[#37464F] bg-[#1F2937] px-4 py-2.5 text-sm font-extrabold text-white hover:bg-[#28323c] disabled:opacity-50"
+              className="flex h-[46px] items-center justify-center rounded-2xl border-2 border-[#37464F] bg-[#1F2937] hover:bg-[#28323c] px-4 font-display text-sm font-extrabold uppercase tracking-widest text-white transition-all shadow-md disabled:opacity-50 disabled:pointer-events-none"
             >
               Sign out
             </button>
@@ -541,7 +536,7 @@ export default function LandingPage({ tokens, unlockedCountries, glowCountry, le
               type="button"
               onClick={() => setShowAuth(true)}
               disabled={authLoading}
-              className="rounded-full bg-white px-5 py-2.5 text-sm font-extrabold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+              className="flex h-[46px] items-center justify-center rounded-2xl border-2 border-slate-200 bg-white hover:bg-slate-100 px-4 font-display text-sm font-extrabold uppercase tracking-widest text-slate-900 transition-all shadow-md disabled:opacity-50 disabled:pointer-events-none"
             >
               {authLoading ? 'Connecting…' : 'Sign in'}
             </button>
@@ -582,17 +577,19 @@ export default function LandingPage({ tokens, unlockedCountries, glowCountry, le
                 onClick={() => handleSelectCountry(country)}
                 title={isUnlocked ? `Travel to ${country.name}` : `Unlock ${country.name} (${unlockCost} tokens)`}
                 className={
-                  'w-full flex items-center justify-between rounded-2xl px-3 py-2.5 text-left transition-all duration-150 border-2 ' +
+                  'w-full flex items-center justify-between rounded-2xl px-3 py-2 text-left transition-all font-display text-sm font-extrabold uppercase tracking-widest border-2 shadow-md ' +
                   (isUnlocked
-                    ? 'bg-[#58CC02] hover:bg-[#61D908] active:translate-y-0.5 cursor-pointer text-white font-extrabold border-[#46A302] border-b-4 active:border-b-2' +
+                    ? 'bg-[#40DF01] hover:bg-[#61D908] cursor-pointer text-white border-white/30 border-2' +
                       (glowCountry === country.name ? ' animate-country-glow' : '')
-                    : 'bg-[#1F2937] hover:bg-[#28323c] active:translate-y-0.5 text-gray-300 cursor-pointer border-[#37464F] border-b-4 active:border-b-2')
+                    : 'bg-[#1F2937] hover:bg-[#28323c] text-gray-300 cursor-pointer border-[#37464F] border-2')
                 }
               >
-                <span className="flex items-center gap-2.5">
-                  <span className={'text-xl transition-opacity' + (isUnlocked ? '' : ' opacity-50 grayscale')}>
-                    {country.flag}
-                  </span>
+                <span className="flex items-center gap-3">
+                  <img
+                    src={`https://flagcdn.com/${country.code ?? 'us'}.svg`}
+                    alt={country.name}
+                    className={'w-6 rounded-sm shadow-sm transition-opacity ' + (isUnlocked ? '' : 'opacity-50 grayscale')}
+                  />
                   <span className="font-display font-extrabold">{country.name}</span>
                 </span>
                 {isUnlocked ? (
@@ -619,7 +616,9 @@ export default function LandingPage({ tokens, unlockedCountries, glowCountry, le
       {pendingCountry && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/50 pointer-events-auto animate-overlay-fade">
           <div className="animate-modal-pop w-80 rounded-3xl bg-[#1F2937] border-2 border-[#37464F] p-7 text-center shadow-2xl">
-            <div className="text-4xl mb-3">{pendingCountry.flag}</div>
+            <div className="flex justify-center mb-4">
+              <img src={`https://flagcdn.com/${pendingCountry.code ?? 'us'}.svg`} alt={pendingCountry.name} className="w-16 rounded shadow-md" />
+            </div>
             <h3 className="font-display text-xl font-extrabold mb-2 text-white">
               Unlock {pendingCountry.name}?
             </h3>
@@ -630,14 +629,14 @@ export default function LandingPage({ tokens, unlockedCountries, glowCountry, le
               <button
                 type="button"
                 onClick={() => setPendingCountry(null)}
-                className="flex-1 py-2.5 rounded-2xl bg-[#1F2937] hover:bg-[#28323c] border-2 border-[#37464F] border-b-4 active:border-b-2 active:translate-y-0.5 transition-all font-display font-extrabold uppercase tracking-wide text-gray-400"
+                className="flex-1 flex items-center justify-center px-4 py-2 rounded-2xl bg-[#1F2937] hover:bg-[#28323c] border-2 border-[#37464F] transition-all font-display text-sm font-extrabold uppercase tracking-widest text-gray-400 shadow-md"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleConfirmUnlock}
-                className="flex-1 py-2.5 rounded-2xl bg-[#58CC02] hover:bg-[#61D908] border-2 border-[#46A302] border-b-4 active:border-b-2 active:translate-y-0.5 transition-all text-white font-display font-extrabold uppercase tracking-wide"
+                className="flex-1 flex items-center justify-center px-4 py-2 rounded-2xl bg-[#40DF01] hover:bg-[#61D908] border-2 border-[#46A302] transition-all text-white font-display text-sm font-extrabold uppercase tracking-widest shadow-md"
               >
                 Confirm
               </button>
@@ -657,10 +656,14 @@ export default function LandingPage({ tokens, unlockedCountries, glowCountry, le
             if (ok) window.location.reload();
           }
         }}
-        className="absolute bottom-6 right-6 pointer-events-auto flex items-center justify-center rounded-2xl bg-[#FF4B4B] hover:bg-[#FF5555] active:translate-y-0.5 border-2 border-[#EA1B1B] border-b-4 active:border-b-2 px-4 py-2 font-display text-sm font-extrabold uppercase tracking-widest text-white transition-all shadow-md z-50"
+        className="absolute bottom-6 right-6 pointer-events-auto flex items-center justify-center rounded-2xl bg-[#FF4B4B] hover:bg-[#FF5555] border-2 border-[#EA1B1B] px-4 py-2 font-display text-sm font-extrabold uppercase tracking-widest text-white transition-all shadow-md z-50"
       >
         Reset
       </button>
+
+      <div className="absolute bottom-6 left-6 pointer-events-none text-white/40 text-xs font-display font-medium tracking-wide">
+        &copy; 2026 Langtour. All rights reserved.
+      </div>
     </div>
   )
 }

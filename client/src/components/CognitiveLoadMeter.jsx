@@ -6,7 +6,7 @@ const CIRC     = 2 * Math.PI * R
 const CENTER   = 60
 
 function getZone(score) {
-  if (score < 40) return { label: 'Too Easy',    color: '#58CC02', ring: '#58CC02', tip: 'Increase difficulty' }
+  if (score < 40) return { label: 'Too Easy',    color: '#40DF01', ring: '#40DF01', tip: 'Increase difficulty' }
   if (score < 70) return { label: 'Optimal',     color: '#facc15', ring: '#facc15', tip: 'Stay in the zone'   }
   return               { label: 'Struggling',  color: '#ef4444', ring: '#ef4444', tip: 'Simplify'            }
 }

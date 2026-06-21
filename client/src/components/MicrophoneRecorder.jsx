@@ -179,7 +179,7 @@ export default function MicrophoneRecorder({ onRecordingComplete, disabled, lang
           className={`relative w-20 h-20 rounded-full flex items-center justify-center transition-all touch-none ${
             disabled ? 'bg-[#37464F] opacity-50 cursor-not-allowed' :
             isRecording 
-              ? 'bg-[#1CB0F6] shadow-[0_0_20px_rgba(28,176,246,0.6)] scale-110' 
+              ? 'bg-[#1CB0F6] shadow-[0_0_20px_rgba(109, 33, 255,0.6)] scale-110' 
               : 'bg-[#1F2937] border-2 border-[#37464F] border-b-4 hover:bg-[#28323c] active:border-b-2 active:translate-y-0.5'
           }`}
         >

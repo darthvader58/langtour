@@ -1,10 +1,10 @@
 export const COUNTRIES = [
-  { name: 'China', flag: '\u{1F1E8}\u{1F1F3}', lat: 35.8617, lng: 104.1954, langCode: 'zh' },
-  { name: 'India', flag: '🇮🇳', lat: 20.5937, lng: 78.9629, langCode: 'hi' },
-  { name: 'France', flag: '\u{1F1EB}\u{1F1F7}', lat: 46.2276, lng: 2.2137, langCode: 'fr' },
-  { name: 'Mexico', flag: '\u{1F1F2}\u{1F1FD}', lat: 23.6345, lng: -102.5528, langCode: 'es' },
-  { name: 'Egypt', flag: '\u{1F1EA}\u{1F1EC}', lat: 26.8206, lng: 30.8025, langCode: 'ar' },
-  { name: 'Brazil', flag: '\u{1F1E7}\u{1F1F7}', lat: -14.235, lng: -51.9253, langCode: 'pt' },
+  { name: 'China', code: 'cn', flag: '\u{1F1E8}\u{1F1F3}', lat: 35.8617, lng: 104.1954, langCode: 'zh' },
+  { name: 'India', code: 'in', flag: '🇮🇳', lat: 20.5937, lng: 78.9629, langCode: 'hi' },
+  { name: 'France', code: 'fr', flag: '\u{1F1EB}\u{1F1F7}', lat: 46.2276, lng: 2.2137, langCode: 'fr' },
+  { name: 'Mexico', code: 'mx', flag: '\u{1F1F2}\u{1F1FD}', lat: 23.6345, lng: -102.5528, langCode: 'es' },
+  { name: 'Egypt', code: 'eg', flag: '\u{1F1EA}\u{1F1EC}', lat: 26.8206, lng: 30.8025, langCode: 'ar' },
+  { name: 'Brazil', code: 'br', flag: '\u{1F1E7}\u{1F1F7}', lat: -14.235, lng: -51.9253, langCode: 'pt' },
 ]
 
 export const CHINA = COUNTRIES[0]

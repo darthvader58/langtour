@@ -88,11 +88,11 @@ function App() {
   }
 
   if (completionCountry) {
-    const flag = countries.find((c) => c.name === completionCountry)?.flag ?? ''
+    const code = countries.find((c) => c.name === completionCountry)?.code ?? 'us'
     return (
       <CompletionScreen
         country={completionCountry}
-        flag={flag}
+        code={code}
         character={characters[completionCountry]}
         rewardTokens={rewardTokens}
         onReturn={async () => {
@@ -142,11 +142,11 @@ function App() {
   }
 
   if (selectedCountry) {
-    const flag = countries.find((c) => c.name === selectedCountry)?.flag ?? ''
+    const code = countries.find((c) => c.name === selectedCountry)?.code ?? 'us'
     return (
       <ScenariosPage
         country={selectedCountry}
-        flag={flag}
+        code={code}
         completedScenarios={profile.completedScenarios}
         scenarios={scenariosByCountry[selectedCountry] ?? []}
         specialScenario={specialScenarioByCountry[selectedCountry] ?? null}

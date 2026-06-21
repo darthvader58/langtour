@@ -108,7 +108,7 @@ export default function VoiceWaveform({ stream = null, active = true }) {
       />
       <div className="absolute inset-0 bg-[linear-gradient(90deg,_rgba(10,14,20,0.6)_0%,_transparent_15%,_transparent_85%,_rgba(10,14,20,0.6)_100%)] pointer-events-none" />
       <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
-        <div className={`w-1.5 h-1.5 rounded-full transition-colors duration-300 ${speaking || active ? 'bg-[#58CC02] shadow-[0_0_6px_#58CC02]' : 'bg-gray-700'}`} />
+        <div className={`w-1.5 h-1.5 rounded-full transition-colors duration-300 ${speaking || active ? 'bg-[#40DF01] shadow-[0_0_6px_#40DF01]' : 'bg-gray-700'}`} />
         <span className="text-[9px] text-gray-600 font-bold uppercase tracking-widest">
           {speaking ? 'Speaking' : 'Listening'}
         </span>

@@ -42,7 +42,7 @@ function ProgressBar({ progress, gold }) {
   return (
     <div className="h-2.5 w-full rounded-full bg-[#37464F] overflow-hidden">
       <div
-        className={'h-full rounded-full transition-all duration-500 ' + (gold ? 'bg-[#FFC800]' : 'bg-[#58CC02]')}
+        className={'h-full rounded-full transition-all duration-500 ' + (gold ? 'bg-[#FFC800]' : 'bg-[#40DF01]')}
         style={{ width: `${progress}%` }}
       />
     </div>
@@ -61,10 +61,10 @@ function ScenarioCard({ scenario, unlocked, progress, completed, index, onClick 
       className={
         'group relative animate-fade-in-up text-left rounded-3xl p-5 border-2 transition-all duration-150 overflow-hidden ' +
         (isSpecial
-          ? 'border-[#FFC800] border-b-[6px] bg-[#3A3115] ' + (unlocked ? 'hover:scale-[1.02]' : '')
+          ? 'border-[#FFC800] bg-[#3A3115] ' + (unlocked ? 'hover:scale-[1.02]' : '')
           : 'bg-[#1F2937] ' +
             (unlocked
-              ? 'border-[#37464F] border-b-[6px] hover:scale-[1.02] cursor-pointer'
+              ? 'border-[#37464F] hover:scale-[1.02] cursor-pointer'
               : 'border-[#37464F] cursor-not-allowed'))
       }
     >
@@ -92,7 +92,7 @@ function ScenarioCard({ scenario, unlocked, progress, completed, index, onClick 
       </div>
 
       {completed && (
-        <span className="absolute top-3 right-3 text-[10px] font-extrabold uppercase tracking-wide text-white bg-[#58CC02] rounded-full px-2 py-0.5">
+        <span className="absolute top-3 right-3 text-[10px] font-extrabold uppercase tracking-wide text-white bg-[#40DF01] rounded-full px-2 py-0.5">
           Done
         </span>
       )}
@@ -155,7 +155,7 @@ function LessonModal({ scenario, onClose, onStart }) {
         <button
           type="button"
           onClick={onStart}
-          className="w-full py-3 rounded-2xl bg-[#58CC02] hover:bg-[#61D908] border-2 border-[#46A302] border-b-4 active:border-b-2 active:translate-y-0.5 transition-all text-white font-display font-extrabold uppercase tracking-wide"
+          className="flex h-[46px] w-full items-center justify-center rounded-2xl border-2 border-[#46A302] bg-[#40DF01] hover:bg-[#61D908] px-4 font-display text-sm font-extrabold uppercase tracking-widest text-white transition-all shadow-md"
         >
           Start Scenario
         </button>
@@ -164,7 +164,7 @@ function LessonModal({ scenario, onClose, onStart }) {
   )
 }
 
-export default function ScenariosPage({ country = 'China', flag = '', completedScenarios = [], scenarios, specialScenario, onBack, onScenarioStart }) {
+export default function ScenariosPage({ country = 'China', code = 'cn', completedScenarios = [], scenarios, specialScenario, onBack, onScenarioStart }) {
   const progress = scenarios.map(sc => completedScenarios.includes(sc.id) ? 100 : 0)
   const [activeScenario, setActiveScenario] = useState(null)
 
@@ -188,30 +188,32 @@ export default function ScenariosPage({ country = 'China', flag = '', completedS
   }
 
   return (
-    <div className="relative w-screen h-screen overflow-y-auto overflow-x-hidden bg-[#0F1418] text-white font-sans">
+    <div className="relative w-screen h-screen overflow-y-auto overflow-x-hidden bg-[#0F1418] text-white font-display">
       <header className="relative z-10 flex items-center justify-between px-8 py-6">
         <button
           type="button"
           onClick={onBack}
-          className="flex items-center gap-2 rounded-full bg-[#1F2937] hover:bg-[#28323c] border-2 border-[#37464F] border-b-4 active:border-b-2 active:translate-y-0.5 px-4 py-2 transition-all font-extrabold text-gray-400"
+          className="flex h-[46px] items-center justify-center gap-2 rounded-2xl border-2 border-[#37464F] bg-[#1F2937] hover:bg-[#28323c] px-4 font-display text-sm font-extrabold uppercase tracking-widest text-gray-400 transition-all shadow-md"
         >
           <BackIcon />
-          <span className="text-sm">Back to Globe</span>
+          <span>Back to Globe</span>
         </button>
 
-        <div className="flex items-center gap-3">
-          <span className="text-3xl">{flag || '\u{1F1E8}\u{1F1F3}'}</span>
+        <div className="flex items-center gap-4">
+          <img src={`https://flagcdn.com/${code ?? 'cn'}.svg`} alt={country} className="w-10 rounded shadow-sm" />
           <div>
             <h1 className="font-display text-2xl font-extrabold text-white">{country}</h1>
             <p className="text-[11px] text-gray-400 font-bold uppercase tracking-[0.2em]">Choose a Scenario</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 rounded-full bg-[#1F2937] border-2 border-[#37464F] px-5 py-2.5 shadow-sm">
-          <span className="font-display text-lg font-extrabold tabular-nums text-[#58CC02]">
+        <div className="flex h-[46px] items-center justify-center rounded-2xl border-2 border-[#37464F] bg-[#1F2937] px-4 font-display text-sm font-extrabold uppercase tracking-widest shadow-md tabular-nums">
+          <span className="text-[#40DF01] mr-1">
             {completedCount}/{scenarios.length}
           </span>
-          <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">completed</span>
+          <span className="text-gray-400">
+            COMPLETED
+          </span>
         </div>
       </header>
 

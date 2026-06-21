@@ -49,7 +49,7 @@ function TypewriterLine({ text, delay = 0, speed = 22, className = '' }) {
     <span className={className}>
       {displayed}
       {displayed.length < text.length && (
-        <span className="animate-pulse text-[#58CC02]">▋</span>
+        <span className="animate-pulse text-[#40DF01]">▋</span>
       )}
     </span>
   )
@@ -86,21 +86,21 @@ export default function MissionBriefing({ scenario, country, onAccept, onCancel 
       <div className="relative z-10 w-full max-w-2xl px-8 py-10">
         {/* Header stamp */}
         <div className="flex items-center gap-4 mb-8 animate-fade-in-up">
-          <div className="flex-1 h-px bg-[#58CC02]/30" />
-          <span className="font-mono text-[10px] font-bold tracking-[0.4em] text-[#58CC02]/60">
+          <div className="flex-1 h-px bg-[#40DF01]/30" />
+          <span className="font-mono text-[10px] font-bold tracking-[0.4em] text-[#40DF01]/60">
             CLASSIFIED DOSSIER
           </span>
-          <div className="flex-1 h-px bg-[#58CC02]/30" />
+          <div className="flex-1 h-px bg-[#40DF01]/30" />
         </div>
 
         {/* Mission icon + title */}
         <div className="flex items-center gap-4 mb-8 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-          <div className="w-16 h-16 rounded-2xl bg-[#0a1a0a] border border-[#58CC02]/30 flex items-center justify-center text-3xl">
+          <div className="w-16 h-16 rounded-2xl bg-[#0a1a0a] border border-[#40DF01]/30 flex items-center justify-center text-3xl">
             {scenario.icon}
           </div>
           <div>
-            <p className="font-mono text-[10px] text-[#58CC02]/50 tracking-widest uppercase mb-1">{country} Mission</p>
-            <h1 className="font-mono text-3xl font-bold text-[#58CC02] tracking-wide">{scenario.title}</h1>
+            <p className="font-mono text-[10px] text-[#40DF01]/50 tracking-widest uppercase mb-1">{country} Mission</p>
+            <h1 className="font-mono text-3xl font-bold text-[#40DF01] tracking-wide">{scenario.title}</h1>
           </div>
         </div>
 
@@ -108,10 +108,10 @@ export default function MissionBriefing({ scenario, country, onAccept, onCancel 
         <div className="space-y-3 mb-8 font-mono">
           {lines.map((line, i) => (
             <div key={i} className="flex gap-3 text-sm leading-relaxed">
-              <span className="text-[#58CC02]/40 shrink-0 w-36 text-xs tracking-widest uppercase pt-0.5">
+              <span className="text-[#40DF01]/40 shrink-0 w-36 text-xs tracking-widest uppercase pt-0.5">
                 {line.label}
               </span>
-              <span className="text-[#58CC02]/80">:</span>
+              <span className="text-[#40DF01]/80">:</span>
               {line.stars ? (
                 <TypewriterLine
                   text=""
@@ -122,13 +122,13 @@ export default function MissionBriefing({ scenario, country, onAccept, onCancel 
                 <TypewriterLine
                   text={line.value}
                   delay={line.delay}
-                  className={'font-bold ' + (line.highlight ? 'text-[#ff4444]' : 'text-[#58CC02]')}
+                  className={'font-bold ' + (line.highlight ? 'text-[#ff4444]' : 'text-[#40DF01]')}
                 />
               ) : (
                 <TypewriterLine
                   text={line.value}
                   delay={line.delay}
-                  className={'font-medium ' + (line.highlight ? 'text-[#ff4444] font-bold' : 'text-[#58CC02]/90')}
+                  className={'font-medium ' + (line.highlight ? 'text-[#ff4444] font-bold' : 'text-[#40DF01]/90')}
                 />
               )}
               {line.stars && (
@@ -145,14 +145,14 @@ export default function MissionBriefing({ scenario, country, onAccept, onCancel 
 
         {/* Key phrases */}
         {keyPhrases.length > 0 && (
-          <div className="mb-8 border border-[#58CC02]/20 rounded-xl p-4 bg-[#0a1a0a]/80 animate-fade-in-up" style={{ animationDelay: '2.4s' }}>
-            <p className="font-mono text-[10px] text-[#58CC02]/40 tracking-widest uppercase mb-3">Key Phrases to Master</p>
+          <div className="mb-8 border border-[#40DF01]/20 rounded-xl p-4 bg-[#0a1a0a]/80 animate-fade-in-up" style={{ animationDelay: '2.4s' }}>
+            <p className="font-mono text-[10px] text-[#40DF01]/40 tracking-widest uppercase mb-3">Key Phrases to Master</p>
             <div className="grid grid-cols-2 gap-2">
               {keyPhrases.map((word, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <span className="text-[#58CC02]/30 font-mono text-xs">›</span>
-                  <span className="font-mono text-sm text-[#58CC02]/70">{word.en}</span>
-                  <span className="font-mono text-sm text-[#58CC02] font-bold">{word.zh}</span>
+                  <span className="text-[#40DF01]/30 font-mono text-xs">›</span>
+                  <span className="font-mono text-sm text-[#40DF01]/70">{word.en}</span>
+                  <span className="font-mono text-sm text-[#40DF01] font-bold">{word.zh}</span>
                 </div>
               ))}
             </div>
@@ -166,14 +166,14 @@ export default function MissionBriefing({ scenario, country, onAccept, onCancel 
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 py-3.5 rounded-2xl bg-transparent border-2 border-[#58CC02]/30 hover:border-[#58CC02]/60 font-mono font-bold text-[#58CC02]/50 hover:text-[#58CC02]/80 uppercase tracking-widest transition-all"
+            className="flex-1 py-3.5 rounded-2xl bg-transparent border-2 border-[#40DF01]/30 hover:border-[#40DF01]/60 font-mono font-bold text-[#40DF01]/50 hover:text-[#40DF01]/80 uppercase tracking-widest transition-all"
           >
             Decline
           </button>
           <button
             type="button"
             onClick={onAccept}
-            className="flex-2 flex-grow-[2] py-3.5 rounded-2xl bg-[#0a1a0a] border-2 border-[#58CC02] hover:bg-[#58CC02]/10 font-mono font-bold text-[#58CC02] uppercase tracking-widest transition-all shadow-[0_0_24px_rgba(88,204,2,0.3)] hover:shadow-[0_0_40px_rgba(88,204,2,0.5)] animate-mission-glow"
+            className="flex-2 flex-grow-[2] py-3.5 rounded-2xl bg-[#0a1a0a] border-2 border-[#40DF01] hover:bg-[#40DF01]/10 font-mono font-bold text-[#40DF01] uppercase tracking-widest transition-all shadow-[0_0_24px_rgba(64, 223, 1,0.3)] hover:shadow-[0_0_40px_rgba(64, 223, 1,0.5)] animate-mission-glow"
           >
             ▶ Accept Mission
           </button>
@@ -181,9 +181,9 @@ export default function MissionBriefing({ scenario, country, onAccept, onCancel 
 
         {/* Footer */}
         <div className="flex items-center gap-4 mt-8 animate-fade-in-up" style={{ animationDelay: '2.6s' }}>
-          <div className="flex-1 h-px bg-[#58CC02]/20" />
-          <span className="font-mono text-[9px] text-[#58CC02]/25 tracking-widest">UNAUTHORIZED ACCESS IS PROHIBITED</span>
-          <div className="flex-1 h-px bg-[#58CC02]/20" />
+          <div className="flex-1 h-px bg-[#40DF01]/20" />
+          <span className="font-mono text-[9px] text-[#40DF01]/25 tracking-widest">UNAUTHORIZED ACCESS IS PROHIBITED</span>
+          <div className="flex-1 h-px bg-[#40DF01]/20" />
         </div>
       </div>
     </div>
