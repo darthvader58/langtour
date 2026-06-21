@@ -238,12 +238,62 @@ function ScenarioCard({ scenario, unlocked, progress, completed, index, onClick 
   )
 }
 
+function LessonModal({ scenario, onClose, onStart }) {
+  return (
+    <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-md pointer-events-auto animate-overlay-fade z-20">
+      <div className="animate-modal-pop w-[28rem] max-h-[85vh] overflow-y-auto rounded-3xl bg-gradient-to-b from-white/10 to-white/[0.02] border border-white/15 backdrop-blur-2xl shadow-[0_20px_60px_rgba(0,0,0,0.6)] p-7">
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-5 right-5 text-white/40 hover:text-white transition-colors text-xl leading-none"
+          aria-label="Close"
+        >
+          &times;
+        </button>
+
+        <div className="flex items-center gap-3 mb-2">
+          <span className="text-3xl">{scenario.special ? '\u{1F451}' : scenario.icon}</span>
+          <div>
+            <h3 className="font-display text-xl font-semibold">{scenario.title}</h3>
+            <p className="text-xs text-white/50">{scenario.description}</p>
+          </div>
+        </div>
+
+        <h4 className="font-display text-xs uppercase tracking-widest text-white/40 mt-6 mb-3">
+          Key Vocabulary
+        </h4>
+        <ul className="flex flex-col gap-2 mb-6">
+          {scenario.vocab.map((word) => (
+            <li
+              key={word.en}
+              className="flex items-center justify-between gap-3 rounded-xl bg-white/5 border border-white/10 px-4 py-2.5"
+            >
+              <span className="text-sm text-white/80">{word.en}</span>
+              <span className="flex items-baseline gap-2">
+                <span className="font-display text-lg">{word.zh}</span>
+                <span className="text-xs text-cyan-300/80 italic">{word.pinyin}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+
+        <button
+          type="button"
+          onClick={onStart}
+          className="animate-confirm-glow w-full py-3 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-black font-display font-semibold transition-colors"
+        >
+          Start Scenario
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function ScenariosPage({ country = 'China', onBack, onScenarioStart }) {
   return (
     <div className="relative w-screen h-screen bg-[#05060a] text-white font-sans">
       <p>
         {country} scenarios coming soon for {onBack ? 'this traveler' : 'everyone'}.
-        {onScenarioStart ? '' : ''}
       </p>
       <span hidden>
         <BackIcon />
@@ -264,6 +314,7 @@ export default function ScenariosPage({ country = 'China', onBack, onScenarioSta
         index={1}
         onClick={() => {}}
       />
+      <LessonModal scenario={CHINA_SCENARIOS[0]} onClose={() => {}} onStart={() => onScenarioStart?.(CHINA_SCENARIOS[0])} />
     </div>
   )
 }
