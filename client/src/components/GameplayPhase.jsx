@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import MicrophoneRecorder from './MicrophoneRecorder';
 import { authFetch } from '../api';
+import { getTheme } from '../dynamicTheme';
 
-export default function GameplayPhase({ scenario, targetWords, langCode, onEndScenario }) {
+export default function GameplayPhase({ scenario, targetWords, langCode, country, onEndScenario }) {
   const [state, setState] = useState('generating'); // generating, npc_turn, user_turn, evaluating, feedback, scenario_complete
   const [npcLine, setNpcLine] = useState(null);
   const [userResponse, setUserResponse] = useState('');
@@ -10,6 +11,7 @@ export default function GameplayPhase({ scenario, targetWords, langCode, onEndSc
   const [previousTurns, setPreviousTurns] = useState([]);
   const [turnsCompleted, setTurnsCompleted] = useState(0);
   const TOTAL_TURNS = 4;
+  const theme = getTheme(country);
 
   useEffect(() => {
     if (state !== 'generating') return undefined;
@@ -104,24 +106,24 @@ export default function GameplayPhase({ scenario, targetWords, langCode, onEndSc
   };
 
   return (
-    <div className="flex flex-col h-full w-full max-w-lg mx-auto py-8 px-4 animate-fade-in-up">
+    <div className={`flex flex-col h-full w-full max-w-lg mx-auto py-8 px-4 animate-fade-in-up ${theme.bgApp} ${theme.textPrimary}`}>
       {/* Header */}
       <div className="flex flex-col mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display font-extrabold text-2xl text-white flex items-center gap-2">
+          <h2 className={`${theme.font} font-extrabold text-2xl ${theme.textPrimary} flex items-center gap-2`}>
             <span>{scenario.icon}</span> {scenario.title}
           </h2>
           <div className="flex items-center gap-2">
             <button
               onClick={handleDevSkip}
               title="Dev Skip Turn"
-              className="flex h-[46px] w-[46px] items-center justify-center rounded-2xl border-2 border-[#37464F] bg-[#1F2937] text-gray-400 transition-all hover:border-[#1CB0F6] hover:bg-[#28323c] hover:text-[#1CB0F6]"
+              className={`flex h-[46px] w-[46px] items-center justify-center rounded-2xl border-2 ${theme.border} ${theme.bgPanel} ${theme.textSecondary} transition-all hover:${theme.borderAccent} hover:bg-black/20 hover:${theme.textAccent}`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
             </button>
             <button
               onClick={() => onEndScenario()}
-              className="flex h-[46px] items-center justify-center rounded-2xl border-2 border-[#37464F] bg-[#1F2937] px-4 font-display text-sm font-extrabold uppercase tracking-widest text-gray-400 transition-all hover:bg-[#28323c] hover:text-white shadow-md"
+              className={`flex h-[46px] items-center justify-center rounded-2xl border-2 ${theme.border} ${theme.bgPanel} px-4 ${theme.font} text-sm font-extrabold uppercase tracking-widest ${theme.textSecondary} transition-all hover:bg-black/20 hover:${theme.textPrimary} shadow-md`}
             >
               Quit
             </button>
@@ -129,9 +131,9 @@ export default function GameplayPhase({ scenario, targetWords, langCode, onEndSc
         </div>
 
         {/* Progress Bar */}
-        <div className="w-full h-3 bg-[#1F2937] rounded-full overflow-hidden border-2 border-[#37464F]">
+        <div className={`w-full h-3 ${theme.bgPanel} rounded-full overflow-hidden border-2 ${theme.border}`}>
           <div
-            className="h-full bg-[#40DF01] transition-all duration-500 ease-out"
+            className={`h-full ${theme.bgAccent} transition-all duration-500 ease-out`}
             style={{ width: `${(turnsCompleted / TOTAL_TURNS) * 100}%` }}
           />
         </div>
@@ -141,7 +143,7 @@ export default function GameplayPhase({ scenario, targetWords, langCode, onEndSc
       {state !== 'scenario_complete' && (
         <div className="flex gap-2 mb-8 flex-wrap">
           {targetWords.map(w => (
-            <div key={w.en} className={`px-3 py-1 rounded-lg text-xs font-bold border-2 ${feedback?.status === 'passed' && feedback.usedWord === w.expression ? 'bg-[#40DF01]/20 border-[#40DF01] text-[#40DF01]' : 'bg-[#1F2937] border-[#37464F] text-gray-400'}`}>
+            <div key={w.en} className={`px-3 py-1 rounded-lg text-xs font-bold border-2 ${feedback?.status === 'passed' && feedback.usedWord === w.expression ? `${theme.bgAccentMuted} ${theme.borderAccent} ${theme.textAccent}` : `${theme.bgPanel} ${theme.border} ${theme.textSecondary}`}`}>
               {w.zh}
             </div>
           ))}
@@ -155,19 +157,19 @@ export default function GameplayPhase({ scenario, targetWords, langCode, onEndSc
           {/* NPC Bubble */}
           {(state === 'npc_turn' || state === 'user_turn' || state === 'evaluating' || state === 'feedback') && npcLine && (
             <div className="flex gap-4 self-start max-w-[85%]">
-              <div className="w-10 h-10 rounded-full bg-[#1CB0F6]/20 flex items-center justify-center shrink-0">
+              <div className={`w-10 h-10 rounded-full ${theme.bgAccentFaded} flex items-center justify-center shrink-0`}>
                 <span className="text-xl">👤</span>
               </div>
-              <div className="bg-[#1F2937] border-2 border-[#37464F] rounded-2xl rounded-tl-sm p-4 pr-12 relative flex flex-col gap-1 shadow-md">
+              <div className={`${theme.bgPanel} border-2 ${theme.border} rounded-2xl rounded-tl-sm p-4 pr-12 relative flex flex-col gap-1 shadow-md`}>
                 <button
                   onClick={playNpcAudio}
-                  className="absolute right-3 top-3 w-8 h-8 bg-[#1CB0F6] rounded-full flex items-center justify-center text-white shadow-md hover:bg-[#1899D6] active:scale-95 cursor-pointer z-10"
+                  className={`absolute right-3 top-3 w-8 h-8 ${theme.bgAccent} rounded-full flex items-center justify-center ${theme.textPrimary} shadow-md ${theme.bgAccentHover} active:scale-95 cursor-pointer z-10`}
                 >
                   <svg className="w-4 h-4 ml-0.5 pointer-events-none" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" /></svg>
                 </button>
-                <span className="font-display font-extrabold text-2xl text-white">{npcLine.zh}</span>
-                <span className="font-bold text-[#1CB0F6] text-sm">{npcLine.pinyin}</span>
-                <span className="text-gray-400 font-medium mt-1">{npcLine.en}</span>
+                <span className={`${theme.font} font-extrabold text-2xl ${theme.textPrimary}`}>{npcLine.zh}</span>
+                <span className={`font-bold ${theme.textAccent} text-sm`}>{npcLine.pinyin}</span>
+                <span className={`${theme.textSecondary} font-medium mt-1`}>{npcLine.en}</span>
               </div>
             </div>
           )}
@@ -175,13 +177,13 @@ export default function GameplayPhase({ scenario, targetWords, langCode, onEndSc
           {/* Loading Generator */}
           {state === 'generating' && (
             <div className="flex gap-4 self-start max-w-[85%]">
-              <div className="w-10 h-10 rounded-full bg-[#1CB0F6]/20 flex items-center justify-center shrink-0">
+              <div className={`w-10 h-10 rounded-full ${theme.bgAccentFaded} flex items-center justify-center shrink-0`}>
                 <span className="text-xl">👤</span>
               </div>
-              <div className="bg-[#1F2937] border-2 border-[#37464F] rounded-2xl rounded-tl-sm p-4 flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-gray-500 animate-bounce"></div>
-                <div className="w-2 h-2 rounded-full bg-gray-500 animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                <div className="w-2 h-2 rounded-full bg-gray-500 animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+              <div className={`${theme.bgPanel} border-2 ${theme.border} rounded-2xl rounded-tl-sm p-4 flex items-center gap-2`}>
+                <div className={`w-2 h-2 rounded-full ${theme.bgAccent} animate-bounce`}></div>
+                <div className={`w-2 h-2 rounded-full ${theme.bgAccent} animate-bounce`} style={{ animationDelay: '0.2s' }}></div>
+                <div className={`w-2 h-2 rounded-full ${theme.bgAccent} animate-bounce`} style={{ animationDelay: '0.4s' }}></div>
               </div>
             </div>
           )}
@@ -189,31 +191,31 @@ export default function GameplayPhase({ scenario, targetWords, langCode, onEndSc
           {/* User Bubble (When transcript exists) */}
           {(state === 'evaluating' || state === 'feedback') && userResponse && (
             <div className="flex gap-4 self-end max-w-[85%] flex-row-reverse mt-2">
-              <div className="bg-[#40DF01] rounded-2xl rounded-tr-sm p-4 text-white shadow-md">
-                <span className="font-display font-bold text-xl">{userResponse}</span>
+              <div className={`${theme.bgAccent} rounded-2xl rounded-tr-sm p-4 ${theme.textPrimary} shadow-md`}>
+                <span className={`${theme.font} font-bold text-xl`}>{userResponse}</span>
               </div>
             </div>
           )}
 
           {state === 'evaluating' && (
-            <div className="text-center text-sm font-bold text-gray-400 animate-pulse mt-4">
+            <div className={`text-center text-sm font-bold ${theme.textSecondary} animate-pulse mt-4`}>
               Evaluating response...
             </div>
           )}
 
           {/* Feedback Banner */}
           {state === 'feedback' && feedback && (
-            <div className={`mt-4 p-5 rounded-2xl border-2 \${feedback.status === 'passed' ? 'bg-[#40DF01]/10 border-[#40DF01]' : 'bg-[#FF4B4B]/10 border-[#FF4B4B]'}`}>
-              <h3 className={`font-display font-extrabold text-xl mb-2 \${feedback.status === 'passed' ? 'text-[#40DF01]' : 'text-[#FF4B4B]'}`}>
+            <div className={`mt-4 p-5 rounded-2xl border-2 \${feedback.status === 'passed' ? \`\${theme.bgAccentMuted} \${theme.borderAccent}\` : 'bg-[#FF4B4B]/10 border-[#FF4B4B]'}`}>
+              <h3 className={`\${theme.font} font-extrabold text-xl mb-2 \${feedback.status === 'passed' ? theme.textAccent : 'text-[#FF4B4B]'}`}>
                 {feedback.status === 'passed' ? 'Excellent!' : 'Not quite right'}
               </h3>
-              <p className="text-gray-300 font-medium">{feedback.feedback}</p>
+              <p className={`${theme.textPrimary} opacity-90 font-medium`}>{feedback.feedback}</p>
               {feedback.status === 'passed' && feedback.usedWord && (
-                <p className="mt-2 text-sm text-[#40DF01] font-bold">✓ FSRS updated for "{feedback.usedWord}"</p>
+                <p className={`mt-2 text-sm ${theme.textAccent} font-bold`}>✓ FSRS updated for "{feedback.usedWord}"</p>
               )}
               <button
                 onClick={handleNextTurn}
-                className={`mt-4 w-full py-3 rounded-xl font-display font-extrabold uppercase tracking-widest text-white transition-colors \${feedback.status === 'passed' ? 'bg-[#40DF01] hover:bg-[#61D908]' : 'bg-[#FF4B4B] hover:bg-[#FF5555]'}`}
+                className={`mt-4 w-full py-3 rounded-xl \${theme.font} font-extrabold uppercase tracking-widest \${theme.textPrimary} transition-colors \${feedback.status === 'passed' ? \`\${theme.bgAccent} \${theme.bgAccentHover}\` : 'bg-[#FF4B4B] hover:bg-[#FF5555]'}`}
               >
                 {feedback.status === 'passed' ? 'Continue Scenario' : 'Try Again'}
               </button>
@@ -226,7 +228,7 @@ export default function GameplayPhase({ scenario, targetWords, langCode, onEndSc
       {state === 'npc_turn' && (
         <button
           onClick={() => setState('user_turn')}
-          className="w-full py-4 rounded-2xl bg-[#1CB0F6] hover:bg-[#1899D6] border-2 border-[#1899D6] border-b-4 active:border-b-2 active:translate-y-0.5 transition-all text-white font-display font-extrabold uppercase tracking-wide text-lg"
+          className={`w-full py-4 rounded-2xl ${theme.bgAccent} ${theme.bgAccentHover} border-2 ${theme.borderAccent} border-b-4 active:border-b-2 active:translate-y-0.5 transition-all ${theme.textPrimary} ${theme.font} font-extrabold uppercase tracking-wide text-lg`}
         >
           Tap to Reply
         </button>
@@ -239,14 +241,14 @@ export default function GameplayPhase({ scenario, targetWords, langCode, onEndSc
       {/* Win Screen */}
       {state === 'scenario_complete' && (
         <div className="flex-1 flex flex-col items-center justify-center animate-fade-in-up text-center">
-          <div className="w-24 h-24 bg-[#FFC800]/20 rounded-full flex items-center justify-center text-6xl mb-6 shadow-[0_0_40px_rgba(255,200,0,0.4)]">
+          <div className={`w-24 h-24 ${theme.bgAccentMuted} rounded-full flex items-center justify-center text-6xl mb-6 ${theme.shadowGlow}`}>
             🏆
           </div>
-          <h2 className="font-display font-extrabold text-3xl text-white mb-2">Scenario Complete!</h2>
-          <p className="text-gray-400 font-medium mb-8">You successfully mastered 4 new words in conversation.</p>
+          <h2 className={`${theme.font} font-extrabold text-3xl ${theme.textPrimary} mb-2`}>Scenario Complete!</h2>
+          <p className={`${theme.textSecondary} font-medium mb-8`}>You successfully mastered 4 new words in conversation.</p>
           <button
             onClick={() => onEndScenario({ completed: true, id: scenario.id })}
-            className="w-full py-4 rounded-2xl bg-[#40DF01] hover:bg-[#61D908] border-2 border-[#46A302] border-b-4 active:border-b-2 active:translate-y-0.5 transition-all text-white font-display font-extrabold uppercase tracking-wide text-lg"
+            className={`w-full py-4 rounded-2xl ${theme.bgAccent} ${theme.bgAccentHover} border-2 ${theme.borderAccent} border-b-4 active:border-b-2 active:translate-y-0.5 transition-all ${theme.textPrimary} ${theme.font} font-extrabold uppercase tracking-wide text-lg`}
           >
             Return to Map
           </button>

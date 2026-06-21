@@ -18,6 +18,22 @@ body {
   font-family: 'Space Grotesk', 'Outfit', system-ui, sans-serif;
 }
 
+.font-spy {
+  font-family: 'Share Tech Mono', 'Space Grotesk', monospace;
+}
+
+.font-bollywood {
+  font-family: 'Playfair Display', serif;
+}
+
+.font-thief {
+  font-family: 'Cormorant Garamond', serif;
+}
+
+.font-treasure {
+  font-family: 'Eczar', serif;
+}
+
 @keyframes modal-pop-in {
   0% {
     opacity: 0;

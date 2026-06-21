@@ -111,6 +111,7 @@ function App() {
       <ScenarioRunner
         scenario={activeScenario}
         langCode={langCode}
+        country={selectedCountry}
         onEndScenario={async (result) => {
           if (result?.completed && result?.id && !profile.completedScenarios.includes(result.id) && selectedCountry) {
             await profile.completeScenario(selectedCountry.toLowerCase(), result.id)
@@ -151,7 +152,7 @@ function App() {
         scenarios={scenariosByCountry[selectedCountry] ?? []}
         specialScenario={specialScenarioByCountry[selectedCountry] ?? null}
         onBack={() => setSelectedCountry(null)}
-        onScenarioStart={(scenario) => setActiveScenario(scenario)}
+        onScenarioStart={(scenario, targetWords) => setActiveScenario({ ...scenario, targetWords })}
       />
     )
   }
