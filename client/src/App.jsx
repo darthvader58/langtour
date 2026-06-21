@@ -1,10 +1,22 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import LandingPage from './LandingPage'
 import ScenariosPage from './ScenariosPage'
+import VoiceTestPage from './pages/VoiceTestPage'
 
 function App() {
   const [selectedCountry, setSelectedCountry] = useState(null)
   const [activeScenario, setActiveScenario] = useState(null)
+  const [hash, setHash] = useState(window.location.hash)
+
+  useEffect(() => {
+    const onHashChange = () => setHash(window.location.hash);
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
+
+  if (hash === '#test') {
+    return <VoiceTestPage />
+  }
 
   if (activeScenario) {
     return (
