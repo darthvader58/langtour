@@ -17,6 +17,9 @@
   "author": "",
   "license": "ISC",
   "type": "commonjs",
+  "engines": {
+    "node": ">=22.12"
+  },
   "bugs": {
     "url": "https://github.com/darthvader58/langtour/issues"
   },
