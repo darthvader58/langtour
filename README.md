@@ -48,8 +48,19 @@ Run `supabase db push` if this project is linked with the Supabase CLI. Otherwis
 
 1. `supabase/migrations/20260620000000_user_profiles.sql`
 2. `supabase/migrations/20260621000000_progression.sql`
+3. `supabase/migrations/20260622000000_backend_data.sql`
 
-This creates user profiles with a starting balance of 100 tokens, automatic login history, persisted scenario completion, and seeded levels/ranks. Row-level security ensures users can only read their own records. Token spending, XP awards, rank updates, and country rewards use database functions so they remain atomic and cannot be claimed repeatedly.
+This creates user profiles with a starting balance of 100 tokens, automatic login history, persisted scenario completion, seeded levels/ranks, vocabulary/FSRS storage, embeddings, and the country/scenario catalog. Row-level security keeps backend data server-only. Token spending and unlocks use atomic database functions.
+
+Add `SUPABASE_SERVICE_ROLE_KEY` to the root `.env`. Find it in **Supabase Dashboard → Project Settings → API Keys**. This key is server-only: never prefix it with `NEXT_PUBLIC_`, place it in `client/`, or commit it.
+
+To copy an existing local SQLite database into Supabase once, run:
+
+```bash
+npm run migrate:sqlite --prefix node
+```
+
+After migration, the runtime reads and writes Supabase only; SQLite is retained solely as the source for this optional one-time import.
 
 ### 4. Enable Google sign-in
 
