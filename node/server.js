@@ -3,6 +3,7 @@ import cors from 'cors';
 import { PORT } from './lib/config.js';
 import { mountVoiceRoutes } from './routes/voice.js';
 import { mountScenarioRoutes } from './routes/scenario.js';
+import { mountProfileRoutes } from './routes/profile.js';
 import { getCatalog, initializeDatabase } from './lib/db/db.js';
 
 const app = express();
@@ -18,6 +19,7 @@ async function startServer() {
 
   mountVoiceRoutes(app, httpServer);
   mountScenarioRoutes(app);
+  mountProfileRoutes(app);
 
   app.get('/api/catalog', async (req, res) => {
     try {
