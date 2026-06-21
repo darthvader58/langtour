@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import { useProfile } from './hooks/useProfile'
 import AuthModal from './components/AuthModal'
+import { CHINA, COUNTRIES, UNLOCK_COST } from './gameData'
 
 const EARTH_TEXTURE_URL =
   'https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg'
@@ -10,19 +10,6 @@ const CLOUDS_TEXTURE_URL =
   'https://threejs.org/examples/textures/planets/earth_clouds_1024.png'
 const SPECULAR_TEXTURE_URL =
   'https://threejs.org/examples/textures/planets/earth_specular_2048.jpg'
-
-const CHINA = { name: 'China', flag: '\u{1F1E8}\u{1F1F3}', lat: 35.8617, lng: 104.1954, unlocked: true }
-
-const COUNTRIES = [
-  CHINA,
-  { name: 'Japan', flag: '\u{1F1EF}\u{1F1F5}', lat: 36.2048, lng: 138.2529, unlocked: false },
-  { name: 'France', flag: '\u{1F1EB}\u{1F1F7}', lat: 46.2276, lng: 2.2137, unlocked: false },
-  { name: 'Mexico', flag: '\u{1F1F2}\u{1F1FD}', lat: 23.6345, lng: -102.5528, unlocked: false },
-  { name: 'Egypt', flag: '\u{1F1EA}\u{1F1EC}', lat: 26.8206, lng: 30.8025, unlocked: false },
-  { name: 'Brazil', flag: '\u{1F1E7}\u{1F1F7}', lat: -14.235, lng: -51.9253, unlocked: false },
-]
-
-const UNLOCK_COST = 100
 const TRAVEL_DURATION_MS = 2200
 const DIVE_DURATION_MS = 750
 const GLOBE_RADIUS = 2
@@ -84,28 +71,6 @@ function createStarField() {
   return new THREE.Points(geometry, material)
 }
 
-function createNebulaField() {
-  const group = new THREE.Group()
-  const blobs = [
-    { color: 'rgba(99,102,241,0.55)', pos: [-55, 22, -95], scale: 120 },
-    { color: 'rgba(34,211,238,0.4)', pos: [62, -28, -115], scale: 140 },
-    { color: 'rgba(244,114,182,0.35)', pos: [-32, -48, -75], scale: 95 },
-  ]
-  blobs.forEach(({ color, pos, scale }) => {
-    const material = new THREE.SpriteMaterial({
-      map: createRadialTexture(color),
-      transparent: true,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending,
-    })
-    const sprite = new THREE.Sprite(material)
-    sprite.position.set(...pos)
-    sprite.scale.set(scale, scale, 1)
-    group.add(sprite)
-  })
-  return group
-}
-
 function createChinaMarker() {
   const group = new THREE.Group()
   const direction = latLngToDirection(CHINA.lat, CHINA.lng).normalize()
@@ -157,7 +122,7 @@ function LockIcon() {
 
 function CoinIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="w-6 h-6 pulse-glow-gold" fill="none">
+    <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none">
       <defs>
         <radialGradient id="coinGradient" cx="35%" cy="30%" r="70%">
           <stop offset="0%" stopColor="#fff6c8" />
@@ -174,17 +139,43 @@ function CoinIcon() {
   )
 }
 
-export default function LandingPage({ onCountrySelect }) {
+const HEAT_ZONE_COLORS = {
+  China:  [239,  68,  68],
+  Japan:  [139,  92, 246],
+  France: [ 59, 130, 246],
+  Mexico: [249, 115,  22],
+  Egypt:  [250, 204,  21],
+  Brazil: [ 34, 197,  94],
+}
+
+export default function LandingPage({
+  tokens,
+  unlockedCountries,
+  glowCountry,
+  progressByCountry = {},
+  level,
+  rank,
+  auth,
+  onUnlockCountry,
+  onCountrySelect,
+}) {
   const mountRef = useRef(null)
   const triggerTravelRef = useRef(() => {})
   const onCountrySelectRef = useRef(onCountrySelect)
   const onChinaMarkerClickRef = useRef(() => {})
+  const heatZoneSpritesRef = useRef({})
+  const heatZonePropsRef   = useRef({})
 
   const triggerDiveRef = useRef(() => {})
 
+  const [pendingCountry, setPendingCountry] = useState(null)
+  const [isTraveling, setIsTraveling] = useState(false)
+  const [travelLabel, setTravelLabel] = useState('')
+  const [showFlash, setShowFlash] = useState(false)
+  const [showAuth, setShowAuth] = useState(false)
+
   const {
     user,
-    tokens,
     authLoading,
     authError,
     authMessage,
@@ -192,26 +183,58 @@ export default function LandingPage({ onCountrySelect }) {
     signInWithEmail,
     signUpWithEmail,
     signOut,
-    spendTokens,
-  } = useProfile()
-  const [showAuth, setShowAuth] = useState(false)
-  const [pendingCountry, setPendingCountry] = useState(null)
-  const [isTraveling, setIsTraveling] = useState(false)
-  const [travelLabel, setTravelLabel] = useState('')
-  const [showFlash, setShowFlash] = useState(false)
+  } = auth
+
+  const countries = COUNTRIES.map((country) => ({
+    ...country,
+    unlocked: unlockedCountries.includes(country.name),
+  }))
 
   useEffect(() => {
     onCountrySelectRef.current = onCountrySelect
   }, [onCountrySelect])
 
+  function runTravelSequence(country) {
+    setIsTraveling(true)
+    setTravelLabel(`Flying to ${country.name}…`)
+    triggerTravelRef.current(country.lat, country.lng, () => {
+      setTravelLabel('Arriving…')
+      triggerDiveRef.current(() => {
+        setShowFlash(true)
+        window.setTimeout(() => {
+          onCountrySelectRef.current?.(country.name)
+        }, 500)
+      })
+    })
+  }
+
   function handleSelectCountry(country) {
-    if (!country.unlocked || isTraveling || tokens < UNLOCK_COST) return
+    if (isTraveling) return
+    if (country.unlocked) {
+      runTravelSequence(country)
+      return
+    }
+    if (tokens < UNLOCK_COST) return
     setPendingCountry(country)
   }
 
   useEffect(() => {
-    onChinaMarkerClickRef.current = () => handleSelectCountry(CHINA)
+    onChinaMarkerClickRef.current = () =>
+      handleSelectCountry({ ...CHINA, unlocked: unlockedCountries.includes(CHINA.name) })
   })
+
+  // Keep heat zone proficiency data current without recreating the Three.js scene
+  useEffect(() => {
+    const props = {}
+    COUNTRIES.forEach((country) => {
+      const prog = progressByCountry[country.name]
+      const proficiency = prog?.length
+        ? prog.reduce((s, p) => s + p, 0) / (prog.length * 100)
+        : 0
+      props[country.name] = { proficiency }
+    })
+    heatZonePropsRef.current = props
+  }, [progressByCountry])
 
   useEffect(() => {
     const mount = mountRef.current
@@ -239,7 +262,6 @@ export default function LandingPage({ onCountrySelect }) {
 
     const deepSpace = new THREE.Group()
     deepSpace.add(createStarField())
-    deepSpace.add(createNebulaField())
     scene.add(deepSpace)
 
     const ambientLight = new THREE.AmbientLight(0x3b4a6b, 1.4)
@@ -323,6 +345,22 @@ export default function LandingPage({ onCountrySelect }) {
 
     const { group: chinaMarkerGroup, hitMesh, dot, rings } = createChinaMarker()
     planetGroup.add(chinaMarkerGroup)
+
+    // Heat zone glow sprites for all countries
+    COUNTRIES.forEach((country) => {
+      const [r, g, b] = HEAT_ZONE_COLORS[country.name] ?? [255, 100, 0]
+      const tex = createRadialTexture(`rgba(${r},${g},${b},0.9)`)
+      const mat = new THREE.SpriteMaterial({
+        map: tex, transparent: true, opacity: 0,
+        depthWrite: false, blending: THREE.AdditiveBlending,
+      })
+      const sprite = new THREE.Sprite(mat)
+      const dir = latLngToDirection(country.lat, country.lng).normalize()
+      sprite.position.copy(dir.clone().multiplyScalar(GLOBE_RADIUS * 1.01))
+      sprite.scale.set(0.9, 0.9, 1)
+      planetGroup.add(sprite)
+      heatZoneSpritesRef.current[country.name] = sprite
+    })
 
     const raycaster = new THREE.Raycaster()
     const pointerNdc = new THREE.Vector2()
@@ -456,6 +494,18 @@ export default function LandingPage({ onCountrySelect }) {
         ring.material.opacity = (1 - phase) * (hovered ? 0.85 : 0.45)
       })
 
+      // Animate heat zone glows
+      Object.entries(heatZoneSpritesRef.current).forEach(([name, sprite], i) => {
+        const props = heatZonePropsRef.current[name]
+        if (!props) return
+        const p = props.proficiency
+        const targetOpacity = p <= 0 ? 0 : 0.18 + p * 0.55
+        const pulse = Math.sin(t * 1.6 + i * 1.05) * 0.06 * p
+        sprite.material.opacity += (targetOpacity - sprite.material.opacity) * 0.04
+        const targetScale = 0.7 + p * 0.8 + pulse
+        sprite.scale.setScalar(targetScale)
+      })
+
       if (travel) stepTravel(performance.now())
       if (dive) stepDive(performance.now())
       if (!travel && !dive) controls.update()
@@ -484,20 +534,10 @@ export default function LandingPage({ onCountrySelect }) {
   async function handleConfirmUnlock() {
     const country = pendingCountry
     if (!country) return
-    const spent = await spendTokens(UNLOCK_COST)
-    if (!spent) return
+    const unlocked = await onUnlockCountry?.(country)
+    if (!unlocked) return
     setPendingCountry(null)
-    setIsTraveling(true)
-    setTravelLabel(`Flying to ${country.name}…`)
-    triggerTravelRef.current(country.lat, country.lng, () => {
-      setTravelLabel('Arriving…')
-      triggerDiveRef.current(() => {
-        setShowFlash(true)
-        window.setTimeout(() => {
-          onCountrySelectRef.current?.(country.name)
-        }, 500)
-      })
-    })
+    runTravelSequence(country)
   }
 
   return (
@@ -508,50 +548,43 @@ export default function LandingPage({ onCountrySelect }) {
 
       <header className="absolute top-0 left-0 right-0 flex items-center justify-between p-6 pointer-events-none">
         <div className="pointer-events-auto">
-          <h1 className="font-display text-3xl font-bold tracking-wide text-gradient-animated drop-shadow-lg">
-            Langtour
+          <h1 className="font-display text-3xl font-extrabold tracking-wide drop-shadow-md">
+            <span className="text-white">Lang</span>
+            <span className="text-[#58CC02]">tour</span>
           </h1>
-          <p className="text-xs text-white/50 tracking-[0.2em] uppercase">
+          <p className="text-xs text-white/60 font-bold tracking-[0.2em] uppercase">
             Speak the world
           </p>
         </div>
 
         <div className="pointer-events-auto flex items-center gap-3">
+          {(level || rank) && (
+            <div className="hidden sm:block text-right">
+              <p className="font-display text-sm font-extrabold text-white">Level {level?.display_order ?? 1}</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[#58CC02]">{rank?.name ?? 'Rookie'}</p>
+            </div>
+          )}
           <div className="flex items-center gap-2.5 rounded-full bg-gradient-to-br from-white/10 to-white/[0.03] border border-yellow-300/20 backdrop-blur-xl px-5 py-2.5 shadow-[0_0_25px_-5px_rgba(250,204,21,0.4)]">
             <CoinIcon />
-            <span className="font-display text-xl font-bold tabular-nums text-yellow-200">
-              {tokens}
-            </span>
-            <span className="text-[10px] text-white/45 uppercase tracking-widest">
-              tokens
-            </span>
+            <span className="font-display text-xl font-bold tabular-nums text-yellow-200">{tokens}</span>
+            <span className="text-[10px] text-white/45 uppercase tracking-widest">tokens</span>
           </div>
-
           {user ? (
             <button
               type="button"
-              onClick={() => {
-                setShowAuth(false)
-                signOut()
-              }}
+              onClick={signOut}
               disabled={authLoading}
               title={`Signed in as ${user.email}. Click to sign out.`}
-              className="flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.08] px-3 py-2 text-sm backdrop-blur-xl transition-colors hover:bg-white/[0.14] disabled:opacity-50"
+              className="rounded-full border-2 border-[#37464F] bg-[#1F2937] px-4 py-2.5 text-sm font-extrabold text-white hover:bg-[#28323c] disabled:opacity-50"
             >
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-cyan-300 font-semibold text-black">
-                {(user.user_metadata?.full_name || user.email || '?').charAt(0).toUpperCase()}
-              </span>
-              <span className="max-w-32 truncate">
-                {user.user_metadata?.full_name || user.email}
-              </span>
-              <span className="text-xs text-white/45">Sign out</span>
+              Sign out
             </button>
           ) : (
             <button
               type="button"
               onClick={() => setShowAuth(true)}
               disabled={authLoading}
-              className="rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-slate-900 shadow-lg transition-colors hover:bg-slate-100 disabled:cursor-wait disabled:opacity-60"
+              className="rounded-full bg-white px-5 py-2.5 text-sm font-extrabold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
             >
               {authLoading ? 'Connecting…' : 'Sign in'}
             </button>
@@ -577,37 +610,44 @@ export default function LandingPage({ onCountrySelect }) {
         />
       )}
 
-      <aside className="absolute top-1/2 left-6 -translate-y-1/2 w-64 rounded-2xl bg-white/[0.06] border border-white/15 backdrop-blur-2xl shadow-[0_8px_40px_rgba(0,0,0,0.5)] p-4 pointer-events-auto">
-        <h2 className="font-display text-sm uppercase tracking-widest text-white/50 mb-3 px-1">
+      <aside className="absolute top-1/2 left-6 -translate-y-1/2 w-64 rounded-3xl bg-[#1F2937] border-2 border-[#37464F] p-4 pointer-events-auto shadow-xl">
+        <h2 className="font-display text-sm font-extrabold uppercase tracking-widest text-gray-400 mb-3 px-1">
           Choose a Country
         </h2>
-        <ul className="flex flex-col gap-1.5">
-          {COUNTRIES.map((country) => (
+        <ul className="flex flex-col gap-2">
+          {countries.map((country) => (
             <li key={country.name}>
               <button
                 type="button"
-                disabled={!country.unlocked || isTraveling}
+                disabled={isTraveling || (!country.unlocked && tokens < UNLOCK_COST)}
                 onClick={() => handleSelectCountry(country)}
-                title={country.unlocked ? `Unlock ${country.name}` : 'Coming soon'}
+                title={
+                  country.unlocked
+                    ? `Travel to ${country.name}`
+                    : tokens >= UNLOCK_COST
+                      ? `Unlock ${country.name}`
+                      : 'Not enough tokens'
+                }
                 className={
-                  'w-full flex items-center justify-between rounded-xl px-3 py-2.5 text-left transition-all duration-200 border ' +
+                  'w-full flex items-center justify-between rounded-2xl px-3 py-2.5 text-left transition-all duration-150 border-2 ' +
                   (country.unlocked
-                    ? 'bg-emerald-400/10 hover:bg-emerald-400/20 hover:scale-[1.03] cursor-pointer text-white border-emerald-300/40 pulse-glow-green'
-                    : 'bg-red-500/[0.06] text-white/35 cursor-not-allowed border-red-500/15')
+                    ? 'bg-[#58CC02] hover:bg-[#61D908] active:translate-y-0.5 cursor-pointer text-white font-extrabold border-[#46A302] border-b-4 active:border-b-2' +
+                      (glowCountry === country.name ? ' animate-country-glow' : '')
+                    : 'bg-[#1F2937] text-gray-600 cursor-not-allowed border-[#37464F]')
                 }
               >
                 <span className="flex items-center gap-2.5">
-                  <span className={'text-xl transition-opacity' + (country.unlocked ? '' : ' opacity-40 grayscale')}>
+                  <span className={'text-xl transition-opacity' + (country.unlocked ? '' : ' opacity-50 grayscale')}>
                     {country.flag}
                   </span>
-                  <span className="font-medium">{country.name}</span>
+                  <span className="font-display font-extrabold">{country.name}</span>
                 </span>
                 {country.unlocked ? (
-                  <span className="text-[10px] uppercase tracking-wide text-emerald-300 font-semibold">
+                  <span className="text-[10px] uppercase tracking-wide text-white/80 font-extrabold">
                     Unlocked
                   </span>
                 ) : (
-                  <span className="text-red-400/70">
+                  <span className="text-gray-600">
                     <LockIcon />
                   </span>
                 )}
@@ -618,34 +658,33 @@ export default function LandingPage({ onCountrySelect }) {
       </aside>
 
       {isTraveling && !showFlash && (
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 px-5 py-2 rounded-full bg-white/10 border border-white/15 backdrop-blur-md text-sm tracking-wide font-display animate-pulse pointer-events-none">
+        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 px-5 py-2 rounded-full bg-[#1F2937] border-2 border-[#37464F] shadow-md text-sm font-extrabold tracking-wide font-display text-white animate-pulse pointer-events-none">
           {travelLabel}
         </div>
       )}
 
       {pendingCountry && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-md pointer-events-auto animate-overlay-fade">
-          <div className="animate-modal-pop w-80 rounded-3xl bg-gradient-to-b from-white/10 to-white/[0.02] border border-white/15 backdrop-blur-2xl shadow-[0_20px_60px_rgba(0,0,0,0.6)] p-7 text-center">
-            <div className="text-4xl mb-3 drop-shadow-lg">{pendingCountry.flag}</div>
-            <h3 className="font-display text-xl font-semibold mb-2">
+        <div className="absolute inset-0 flex items-center justify-center bg-black/50 pointer-events-auto animate-overlay-fade">
+          <div className="animate-modal-pop w-80 rounded-3xl bg-[#1F2937] border-2 border-[#37464F] p-7 text-center shadow-2xl">
+            <div className="text-4xl mb-3">{pendingCountry.flag}</div>
+            <h3 className="font-display text-xl font-extrabold mb-2 text-white">
               Unlock {pendingCountry.name}?
             </h3>
-            <p className="text-sm text-white/60 mb-6">
-              This will cost{' '}
-              <span className="text-yellow-300 font-semibold">{UNLOCK_COST} tokens</span>.
+            <p className="text-sm text-gray-400 font-medium mb-6">
+              This will cost <span className="text-white font-extrabold">{UNLOCK_COST} tokens</span>.
             </p>
             <div className="flex gap-3">
               <button
                 type="button"
                 onClick={() => setPendingCountry(null)}
-                className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-colors font-medium"
+                className="flex-1 py-2.5 rounded-2xl bg-[#1F2937] hover:bg-[#28323c] border-2 border-[#37464F] border-b-4 active:border-b-2 active:translate-y-0.5 transition-all font-display font-extrabold uppercase tracking-wide text-gray-400"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleConfirmUnlock}
-                className="animate-confirm-glow flex-1 py-2.5 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-black font-semibold transition-colors"
+                className="flex-1 py-2.5 rounded-2xl bg-[#58CC02] hover:bg-[#61D908] border-2 border-[#46A302] border-b-4 active:border-b-2 active:translate-y-0.5 transition-all text-white font-display font-extrabold uppercase tracking-wide"
               >
                 Confirm
               </button>

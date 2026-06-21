@@ -7,6 +7,7 @@ export function useProfile() {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
   const [localTokens, setLocalTokens] = useState(STARTING_TOKENS)
+  const [completedScenarios, setCompletedScenarios] = useState([])
   const [authLoading, setAuthLoading] = useState(Boolean(supabase))
   const [authError, setAuthError] = useState('')
   const [authMessage, setAuthMessage] = useState('')
@@ -17,15 +18,30 @@ export function useProfile() {
       return
     }
 
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('user_id, tokens, experience_points, level_id, rank_id')
-      .eq('user_id', user.id)
-      .single()
+    const [{ data, error }, { data: completions, error: completionsError }] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select(`
+          user_id, tokens, experience_points, level_id, rank_id,
+          level:levels!profiles_level_id_fkey(id, code, name, minimum_xp, display_order),
+          rank:ranks!profiles_rank_id_fkey(id, code, name, minimum_xp, display_order)
+        `)
+        .eq('user_id', user.id)
+        .single(),
+      supabase
+        .from('scenario_completions')
+        .select('country_code, scenario_id')
+        .eq('user_id', user.id),
+    ])
 
     if (error) {
       console.error('Unable to load Supabase profile:', error.message)
       return
+    }
+    if (completionsError) {
+      console.error('Unable to load Supabase progression:', completionsError.message)
+    } else {
+      setCompletedScenarios(completions ?? [])
     }
     setProfile(data)
   }, [])
@@ -125,7 +141,7 @@ export function useProfile() {
   }, [])
 
   const spendTokens = useCallback(async (amount) => {
-    if (!supabase || !profile) {
+    if (!supabase || !user) {
       if (localTokens < amount) return false
       setLocalTokens((balance) => balance - amount)
       return true
@@ -139,12 +155,53 @@ export function useProfile() {
 
     setProfile((current) => ({ ...current, tokens: newBalance }))
     return true
-  }, [localTokens, profile])
+  }, [localTokens, user])
+
+  const completeScenario = useCallback(async (countryCode, scenarioId) => {
+    if (!supabase || !user) {
+      const completion = { country_code: countryCode.toLowerCase(), scenario_id: scenarioId }
+      setCompletedScenarios((current) => current.some((item) =>
+        item.country_code === completion.country_code && item.scenario_id === scenarioId
+      ) ? current : [...current, completion])
+      return true
+    }
+
+    const { error } = await supabase.rpc('record_scenario_completion', {
+      p_country_code: countryCode,
+      p_scenario_id: scenarioId,
+    })
+    if (error) {
+      console.error('Unable to save scenario completion:', error.message)
+      return false
+    }
+    await loadProfile(user)
+    return true
+  }, [loadProfile, user])
+
+  const claimCountryReward = useCallback(async (countryCode, localReward) => {
+    if (!supabase || !user) {
+      setLocalTokens((balance) => balance + localReward)
+      return true
+    }
+
+    const { data: newBalance, error } = await supabase.rpc('claim_country_reward', {
+      p_country_code: countryCode,
+    })
+    if (error) {
+      console.error('Unable to claim country reward:', error.message)
+      return false
+    }
+    setProfile((current) => ({ ...current, tokens: newBalance }))
+    return true
+  }, [user])
 
   return {
     user,
     profile,
+    completedScenarios,
     tokens: profile?.tokens ?? localTokens,
+    level: profile?.level ?? null,
+    rank: profile?.rank ?? null,
     authLoading,
     authError,
     authMessage,
@@ -153,5 +210,7 @@ export function useProfile() {
     signUpWithEmail,
     signOut,
     spendTokens,
+    completeScenario,
+    claimCountryReward,
   }
 }

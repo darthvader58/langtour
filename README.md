@@ -44,9 +44,12 @@ Copy `.env.example` to `.env.local` and add the URL and publishable key from you
 
 ### 3. Create the Supabase tables
 
-Run `supabase db push` if this project is linked with the Supabase CLI. Otherwise, paste `supabase/migrations/20260620000000_user_profiles.sql` into the Supabase SQL editor and run it once.
+Run `supabase db push` if this project is linked with the Supabase CLI. Otherwise, run these files in the Supabase SQL editor in order:
 
-This creates user profiles with a starting balance of 100 tokens, automatic login history, and empty level/rank catalogs ready for future progression data. Row-level security ensures users can only read their own profile and login records. Token spending uses the `spend_tokens` database function so balances cannot go below zero.
+1. `supabase/migrations/20260620000000_user_profiles.sql`
+2. `supabase/migrations/20260621000000_progression.sql`
+
+This creates user profiles with a starting balance of 100 tokens, automatic login history, persisted scenario completion, and seeded levels/ranks. Row-level security ensures users can only read their own records. Token spending, XP awards, rank updates, and country rewards use database functions so they remain atomic and cannot be claimed repeatedly.
 
 ### 4. Enable Google sign-in
 
