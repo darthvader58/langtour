@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
-import { CHARACTERS, SCENARIOS_BY_COUNTRY, SPECIAL_SCENARIO_BY_COUNTRY, levelForCompleted } from './gameData'
+import { useState } from 'react'
+
+import { SCENARIOS_BY_COUNTRY, SPECIAL_SCENARIO_BY_COUNTRY } from './gameData'
 
 function LockIcon({ className = 'w-6 h-6' }) {
   return (
@@ -165,45 +166,14 @@ function LessonModal({ scenario, onClose, onStart }) {
   )
 }
 
-function CharacterBadge({ country, progress }) {
-  const character = CHARACTERS[country] ?? CHARACTERS.China
-  const completedCount = progress.filter((p) => p >= 100).length
-  const level = levelForCompleted(completedCount)
-  const prevLevelRef = useRef(level)
-  const [justLeveledUp, setJustLeveledUp] = useState(false)
-
-  useEffect(() => {
-    if (level > prevLevelRef.current) {
-      setJustLeveledUp(true)
-      const timeout = setTimeout(() => setJustLeveledUp(false), 700)
-      prevLevelRef.current = level
-      return () => clearTimeout(timeout)
-    }
-    prevLevelRef.current = level
-  }, [level])
-
-  return (
-    <div
-      className={
-        'flex items-center gap-2 rounded-full bg-[#1F2937] border-2 border-[#37464F] px-4 py-2.5 shadow-sm ' +
-        (justLeveledUp ? 'animate-level-up' : '')
-      }
-    >
-      <span className="text-xl">{character.icon}</span>
-      <span className="font-display text-sm font-extrabold text-white">
-        {character.type} <span className="text-[#58CC02]">Lv {level}</span>
-      </span>
-    </div>
-  )
-}
-
-export default function ScenariosPage({ country = 'China', flag, progress, onBack, onScenarioStart }) {
+export default function ScenariosPage({ country = 'China', flag = '', completedScenarios = [], onBack, onScenarioStart }) {
+  const scenarios = SCENARIOS_BY_COUNTRY[country] || [];
+  const specialScenario = SPECIAL_SCENARIO_BY_COUNTRY[country];
+  const progress = scenarios.map(sc => completedScenarios.includes(sc.id) ? 100 : 0)
   const [activeScenario, setActiveScenario] = useState(null)
 
-  const scenarios = SCENARIOS_BY_COUNTRY[country] ?? []
-  const specialScenario = SPECIAL_SCENARIO_BY_COUNTRY[country]
-  const hasScenarios = scenarios.length > 0
-  const allCompleted = hasScenarios && progress.every((p) => p >= 100)
+  const allCompleted = progress.every((p) => p >= 100)
+  const completedCount = progress.filter((p) => p >= 100).length
 
   function isUnlocked(index) {
     return index === 0 || progress[index - 1] >= 100
@@ -234,51 +204,48 @@ export default function ScenariosPage({ country = 'China', flag, progress, onBac
         </button>
 
         <div className="flex items-center gap-3">
-          <span className="text-3xl">{flag}</span>
+          <span className="text-3xl">{flag || '\u{1F1E8}\u{1F1F3}'}</span>
           <div>
             <h1 className="font-display text-2xl font-extrabold text-white">{country}</h1>
             <p className="text-[11px] text-gray-400 font-bold uppercase tracking-[0.2em]">Choose a Scenario</p>
           </div>
         </div>
 
-        <CharacterBadge country={country} progress={progress} />
+        <div className="flex items-center gap-2 rounded-full bg-[#1F2937] border-2 border-[#37464F] px-5 py-2.5 shadow-sm">
+          <span className="font-display text-lg font-extrabold tabular-nums text-[#58CC02]">
+            {completedCount}/{scenarios.length}
+          </span>
+          <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">completed</span>
+        </div>
       </header>
 
       <main className="relative z-10 px-8 pb-16">
-        {hasScenarios ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-            {scenarios.map((scenario, index) => {
-              const unlocked = isUnlocked(index)
-              return (
-                <ScenarioCard
-                  key={scenario.id}
-                  scenario={scenario}
-                  index={index}
-                  unlocked={unlocked}
-                  progress={progress[index]}
-                  completed={progress[index] >= 100}
-                  onClick={() => handleCardClick(scenario, unlocked)}
-                />
-              )
-            })}
-            {specialScenario && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+          {scenarios.map((scenario, index) => {
+            const unlocked = isUnlocked(index)
+            return (
               <ScenarioCard
-                scenario={specialScenario}
-                index={scenarios.length}
-                unlocked={allCompleted}
-                progress={0}
-                completed={false}
-                onClick={() => handleCardClick(specialScenario, allCompleted)}
+                key={scenario.id}
+                scenario={scenario}
+                index={index}
+                unlocked={unlocked}
+                progress={progress[index]}
+                completed={progress[index] >= 100}
+                onClick={() => handleCardClick(scenario, unlocked)}
               />
-            )}
-          </div>
-        ) : (
-          <div className="max-w-md mx-auto text-center py-24">
-            <p className="text-sm text-gray-400 font-medium">
-              More scenarios for {country} are coming soon.
-            </p>
-          </div>
-        )}
+            )
+          })}
+          {specialScenario && (
+            <ScenarioCard
+              scenario={specialScenario}
+              index={scenarios.length}
+              unlocked={allCompleted}
+              progress={allCompleted ? 0 : 0}
+              completed={false}
+              onClick={() => handleCardClick(specialScenario, allCompleted)}
+            />
+          )}
+        </div>
       </main>
 
       {activeScenario && (

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import { CHINA, COUNTRIES, UNLOCK_COST } from './gameData'
+import { API } from './api'
 
 const EARTH_TEXTURE_URL =
   'https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg'
@@ -9,6 +9,19 @@ const CLOUDS_TEXTURE_URL =
   'https://threejs.org/examples/textures/planets/earth_clouds_1024.png'
 const SPECULAR_TEXTURE_URL =
   'https://threejs.org/examples/textures/planets/earth_specular_2048.jpg'
+
+const CHINA = { name: 'China', flag: '\u{1F1E8}\u{1F1F3}', lat: 35.8617, lng: 104.1954, unlocked: true }
+
+const COUNTRIES = [
+  CHINA,
+  { name: 'Japan', flag: '\u{1F1EF}\u{1F1F5}', lat: 36.2048, lng: 138.2529, unlocked: false },
+  { name: 'France', flag: '\u{1F1EB}\u{1F1F7}', lat: 46.2276, lng: 2.2137, unlocked: false },
+  { name: 'Mexico', flag: '\u{1F1F2}\u{1F1FD}', lat: 23.6345, lng: -102.5528, unlocked: false },
+  { name: 'Egypt', flag: '\u{1F1EA}\u{1F1EC}', lat: 26.8206, lng: 30.8025, unlocked: false },
+  { name: 'Brazil', flag: '\u{1F1E7}\u{1F1F7}', lat: -14.235, lng: -51.9253, unlocked: false },
+]
+
+const UNLOCK_COST = 100
 const TRAVEL_DURATION_MS = 2200
 const DIVE_DURATION_MS = 750
 const GLOBE_RADIUS = 2
@@ -138,13 +151,7 @@ function CoinIcon() {
   )
 }
 
-export default function LandingPage({
-  tokens,
-  unlockedCountries,
-  glowCountry,
-  onUnlockCountry,
-  onCountrySelect,
-}) {
+export default function LandingPage({ tokens, unlockedCountries = ["China"], glowCountry, onUnlockCountry, onCountrySelect }) {
   const mountRef = useRef(null)
   const triggerTravelRef = useRef(() => {})
   const onCountrySelectRef = useRef(onCountrySelect)
@@ -157,42 +164,33 @@ export default function LandingPage({
   const [travelLabel, setTravelLabel] = useState('')
   const [showFlash, setShowFlash] = useState(false)
 
-  const countries = COUNTRIES.map((country) => ({
-    ...country,
-    unlocked: unlockedCountries.includes(country.name),
-  }))
-
   useEffect(() => {
     onCountrySelectRef.current = onCountrySelect
   }, [onCountrySelect])
 
-  function runTravelSequence(country) {
-    setIsTraveling(true)
-    setTravelLabel(`Flying to ${country.name}…`)
-    triggerTravelRef.current(country.lat, country.lng, () => {
-      setTravelLabel('Arriving…')
-      triggerDiveRef.current(() => {
-        setShowFlash(true)
-        window.setTimeout(() => {
-          onCountrySelectRef.current?.(country.name)
-        }, 500)
-      })
-    })
-  }
-
   function handleSelectCountry(country) {
-    if (isTraveling) return
-    if (country.unlocked) {
-      runTravelSequence(country)
-      return
+    if (isTraveling) return;
+    const isUnlocked = unlockedCountries.includes(country.name);
+    if (isUnlocked) {
+      setIsTraveling(true);
+      setTravelLabel(`Flying to ${country.name}…`);
+      triggerTravelRef.current(country.lat, country.lng, () => {
+        setTravelLabel('Arriving…');
+        triggerDiveRef.current(() => {
+          setShowFlash(true);
+          window.setTimeout(() => {
+            onCountrySelectRef.current?.(country.name);
+          }, 500);
+        });
+      });
+    } else {
+      if (tokens < UNLOCK_COST) return;
+      setPendingCountry(country);
     }
-    if (tokens < UNLOCK_COST) return
-    setPendingCountry(country)
   }
 
   useEffect(() => {
-    onChinaMarkerClickRef.current = () =>
-      handleSelectCountry({ ...CHINA, unlocked: unlockedCountries.includes(CHINA.name) })
+    onChinaMarkerClickRef.current = () => handleSelectCountry(CHINA)
   })
 
   useEffect(() => {
@@ -462,12 +460,23 @@ export default function LandingPage({
     }
   }, [])
 
-  function handleConfirmUnlock() {
+  async function handleConfirmUnlock() {
     const country = pendingCountry
     if (!country) return
+    const success = await onUnlockCountry(country.name, UNLOCK_COST)
+    if (!success) return
     setPendingCountry(null)
-    onUnlockCountry?.(country)
-    runTravelSequence(country)
+    setIsTraveling(true)
+    setTravelLabel(`Flying to ${country.name}…`)
+    triggerTravelRef.current(country.lat, country.lng, () => {
+      setTravelLabel('Arriving…')
+      triggerDiveRef.current(() => {
+        setShowFlash(true)
+        window.setTimeout(() => {
+          onCountrySelectRef.current?.(country.name)
+        }, 500)
+      })
+    })
   }
 
   return (
@@ -487,14 +496,14 @@ export default function LandingPage({
           </p>
         </div>
 
-        <div className="pointer-events-auto flex items-center gap-3">
+        <div className="pointer-events-auto flex items-center gap-4">
           <div className="flex items-center gap-2 rounded-full bg-[#1F2937] border-2 border-[#37464F] px-4 py-2.5 shadow-md">
             <span className="text-lg">{'\u{1F30D}'}</span>
             <span className="font-display text-sm font-extrabold text-white">
               Level {unlockedCountries.length}
             </span>
           </div>
-
+          
           <div className="flex items-center gap-2.5 rounded-full bg-[#1F2937] border-2 border-[#37464F] px-5 py-2.5 shadow-md">
             <CoinIcon />
             <span className="font-display text-xl font-extrabold tabular-nums text-white">
@@ -512,45 +521,41 @@ export default function LandingPage({
           Choose a Country
         </h2>
         <ul className="flex flex-col gap-2">
-          {countries.map((country) => (
+          {COUNTRIES.map((country) => {
+            const isUnlocked = unlockedCountries.includes(country.name);
+            return (
             <li key={country.name}>
               <button
                 type="button"
-                disabled={isTraveling || (!country.unlocked && tokens < UNLOCK_COST)}
+                disabled={isTraveling}
                 onClick={() => handleSelectCountry(country)}
-                title={
-                  country.unlocked
-                    ? `Travel to ${country.name}`
-                    : tokens >= UNLOCK_COST
-                      ? `Unlock ${country.name}`
-                      : 'Not enough tokens'
-                }
+                title={isUnlocked ? `Travel to ${country.name}` : `Unlock ${country.name} (100 tokens)`}
                 className={
                   'w-full flex items-center justify-between rounded-2xl px-3 py-2.5 text-left transition-all duration-150 border-2 ' +
-                  (country.unlocked
+                  (isUnlocked
                     ? 'bg-[#58CC02] hover:bg-[#61D908] active:translate-y-0.5 cursor-pointer text-white font-extrabold border-[#46A302] border-b-4 active:border-b-2' +
                       (glowCountry === country.name ? ' animate-country-glow' : '')
-                    : 'bg-[#1F2937] text-gray-600 cursor-not-allowed border-[#37464F]')
+                    : 'bg-[#1F2937] hover:bg-[#28323c] active:translate-y-0.5 text-gray-300 cursor-pointer border-[#37464F] border-b-4 active:border-b-2')
                 }
               >
                 <span className="flex items-center gap-2.5">
-                  <span className={'text-xl transition-opacity' + (country.unlocked ? '' : ' opacity-50 grayscale')}>
+                  <span className={'text-xl transition-opacity' + (isUnlocked ? '' : ' opacity-50 grayscale')}>
                     {country.flag}
                   </span>
                   <span className="font-display font-extrabold">{country.name}</span>
                 </span>
-                {country.unlocked ? (
+                {isUnlocked ? (
                   <span className="text-[10px] uppercase tracking-wide text-white/80 font-extrabold">
                     Unlocked
                   </span>
                 ) : (
-                  <span className="text-gray-600">
+                  <span className="text-gray-400">
                     <LockIcon />
                   </span>
                 )}
               </button>
             </li>
-          ))}
+          )})}
         </ul>
       </aside>
 
@@ -593,6 +598,18 @@ export default function LandingPage({
       {showFlash && (
         <div className="absolute inset-0 bg-white animate-cinematic-flash pointer-events-none" />
       )}
+
+      <button 
+        onClick={async () => {
+          if (window.confirm("Are you sure you want to completely reset your progress and the database?")) {
+            await fetch(`${API}/api/admin/reset`, { method: 'POST' });
+            window.location.reload();
+          }
+        }}
+        className="absolute bottom-6 right-6 pointer-events-auto flex items-center justify-center rounded-2xl bg-[#FF4B4B] hover:bg-[#FF5555] active:translate-y-0.5 border-2 border-[#EA1B1B] border-b-4 active:border-b-2 px-4 py-2 font-display text-sm font-extrabold uppercase tracking-widest text-white transition-all shadow-md z-50"
+      >
+        Reset
+      </button>
     </div>
   )
 }
