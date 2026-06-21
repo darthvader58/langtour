@@ -31,7 +31,7 @@ cd ..
 ```
 
 ### 2. Configure Environment Variables
-You need to manually create a `.env` file in the root directory of the project to store your API keys securely:
+You need to manually create a `.env` file in the root directory of the project to store your backend API keys securely:
 
 ```bash
 # Create the .env file and add the required API keys
@@ -40,7 +40,40 @@ echo "GEMINI_API_KEY=your_gemini_key_here" >> .env
 ```
 *(Make sure to replace `your_deepgram_key_here` and `your_gemini_key_here` with your actual API keys).*
 
-### 3. Start the Application
+Copy `.env.example` to `.env.local` and add the URL and publishable key from your Supabase project settings. Only variables prefixed with `NEXT_PUBLIC_` are exposed to the frontend; backend API keys remain server-only.
+
+### 3. Create the Supabase tables
+
+Run `supabase db push` if this project is linked with the Supabase CLI. Otherwise, run these files in the Supabase SQL editor in order:
+
+1. `supabase/migrations/20260620000000_user_profiles.sql`
+2. `supabase/migrations/20260621000000_progression.sql`
+3. `supabase/migrations/20260622000000_backend_data.sql`
+
+This creates user profiles with a starting balance of 100 tokens, automatic login history, persisted scenario completion, seeded levels/ranks, vocabulary/FSRS storage, embeddings, and the country/scenario catalog. Row-level security keeps backend data server-only. Token spending and unlocks use atomic database functions.
+
+Add `SUPABASE_SERVICE_ROLE_KEY` to the root `.env`. Find it in **Supabase Dashboard → Project Settings → API Keys**. This key is server-only: never prefix it with `NEXT_PUBLIC_`, place it in `client/`, or commit it.
+
+To copy an existing local SQLite database into Supabase once, run:
+
+```bash
+npm run migrate:sqlite --prefix node
+```
+
+After migration, the runtime reads and writes Supabase only; SQLite is retained solely as the source for this optional one-time import.
+
+### 4. Enable Google sign-in
+
+1. In Google Cloud Console, configure the OAuth consent screen, then create an OAuth 2.0 Client ID for a **Web application**.
+2. Add the callback URL shown under **Supabase Dashboard → Authentication → Providers → Google** as an authorized redirect URI in Google Cloud. It has the form `https://<project-ref>.supabase.co/auth/v1/callback`.
+3. Paste the Google client ID and client secret into that Supabase Google provider screen and enable the provider.
+4. Under **Supabase Dashboard → Authentication → URL Configuration**, set the Site URL to `http://localhost:5173` for local development and add your production origin to Redirect URLs before deploying.
+
+The frontend redirects through Supabase for Google authentication. The database trigger creates a profile with 100 tokens for each new user and appends later sign-ins to `login_history`.
+
+Email/password authentication is also available through Supabase Auth. Ensure **Authentication → Providers → Email** is enabled. If email confirmation is enabled, add each local or production app origin to **Authentication → URL Configuration → Redirect URLs** so confirmation links can return to the app.
+
+### 5. Start the Application
 Once the dependencies are installed and the keys are provided, you can spin up both the Vite frontend and Express backend simultaneously from the root folder using `concurrently`:
 
 ```bash

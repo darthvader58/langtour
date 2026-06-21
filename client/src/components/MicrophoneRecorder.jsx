@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { API } from '../api';
 
 function wsBase() {
@@ -31,17 +31,13 @@ export default function MicrophoneRecorder({ onRecordingComplete, disabled }) {
 
   useEffect(() => {
     return () => {
-      cleanup();
+      if (liveWsRef.current) liveWsRef.current.close();
+      if (recorderRef.current && recorderRef.current.state !== 'inactive') recorderRef.current.stop();
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach(t => t.stop());
+      }
     };
   }, []);
-
-  const cleanup = () => {
-    if (liveWsRef.current) liveWsRef.current.close();
-    if (recorderRef.current && recorderRef.current.state !== 'inactive') recorderRef.current.stop();
-    if (mediaStreamRef.current) {
-      mediaStreamRef.current.getTracks().forEach(t => t.stop());
-    }
-  };
 
   const deleteTempProject = async (pid) => {
     try {

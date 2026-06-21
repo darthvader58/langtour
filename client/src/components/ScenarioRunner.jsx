@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { API } from '../api';
+import { authFetch } from '../api';
 import VisualCluster from './VisualCluster';
 import InputPhase from './InputPhase';
 import GameplayPhase from './GameplayPhase';
@@ -10,7 +10,7 @@ export default function ScenarioRunner({ scenario, onEndScenario }) {
 
   useEffect(() => {
     // 1. Fetch optimal dynamic vocabulary for this scenario
-    fetch(`${API}/api/scenario/discovery?scenarioId=${scenario.id}&topic=${scenario.title}`)
+    authFetch(`/api/scenario/discovery?scenarioId=${scenario.id}&topic=${scenario.title}`)
       .then(res => {
         if (!res.ok) throw new Error("API error");
         return res.json();

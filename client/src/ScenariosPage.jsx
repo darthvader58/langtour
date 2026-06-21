@@ -1,7 +1,5 @@
 import { useState } from 'react'
 
-import { SCENARIOS_BY_COUNTRY, SPECIAL_SCENARIO_BY_COUNTRY } from './gameData'
-
 function LockIcon({ className = 'w-6 h-6' }) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2">
@@ -166,9 +164,7 @@ function LessonModal({ scenario, onClose, onStart }) {
   )
 }
 
-export default function ScenariosPage({ country = 'China', flag = '', completedScenarios = [], onBack, onScenarioStart }) {
-  const scenarios = SCENARIOS_BY_COUNTRY[country] || [];
-  const specialScenario = SPECIAL_SCENARIO_BY_COUNTRY[country];
+export default function ScenariosPage({ country = 'China', flag = '', completedScenarios = [], scenarios, specialScenario, onBack, onScenarioStart }) {
   const progress = scenarios.map(sc => completedScenarios.includes(sc.id) ? 100 : 0)
   const [activeScenario, setActiveScenario] = useState(null)
 
@@ -235,16 +231,19 @@ export default function ScenariosPage({ country = 'China', flag = '', completedS
               />
             )
           })}
-          {specialScenario && (
-            <ScenarioCard
-              scenario={specialScenario}
-              index={scenarios.length}
-              unlocked={allCompleted}
-              progress={allCompleted ? 0 : 0}
-              completed={false}
-              onClick={() => handleCardClick(specialScenario, allCompleted)}
-            />
-          )}
+          {specialScenario && (() => {
+            const specialDone = completedScenarios.includes(specialScenario.id)
+            return (
+              <ScenarioCard
+                scenario={specialScenario}
+                index={scenarios.length}
+                unlocked={allCompleted}
+                progress={specialDone ? 100 : 0}
+                completed={specialDone}
+                onClick={() => handleCardClick(specialScenario, allCompleted && !specialDone)}
+              />
+            )
+          })()}
         </div>
       </main>
 

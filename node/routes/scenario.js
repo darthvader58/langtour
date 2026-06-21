@@ -5,17 +5,18 @@ import { GEMINI_API_KEY } from '../lib/config.js';
 const google = createGoogleGenerativeAI({
   apiKey: GEMINI_API_KEY,
 });
-import { db } from '../lib/db/db.js';
+import { getWordByExpression } from '../lib/db/db.js';
 import { getDiscoveryWords } from '../lib/graph/graph.js';
 import { updateWordFSRS } from '../lib/srs/fsrs_update.js';
+import { requireUser } from '../lib/auth.js';
 
 export function mountScenarioRoutes(app) {
-  
+
   // Endpoint to discover optimal words for a scenario
-  app.get('/api/scenario/discovery', async (req, res) => {
+  app.get('/api/scenario/discovery', requireUser, async (req, res) => {
     try {
       const { scenarioId, topic } = req.query;
-      const dbWords = await getDiscoveryWords(topic || scenarioId, 4);
+      const dbWords = await getDiscoveryWords(req.userId, topic || scenarioId, 4);
       const words = dbWords.map(w => ({
         ...w,
         zh: w.expression,
@@ -31,7 +32,7 @@ export function mountScenarioRoutes(app) {
   });
 
   // Endpoint to generate an NPC line based on target words
-  app.post('/api/scenario/generate', async (req, res) => {
+  app.post('/api/scenario/generate', requireUser, async (req, res) => {
     try {
       const { scenarioContext, targetWords, previousTurns } = req.body;
       
@@ -64,7 +65,7 @@ Return ONLY a JSON object:
   });
 
   // Evaluator endpoint to check user's STT response
-  app.post('/api/scenario/evaluate', async (req, res) => {
+  app.post('/api/scenario/evaluate', requireUser, async (req, res) => {
     try {
       const { scenarioContext, targetWords, npcLine, userResponse } = req.body;
 
@@ -98,9 +99,9 @@ Return ONLY a JSON object:
 
       // If passed, we update FSRS ratings for the usedWord.
       if (parsed.status === "passed" && parsed.usedWord) {
-        const wordRow = db.prepare('SELECT id FROM words WHERE expression = ?').get(parsed.usedWord);
+        const wordRow = await getWordByExpression(parsed.usedWord);
         if (wordRow) {
-          updateWordFSRS(db, wordRow.id, 3); // 3 = Good
+          await updateWordFSRS(req.userId, wordRow.id, 3); // 3 = Good
         }
       }
 

@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react'
-import { CHARACTERS, REWARD_TOKENS } from './gameData'
 
-export default function CompletionScreen({ country, flag, onReturn }) {
-  const character = CHARACTERS[country] ?? CHARACTERS.China
+export default function CompletionScreen({ country, flag, character, rewardTokens, onReturn }) {
   const [showStamp, setShowStamp] = useState(false)
   const [showReward, setShowReward] = useState(false)
   const [showButton, setShowButton] = useState(false)
@@ -57,7 +55,7 @@ export default function CompletionScreen({ country, flag, onReturn }) {
             <span className="text-4xl">🪙</span>
             <div className="text-left">
               <div className="font-display text-3xl font-extrabold text-[#FFC800]">
-                +{REWARD_TOKENS}
+                +{rewardTokens}
               </div>
               <div className="text-xs text-gray-400 font-bold uppercase tracking-widest">
                 Tokens Earned

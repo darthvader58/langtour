@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import { API } from './api'
+import AuthModal from './components/AuthModal'
 
 const EARTH_TEXTURE_URL =
   'https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg'
@@ -10,18 +10,6 @@ const CLOUDS_TEXTURE_URL =
 const SPECULAR_TEXTURE_URL =
   'https://threejs.org/examples/textures/planets/earth_specular_2048.jpg'
 
-const CHINA = { name: 'China', flag: '\u{1F1E8}\u{1F1F3}', lat: 35.8617, lng: 104.1954, unlocked: true }
-
-const COUNTRIES = [
-  CHINA,
-  { name: 'Japan', flag: '\u{1F1EF}\u{1F1F5}', lat: 36.2048, lng: 138.2529, unlocked: false },
-  { name: 'France', flag: '\u{1F1EB}\u{1F1F7}', lat: 46.2276, lng: 2.2137, unlocked: false },
-  { name: 'Mexico', flag: '\u{1F1F2}\u{1F1FD}', lat: 23.6345, lng: -102.5528, unlocked: false },
-  { name: 'Egypt', flag: '\u{1F1EA}\u{1F1EC}', lat: 26.8206, lng: 30.8025, unlocked: false },
-  { name: 'Brazil', flag: '\u{1F1E7}\u{1F1F7}', lat: -14.235, lng: -51.9253, unlocked: false },
-]
-
-const UNLOCK_COST = 100
 const TRAVEL_DURATION_MS = 2200
 const DIVE_DURATION_MS = 750
 const GLOBE_RADIUS = 2
@@ -83,9 +71,9 @@ function createStarField() {
   return new THREE.Points(geometry, material)
 }
 
-function createChinaMarker() {
+function createChinaMarker(china) {
   const group = new THREE.Group()
-  const direction = latLngToDirection(CHINA.lat, CHINA.lng).normalize()
+  const direction = latLngToDirection(china.lat, china.lng).normalize()
   group.position.copy(direction.multiplyScalar(GLOBE_RADIUS * 1.01))
 
   const hitMesh = new THREE.Mesh(
@@ -151,7 +139,8 @@ function CoinIcon() {
   )
 }
 
-export default function LandingPage({ tokens, unlockedCountries = ["China"], glowCountry, onUnlockCountry, onCountrySelect }) {
+export default function LandingPage({ tokens, unlockedCountries, glowCountry, level, rank, auth, countries, unlockCost, onUnlockCountry, onCountrySelect }) {
+  const china = countries.find((country) => country.name === 'China')
   const mountRef = useRef(null)
   const triggerTravelRef = useRef(() => {})
   const onCountrySelectRef = useRef(onCountrySelect)
@@ -163,6 +152,18 @@ export default function LandingPage({ tokens, unlockedCountries = ["China"], glo
   const [isTraveling, setIsTraveling] = useState(false)
   const [travelLabel, setTravelLabel] = useState('')
   const [showFlash, setShowFlash] = useState(false)
+  const [showAuth, setShowAuth] = useState(false)
+
+  const {
+    user,
+    authLoading,
+    authError,
+    authMessage,
+    signInWithGoogle,
+    signInWithEmail,
+    signUpWithEmail,
+    signOut,
+  } = auth
 
   useEffect(() => {
     onCountrySelectRef.current = onCountrySelect
@@ -170,7 +171,7 @@ export default function LandingPage({ tokens, unlockedCountries = ["China"], glo
 
   function handleSelectCountry(country) {
     if (isTraveling) return;
-    const isUnlocked = unlockedCountries.includes(country.name);
+    const isUnlocked = unlockedCountries.includes(country.name.toLowerCase());
     if (isUnlocked) {
       setIsTraveling(true);
       setTravelLabel(`Flying to ${country.name}…`);
@@ -184,13 +185,13 @@ export default function LandingPage({ tokens, unlockedCountries = ["China"], glo
         });
       });
     } else {
-      if (tokens < UNLOCK_COST) return;
+      if (tokens < unlockCost) return;
       setPendingCountry(country);
     }
   }
 
   useEffect(() => {
-    onChinaMarkerClickRef.current = () => handleSelectCountry(CHINA)
+    onChinaMarkerClickRef.current = () => handleSelectCountry(china)
   })
 
   useEffect(() => {
@@ -300,7 +301,7 @@ export default function LandingPage({ tokens, unlockedCountries = ["China"], glo
     const atmosphere = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial)
     scene.add(atmosphere)
 
-    const { group: chinaMarkerGroup, hitMesh, dot, rings } = createChinaMarker()
+    const { group: chinaMarkerGroup, hitMesh, dot, rings } = createChinaMarker(china)
     planetGroup.add(chinaMarkerGroup)
 
     const raycaster = new THREE.Raycaster()
@@ -458,12 +459,12 @@ export default function LandingPage({ tokens, unlockedCountries = ["China"], glo
       atmosphereMaterial.dispose()
       mount.removeChild(renderer.domElement)
     }
-  }, [])
+  }, [china])
 
   async function handleConfirmUnlock() {
     const country = pendingCountry
     if (!country) return
-    const success = await onUnlockCountry(country.name, UNLOCK_COST)
+    const success = await onUnlockCountry(country.name, unlockCost)
     if (!success) return
     setPendingCountry(null)
     setIsTraveling(true)
@@ -500,8 +501,9 @@ export default function LandingPage({ tokens, unlockedCountries = ["China"], glo
           <div className="flex items-center gap-2 rounded-full bg-[#1F2937] border-2 border-[#37464F] px-4 py-2.5 shadow-md">
             <span className="text-lg">{'\u{1F30D}'}</span>
             <span className="font-display text-sm font-extrabold text-white">
-              Level {unlockedCountries.length}
+              Level {level?.display_order ?? unlockedCountries.length}
             </span>
+            {rank?.name && <span className="text-[10px] font-bold uppercase tracking-wider text-[#58CC02]">{rank.name}</span>}
           </div>
           
           <div className="flex items-center gap-2.5 rounded-full bg-[#1F2937] border-2 border-[#37464F] px-5 py-2.5 shadow-md">
@@ -513,23 +515,64 @@ export default function LandingPage({ tokens, unlockedCountries = ["China"], glo
               tokens
             </span>
           </div>
+          {user ? (
+            <button
+              type="button"
+              onClick={() => {
+                setShowAuth(false)
+                signOut()
+              }}
+              disabled={authLoading}
+              title={`Signed in as ${user.email}. Click to sign out.`}
+              className="rounded-full border-2 border-[#37464F] bg-[#1F2937] px-4 py-2.5 text-sm font-extrabold text-white hover:bg-[#28323c] disabled:opacity-50"
+            >
+              Sign out
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowAuth(true)}
+              disabled={authLoading}
+              className="rounded-full bg-white px-5 py-2.5 text-sm font-extrabold text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+            >
+              {authLoading ? 'Connecting…' : 'Sign in'}
+            </button>
+          )}
         </div>
       </header>
+
+      {authError && !showAuth && (
+        <div className="absolute right-6 top-24 z-30 max-w-sm rounded-xl border border-red-400/30 bg-red-950/80 px-4 py-3 text-sm text-red-100 backdrop-blur-xl">
+          {authError}
+        </div>
+      )}
+
+      {showAuth && !user && (
+        <AuthModal
+          loading={authLoading}
+          error={authError}
+          message={authMessage}
+          onClose={() => setShowAuth(false)}
+          onGoogle={signInWithGoogle}
+          onEmailSignIn={signInWithEmail}
+          onEmailSignUp={signUpWithEmail}
+        />
+      )}
 
       <aside className="absolute top-1/2 left-6 -translate-y-1/2 w-64 rounded-3xl bg-[#1F2937] border-2 border-[#37464F] p-4 pointer-events-auto shadow-xl">
         <h2 className="font-display text-sm font-extrabold uppercase tracking-widest text-gray-400 mb-3 px-1">
           Choose a Country
         </h2>
         <ul className="flex flex-col gap-2">
-          {COUNTRIES.map((country) => {
-            const isUnlocked = unlockedCountries.includes(country.name);
+          {countries.map((country) => {
+            const isUnlocked = unlockedCountries.includes(country.name.toLowerCase());
             return (
             <li key={country.name}>
               <button
                 type="button"
                 disabled={isTraveling}
                 onClick={() => handleSelectCountry(country)}
-                title={isUnlocked ? `Travel to ${country.name}` : `Unlock ${country.name} (100 tokens)`}
+                title={isUnlocked ? `Travel to ${country.name}` : `Unlock ${country.name} (${unlockCost} tokens)`}
                 className={
                   'w-full flex items-center justify-between rounded-2xl px-3 py-2.5 text-left transition-all duration-150 border-2 ' +
                   (isUnlocked
@@ -573,7 +616,7 @@ export default function LandingPage({ tokens, unlockedCountries = ["China"], glo
               Unlock {pendingCountry.name}?
             </h3>
             <p className="text-sm text-gray-400 font-medium mb-6">
-              This will cost <span className="text-white font-extrabold">{UNLOCK_COST} tokens</span>.
+              This will cost <span className="text-white font-extrabold">{unlockCost} tokens</span>.
             </p>
             <div className="flex gap-3">
               <button
@@ -599,11 +642,11 @@ export default function LandingPage({ tokens, unlockedCountries = ["China"], glo
         <div className="absolute inset-0 bg-white animate-cinematic-flash pointer-events-none" />
       )}
 
-      <button 
+      <button
         onClick={async () => {
-          if (window.confirm("Are you sure you want to completely reset your progress and the database?")) {
-            await fetch(`${API}/api/admin/reset`, { method: 'POST' });
-            window.location.reload();
+          if (window.confirm("Reset your progress? This wipes your unlocked countries, completed scenarios, tokens, and XP.")) {
+            const ok = await auth.resetProgress();
+            if (ok) window.location.reload();
           }
         }}
         className="absolute bottom-6 right-6 pointer-events-auto flex items-center justify-center rounded-2xl bg-[#FF4B4B] hover:bg-[#FF5555] active:translate-y-0.5 border-2 border-[#EA1B1B] border-b-4 active:border-b-2 px-4 py-2 font-display text-sm font-extrabold uppercase tracking-widest text-white transition-all shadow-md z-50"

@@ -5,7 +5,11 @@ import { GEMINI_API_KEY } from '../config.js';
 const google = createGoogleGenerativeAI({
   apiKey: GEMINI_API_KEY,
 });
-import { db } from '../db/db.js';
+import {
+  getAllWordEmbeddings,
+  listUserWords,
+  saveWordEmbedding,
+} from '../db/db.js';
 import { retrievability, reviewPriority } from '../srs/fsrs_metrics.js';
 
 // Calculate cosine similarity between two vectors
@@ -30,24 +34,23 @@ export async function generateEmbedding(text) {
   return embedding;
 }
 
-// Get or create embedding for a word
-export async function getWordEmbedding(wordId, text) {
-  const row = db.prepare('SELECT embedding_json FROM word_embeddings WHERE word_id = ?').get(wordId);
-  if (row) {
-    return JSON.parse(row.embedding_json);
-  }
-  
-  const embedding = await generateEmbedding(text);
-  db.prepare('INSERT OR IGNORE INTO word_embeddings (word_id, embedding_json) VALUES (?, ?)').run(wordId, JSON.stringify(embedding));
+// Scenario topic strings repeat across players and turns; the Gemini call is the
+// slowest hop on the discovery path, so we memoize the result in-process.
+const scenarioEmbeddingCache = new Map();
+async function getScenarioEmbedding(topic) {
+  const cached = scenarioEmbeddingCache.get(topic);
+  if (cached) return cached;
+  const embedding = await generateEmbedding(topic);
+  scenarioEmbeddingCache.set(topic, embedding);
   return embedding;
 }
 
 // Get all known embeddings into memory (fast for small datasets)
-export function loadAllEmbeddings() {
-  const rows = db.prepare('SELECT word_id, embedding_json FROM word_embeddings').all();
+export async function loadAllEmbeddings() {
+  const rows = await getAllWordEmbeddings();
   const embeddings = new Map();
   for (const row of rows) {
-    embeddings.set(row.word_id, JSON.parse(row.embedding_json));
+    embeddings.set(row.word_id, row.embedding);
   }
   return embeddings;
 }
@@ -56,50 +59,48 @@ export function loadAllEmbeddings() {
  * Discovery Algorithm:
  * Mixes "due" review words with "new" words via Intersection Filter.
  */
-export async function getDiscoveryWords(scenarioTopic, limit = 4) {
-  // 1. Due filter for known words
-  const knownWordsRows = db.prepare('SELECT * FROM words WHERE reps > 0').all();
-  
+export async function getDiscoveryWords(userId, scenarioTopic, limit = 4) {
+  // Load the user's full word view, the scenario embedding, and all cached
+  // word embeddings concurrently — the per-user word view is two round trips,
+  // so the three filtered lists below all reuse the same fetch.
+  const [allUserWords, scenarioEmbedding, allEmbeddings] = await Promise.all([
+    listUserWords(userId),
+    getScenarioEmbedding(scenarioTopic),
+    loadAllEmbeddings(),
+  ]);
+
+  const knownWordsRows = allUserWords.filter((w) => w.reps > 0);
   const dueWords = knownWordsRows
-    .map(w => {
-      const r = retrievability({ 
-        stability: w.stability, 
-        last_review_at: w.last_review_at 
-      });
+    .map((w) => {
+      const r = retrievability({ stability: w.stability, last_review_at: w.last_review_at });
       return { ...w, r, priority: reviewPriority({ retrievability: r, difficulty: w.difficulty, lapses: w.lapses }) };
     })
-    .filter(w => w.r < 0.9)
+    .filter((w) => w.r < 0.9)
     .sort((a, b) => b.priority - a.priority);
 
-  // Take up to 2 due words
   const selectedDue = dueWords.slice(0, 2);
   const remainingSlots = limit - selectedDue.length;
 
-  const sanitize = w => { delete w.r; delete w.priority; return w; };
+  const sanitize = (w) => { delete w.r; delete w.priority; return w; };
   if (remainingSlots <= 0) return selectedDue.map(sanitize);
 
-  // 2. Intersection filter for new words
-  const scenarioEmbedding = await generateEmbedding(scenarioTopic);
-  
-  // Identify user's known anchors (high stability words)
-  const anchorWords = db.prepare('SELECT id, expression, meaning FROM words WHERE stability >= 2').all();
-  
-  const unknownWords = db.prepare('SELECT * FROM words WHERE reps = 0').all();
-  
+  const anchorWords = allUserWords.filter((w) => w.stability >= 2);
+  const unknownWords = allUserWords.filter((w) => w.reps === 0);
   if (unknownWords.length === 0) {
     return selectedDue.map(sanitize);
   }
-  
-  // Ensure we have embeddings for unknown words
-  for (const word of unknownWords) {
-    await getWordEmbedding(word.id, `${word.expression} (${word.meaning})`);
+
+  // Fill any holes for words missing an embedding, generating in parallel so the
+  // Gemini calls overlap instead of serializing.
+  const missing = [...unknownWords, ...anchorWords].filter(w => !allEmbeddings.has(w.id));
+  if (missing.length > 0) {
+    await Promise.all(missing.map(async (word) => {
+      const embedding = await generateEmbedding(`${word.expression} (${word.meaning})`);
+      allEmbeddings.set(word.id, embedding);
+      await saveWordEmbedding(word.id, embedding);
+    }));
   }
-  // Ensure we have embeddings for known anchor words
-  for (const word of anchorWords) {
-    await getWordEmbedding(word.id, `${word.expression} (${word.meaning})`);
-  }
-  
-  const allEmbeddings = loadAllEmbeddings();
+
   const anchorEmbeddings = anchorWords.map(w => allEmbeddings.get(w.id)).filter(Boolean);
   
   const candidates = [];

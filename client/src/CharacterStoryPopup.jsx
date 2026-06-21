@@ -1,7 +1,4 @@
-import { CHARACTERS } from './gameData'
-
-export default function CharacterStoryPopup({ country, onBeginMission }) {
-  const character = CHARACTERS[country] ?? CHARACTERS.China
+export default function CharacterStoryPopup({ country, character, onBeginMission }) {
   const words = character.story.split(' ')
   const buttonDelay = 0.7 + words.length * 0.055 + 0.4
 

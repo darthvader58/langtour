@@ -4,8 +4,10 @@ import { dirname, join } from 'path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, '..', '..', '.env') });
+dotenv.config({ path: join(__dirname, '..', '..', '.env.local') });
 
 export const PORT = process.env.PORT || 8765;
 export const DEEPGRAM_API_KEY = process.env.DEEPGRAM_API_KEY || '';
 export const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
-export const DB_PATH = process.env.DB_PATH || join(__dirname, '..', '..', 'db', 'langtour.db');
+export const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+export const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
