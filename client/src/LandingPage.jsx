@@ -4,6 +4,10 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 
 const EARTH_TEXTURE_URL =
   'https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg'
+const CLOUDS_TEXTURE_URL =
+  'https://threejs.org/examples/textures/planets/earth_clouds_1024.png'
+const SPECULAR_TEXTURE_URL =
+  'https://threejs.org/examples/textures/planets/earth_specular_2048.jpg'
 
 const COUNTRIES = [
   { name: 'China', flag: '\u{1F1E8}\u{1F1F3}', lat: 35.8617, lng: 104.1954, unlocked: true },
@@ -16,6 +20,9 @@ const COUNTRIES = [
 
 const UNLOCK_COST = 100
 const TRAVEL_DURATION_MS = 2200
+const GLOBE_RADIUS = 2
+const EARTH_SPIN_SPEED = 0.0009
+const CLOUD_SPIN_SPEED = 0.0015
 
 function easeInOutCubic(t) {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
@@ -145,8 +152,6 @@ export default function LandingPage({ onCountrySelect }) {
     controls.enablePan = false
     controls.minDistance = 3.4
     controls.maxDistance = 9
-    controls.autoRotate = true
-    controls.autoRotateSpeed = 0.6
 
     const deepSpace = new THREE.Group()
     deepSpace.add(createStarField())
@@ -158,27 +163,52 @@ export default function LandingPage({ onCountrySelect }) {
     sunLight.position.set(5, 3, 5)
     scene.add(ambientLight, sunLight)
 
-    const globeRadius = 2
-    const globeGeometry = new THREE.SphereGeometry(globeRadius, 64, 64)
-    const globeMaterial = new THREE.MeshPhongMaterial({ color: 0x1c3a6b, shininess: 6 })
+    const planetGroup = new THREE.Group()
+    scene.add(planetGroup)
+
+    const globeGeometry = new THREE.SphereGeometry(GLOBE_RADIUS, 64, 64)
+    const globeMaterial = new THREE.MeshPhongMaterial({
+      color: 0x1c3a6b,
+      shininess: 14,
+      specular: 0x335577,
+    })
     const globe = new THREE.Mesh(globeGeometry, globeMaterial)
-    scene.add(globe)
+    planetGroup.add(globe)
 
     const textureLoader = new THREE.TextureLoader()
     textureLoader.load(
       EARTH_TEXTURE_URL,
       (texture) => {
+        texture.colorSpace = THREE.SRGBColorSpace
         globeMaterial.map = texture
         globeMaterial.color.set(0xffffff)
         globeMaterial.needsUpdate = true
       },
       undefined,
-      () => {
-        console.warn('Earth texture failed to load, using fallback color material.')
-      },
+      () => console.warn('Earth texture failed to load, using fallback color material.'),
     )
+    textureLoader.load(SPECULAR_TEXTURE_URL, (texture) => {
+      globeMaterial.specularMap = texture
+      globeMaterial.needsUpdate = true
+    })
 
-    const glowGeometry = new THREE.SphereGeometry(globeRadius * 1.18, 64, 64)
+    const cloudGeometry = new THREE.SphereGeometry(GLOBE_RADIUS * 1.015, 64, 64)
+    const cloudMaterial = new THREE.MeshPhongMaterial({
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+    })
+    const clouds = new THREE.Mesh(cloudGeometry, cloudMaterial)
+    scene.add(clouds)
+    textureLoader.load(CLOUDS_TEXTURE_URL, (texture) => {
+      texture.colorSpace = THREE.SRGBColorSpace
+      cloudMaterial.map = texture
+      cloudMaterial.alphaMap = texture
+      cloudMaterial.opacity = 0.6
+      cloudMaterial.needsUpdate = true
+    })
+
+    const glowGeometry = new THREE.SphereGeometry(GLOBE_RADIUS * 1.18, 64, 64)
     const glowMaterial = new THREE.MeshBasicMaterial({
       color: 0x4ea8ff,
       transparent: true,
@@ -189,9 +219,10 @@ export default function LandingPage({ onCountrySelect }) {
     scene.add(glow)
 
     let travel = null
+    let spinPaused = false
 
     function travelTo(lat, lng, onArrive) {
-      controls.autoRotate = false
+      spinPaused = true
       controls.enabled = false
       const startDir = camera.position.clone().normalize()
       const endDir = latLngToDirection(lat, lng).normalize()
@@ -241,6 +272,10 @@ export default function LandingPage({ onCountrySelect }) {
     let frameId
     function animate() {
       frameId = requestAnimationFrame(animate)
+      if (!spinPaused) {
+        planetGroup.rotation.y += EARTH_SPIN_SPEED
+      }
+      clouds.rotation.y += CLOUD_SPIN_SPEED
       deepSpace.rotation.y += 0.00012
       deepSpace.rotation.x += 0.00004
       if (travel) {
@@ -259,6 +294,8 @@ export default function LandingPage({ onCountrySelect }) {
       renderer.dispose()
       globeGeometry.dispose()
       globeMaterial.dispose()
+      cloudGeometry.dispose()
+      cloudMaterial.dispose()
       glowGeometry.dispose()
       glowMaterial.dispose()
       mount.removeChild(renderer.domElement)
