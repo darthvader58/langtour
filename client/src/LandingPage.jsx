@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { CHINA, COUNTRIES, UNLOCK_COST } from './gameData'
+import SackboyCharacter from './components/SackboyCharacter'
 
 const EARTH_TEXTURE_URL =
   'https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg'
@@ -112,9 +113,81 @@ function createChinaMarker() {
 
 function LockIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2">
       <rect x="5" y="11" width="14" height="9" rx="2" />
       <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+    </svg>
+  )
+}
+
+function AstrolabeFrame() {
+  const ticks = Array.from({ length: 72 }, (_, i) => {
+    const angle = (i * 5 * Math.PI) / 180
+    const major = i % 9 === 0
+    const r1 = 272, r2 = major ? 257 : 265
+    const cos = Math.cos(angle - Math.PI / 2)
+    const sin = Math.sin(angle - Math.PI / 2)
+    return { x1: cos * r1, y1: sin * r1, x2: cos * r2, y2: sin * r2, major }
+  })
+
+  const dotRing = Array.from({ length: 12 }, (_, i) => {
+    const a = (i * 30 * Math.PI) / 180
+    return { cx: Math.cos(a - Math.PI / 2) * 218, cy: Math.sin(a - Math.PI / 2) * 218 }
+  })
+
+  const compassPoints = [
+    { x: 0, y: -258, label: 'N' }, { x: 258, y: 0, label: 'E' },
+    { x: 0, y: 258, label: 'S' }, { x: -258, y: 0, label: 'W' },
+  ]
+
+  return (
+    <svg width="580" height="580" viewBox="-290 -290 580 580" className="pointer-events-none select-none">
+      {/* Outer ring */}
+      <circle r="276" fill="none" stroke="#C9A84C" strokeWidth="1" opacity="0.45" />
+      <circle r="268" fill="none" stroke="#C9A84C" strokeWidth="0.4" opacity="0.15" />
+
+      {/* Degree ticks */}
+      {ticks.map((t, i) => (
+        <line key={i} x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2}
+          stroke="#C9A84C" strokeWidth={t.major ? '1.5' : '0.6'}
+          opacity={t.major ? '0.55' : '0.2'}
+        />
+      ))}
+
+      {/* Compass NESW */}
+      {compassPoints.map(({ x, y, label }) => (
+        <text key={label} x={x} y={y}
+          textAnchor="middle" dominantBaseline="middle"
+          fill="#C9A84C" fontSize="10" fontFamily="Cinzel" fontWeight="700" opacity="0.65"
+        >{label}</text>
+      ))}
+
+      {/* North arrow */}
+      <polygon points="0,-280 -3,-265 3,-265" fill="#C9A84C" opacity="0.6" />
+
+      {/* Slowly rotating middle ring */}
+      <g>
+        <animateTransform attributeName="transform" type="rotate" from="0 0 0" to="360 0 0" dur="120s" repeatCount="indefinite" />
+        <circle r="240" fill="none" stroke="#C9A84C" strokeWidth="0.5" strokeDasharray="5 9" opacity="0.25" />
+        <line x1="-240" y1="0" x2="240" y2="0" stroke="#C9A84C" strokeWidth="0.3" opacity="0.12" />
+        <line x1="0" y1="-240" x2="0" y2="240" stroke="#C9A84C" strokeWidth="0.3" opacity="0.12" />
+        {[45, 135, 225, 315].map((deg, i) => {
+          const a = (deg * Math.PI) / 180
+          return <circle key={i} cx={Math.cos(a) * 240} cy={Math.sin(a) * 240} r="2.5" fill="none" stroke="#C9A84C" strokeWidth="1" opacity="0.35" />
+        })}
+      </g>
+
+      {/* Counter-rotating inner ring */}
+      <g>
+        <animateTransform attributeName="transform" type="rotate" from="0 0 0" to="-360 0 0" dur="80s" repeatCount="indefinite" />
+        <circle r="218" fill="none" stroke="#C9A84C" strokeWidth="0.5" opacity="0.18" />
+        {dotRing.map((d, i) => (
+          <circle key={i} cx={d.cx} cy={d.cy} r="1.5" fill="#C9A84C" opacity="0.3" />
+        ))}
+      </g>
+
+      {/* Innermost static ring */}
+      <circle r="194" fill="none" stroke="#C9A84C" strokeWidth="0.3" opacity="0.12" />
     </svg>
   )
 }
@@ -161,6 +234,7 @@ export default function LandingPage({
   const onChinaMarkerClickRef = useRef(() => {})
   const heatZoneSpritesRef = useRef({})
   const heatZonePropsRef   = useRef({})
+  const overlayRefs        = useRef({})
 
   const triggerDiveRef = useRef(() => {})
 
@@ -168,6 +242,7 @@ export default function LandingPage({
   const [isTraveling, setIsTraveling] = useState(false)
   const [travelLabel, setTravelLabel] = useState('')
   const [showFlash, setShowFlash] = useState(false)
+  const [celebrating, setCelebrating] = useState(null)
 
   const countries = COUNTRIES.map((country) => ({
     ...country,
@@ -200,6 +275,20 @@ export default function LandingPage({
     }
     if (tokens < UNLOCK_COST) return
     setPendingCountry(country)
+  }
+
+  // Globe mascot click — the little agent waves goodbye before we fly out
+  function handleGlobeClick(country) {
+    if (isTraveling || celebrating) return
+    if (country.unlocked) {
+      setCelebrating(country.name)
+      window.setTimeout(() => {
+        setCelebrating(null)
+        runTravelSequence(country)
+      }, 700)
+      return
+    }
+    handleSelectCountry(country)
   }
 
   useEffect(() => {
@@ -490,6 +579,25 @@ export default function LandingPage({
         sprite.scale.setScalar(targetScale)
       })
 
+      // Project the little sackboy mascots onto their country locations
+      const rect = renderer.domElement.getBoundingClientRect()
+      const camDir = camera.position.clone().normalize()
+      COUNTRIES.forEach((c) => {
+        const el = overlayRefs.current[c.name]
+        if (!el) return
+        const dir = latLngToDirection(c.lat, c.lng).applyQuaternion(planetGroup.quaternion).normalize()
+        const worldPos = dir.clone().multiplyScalar(GLOBE_RADIUS * 1.04)
+        const ndc = worldPos.clone().project(camera)
+        const sx = (ndc.x * 0.5 + 0.5) * rect.width
+        const sy = (-ndc.y * 0.5 + 0.5) * rect.height
+        const facing = dir.dot(camDir)
+        const visible = facing > 0.12 && ndc.z < 1
+        el.style.transform = `translate(${sx}px, ${sy}px) translate(-50%, -100%)`
+        el.style.opacity = visible ? String(Math.min(1, (facing - 0.12) * 4.5)) : '0'
+        el.style.pointerEvents = visible ? 'auto' : 'none'
+        el.style.zIndex = String(100 + Math.round(facing * 60))
+      })
+
       if (travel) stepTravel(performance.now())
       if (dive) stepDive(performance.now())
       if (!travel && !dive) controls.update()
@@ -524,119 +632,186 @@ export default function LandingPage({
   }
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-[#05060a] text-white font-sans">
+    <div className="relative w-screen h-screen overflow-hidden bg-[#0A0A0A] text-[#F5F0E8] font-mono">
+      {/* Three.js canvas */}
       <div ref={mountRef} className="absolute inset-0" />
 
-      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,_transparent_40%,_rgba(0,0,0,0.55)_100%)]" />
+      {/* Vignette */}
+      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,_transparent_38%,_rgba(0,0,0,0.65)_100%)]" />
 
-      <header className="absolute top-0 left-0 right-0 flex items-center justify-between p-6 pointer-events-none">
+      {/* Astrolabe frame centered on globe */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[1]" style={{ opacity: 0.5 }}>
+        <AstrolabeFrame />
+      </div>
+
+      {/* Tiny sackboy agents sitting on their countries on the globe */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none z-[6]">
+        {countries.map((country) => (
+          <button
+            key={country.name}
+            type="button"
+            ref={(el) => { overlayRefs.current[country.name] = el }}
+            onClick={() => handleGlobeClick(country)}
+            className="globe-sackboy group"
+            style={{ opacity: 0 }}
+            title={country.unlocked ? `Fly to ${country.name}` : `Recruit ${country.name}`}
+          >
+            <SackboyCharacter
+              country={country.name}
+              size={42}
+              state={
+                celebrating === country.name
+                  ? 'dance'
+                  : country.unlocked
+                    ? 'wave'
+                    : 'locked'
+              }
+              hoverDance={country.unlocked}
+            />
+            <span
+              className="globe-sackboy__label block text-center -mt-1 font-mono text-[8px] font-bold uppercase tracking-widest text-[#C9A84C] drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]"
+            >
+              {country.name}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {/* Header */}
+      <header className="absolute top-0 left-0 right-0 flex items-center justify-between px-6 py-5 pointer-events-none z-10">
         <div className="pointer-events-auto">
-          <h1 className="font-display text-3xl font-extrabold tracking-wide drop-shadow-md">
-            <span className="text-white">Lang</span>
-            <span className="text-[#58CC02]">tour</span>
+          <h1 className="font-display text-3xl font-bold tracking-wider text-[#C9A84C] animate-gold-shimmer drop-shadow-[0_0_12px_rgba(201,168,76,0.3)]">
+            LANGTOUR
           </h1>
-          <p className="text-xs text-white/60 font-bold tracking-[0.2em] uppercase">
-            Speak the world
+          <p className="font-mono text-[9px] text-[#C9A84C]/40 tracking-[0.45em] uppercase mt-0.5">
+            A Very Serious Spy Academy™
           </p>
         </div>
 
         <div className="pointer-events-auto flex items-center gap-3">
-          <div className="flex items-center gap-2 rounded-full bg-[#1F2937] border-2 border-[#37464F] px-4 py-2.5 shadow-md">
-            <span className="text-lg">{'\u{1F30D}'}</span>
-            <span className="font-display text-sm font-extrabold text-white">
-              Level {unlockedCountries.length}
+          {/* Field rank */}
+          <div className="flex items-center gap-2 bg-[#0D0B08] rounded-2xl border-[2.5px] border-[#C9A84C]/30 px-4 py-2 shadow-[inset_0_0_8px_rgba(0,0,0,0.5)]">
+            <span className="font-mono text-[9px] text-[#C9A84C]/35 tracking-widest uppercase">Agents</span>
+            <span className="font-display text-sm font-bold text-[#C9A84C] ml-1">
+              {unlockedCountries.length}
             </span>
           </div>
 
-          <div className="flex items-center gap-2.5 rounded-full bg-[#1F2937] border-2 border-[#37464F] px-5 py-2.5 shadow-md">
+          {/* Token / ducat counter */}
+          <div className="flex items-center gap-2.5 bg-[#0D0B08] rounded-2xl border-[2.5px] border-[#C9A84C]/30 px-5 py-2 shadow-[inset_0_0_8px_rgba(0,0,0,0.5)]">
             <CoinIcon />
-            <span className="font-display text-xl font-extrabold tabular-nums text-white">
+            <span className="font-display text-xl font-bold tabular-nums text-[#C9A84C]">
               {tokens}
             </span>
-            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
-              tokens
+            <span className="font-mono text-[9px] text-[#C9A84C]/35 uppercase tracking-widest">
+              ducats
             </span>
           </div>
         </div>
       </header>
 
-      <aside className="absolute top-1/2 left-6 -translate-y-1/2 w-64 rounded-3xl bg-[#1F2937] border-2 border-[#37464F] p-4 pointer-events-auto shadow-xl">
-        <h2 className="font-display text-sm font-extrabold uppercase tracking-widest text-gray-400 mb-3 px-1">
-          Choose a Country
-        </h2>
-        <ul className="flex flex-col gap-2">
-          {countries.map((country) => (
-            <li key={country.name}>
-              <button
-                type="button"
-                disabled={isTraveling || (!country.unlocked && tokens < UNLOCK_COST)}
-                onClick={() => handleSelectCountry(country)}
-                title={
-                  country.unlocked
-                    ? `Travel to ${country.name}`
-                    : tokens >= UNLOCK_COST
-                      ? `Unlock ${country.name}`
-                      : 'Not enough tokens'
-                }
-                className={
-                  'w-full flex items-center justify-between rounded-2xl px-3 py-2.5 text-left transition-all duration-150 border-2 ' +
-                  (country.unlocked
-                    ? 'bg-[#58CC02] hover:bg-[#61D908] active:translate-y-0.5 cursor-pointer text-white font-extrabold border-[#46A302] border-b-4 active:border-b-2' +
-                      (glowCountry === country.name ? ' animate-country-glow' : '')
-                    : 'bg-[#1F2937] text-gray-600 cursor-not-allowed border-[#37464F]')
-                }
-              >
-                <span className="flex items-center gap-2.5">
-                  <span className={'text-xl transition-opacity' + (country.unlocked ? '' : ' opacity-50 grayscale')}>
-                    {country.flag}
+      {/* Country selection — agent roster panel */}
+      <aside className="absolute top-1/2 left-6 -translate-y-1/2 w-64 max-h-[88vh] overflow-y-auto pointer-events-auto z-10 rounded-[28px] shadow-[5px_6px_0_rgba(0,0,0,0.8),_0_0_28px_rgba(0,0,0,0.6)]"
+        style={{ background: 'linear-gradient(160deg, #1A1208 0%, #0D0A05 100%)', border: '3px solid rgba(201,168,76,0.3)' }}
+      >
+        <div className="p-3.5">
+          <div className="flex items-center gap-2 mb-3 mt-1">
+            <div className="flex-1 h-px bg-[#C9A84C]/15" />
+            <span className="font-display text-[10px] font-bold uppercase tracking-[0.3em] text-[#C9A84C]/55 px-1">
+              Agent Roster
+            </span>
+            <div className="flex-1 h-px bg-[#C9A84C]/15" />
+          </div>
+
+          <ul className="flex flex-col gap-2.5">
+            {countries.map((country) => (
+              <li key={country.name}>
+                <button
+                  type="button"
+                  disabled={isTraveling || (!country.unlocked && tokens < UNLOCK_COST)}
+                  onClick={() => handleSelectCountry(country)}
+                  title={
+                    country.unlocked
+                      ? `Deploy to ${country.name}`
+                      : tokens >= UNLOCK_COST
+                        ? `Recruit ${country.name}`
+                        : 'Not enough ducats'
+                  }
+                  className={
+                    'group btn-chunky w-full flex flex-col items-center gap-1 px-3 pt-2.5 pb-3 rounded-2xl text-center disabled:cursor-not-allowed border-[2.5px] ' +
+                    (country.unlocked
+                      ? 'bg-[radial-gradient(circle_at_50%_0%,_rgba(201,168,76,0.16),_transparent_70%)] border-[#C9A84C]/45 hover:border-[#C9A84C]/80 text-[#F5F0E8] cursor-pointer '
+                        + (glowCountry === country.name ? 'animate-country-glow' : '')
+                      : 'bg-[#0D0A05]/60 border-[#3D2E0D]/55 text-[#5A4A2A]')
+                  }
+                >
+                  <SackboyCharacter
+                    country={country.name}
+                    size={54}
+                    state={country.unlocked ? 'wave' : 'locked'}
+                    hoverDance={country.unlocked}
+                  />
+                  <span className="font-display text-sm font-bold tracking-wide leading-none">
+                    {country.name}
                   </span>
-                  <span className="font-display font-extrabold">{country.name}</span>
-                </span>
-                {country.unlocked ? (
-                  <span className="text-[10px] uppercase tracking-wide text-white/80 font-extrabold">
-                    Unlocked
-                  </span>
-                ) : (
-                  <span className="text-gray-600">
-                    <LockIcon />
-                  </span>
-                )}
-              </button>
-            </li>
-          ))}
-        </ul>
+                  {country.unlocked ? (
+                    <span className="flex items-center gap-1 font-mono text-[8px] uppercase tracking-widest text-[#6EE7B7]">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#6EE7B7] shadow-[0_0_6px_#6EE7B7]" />
+                      On Duty
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1 font-mono text-[8px] uppercase tracking-widest text-[#8B6914]">
+                      <LockIcon />
+                      {UNLOCK_COST} ducats
+                    </span>
+                  )}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
       </aside>
 
+      {/* Travel status */}
       {isTraveling && !showFlash && (
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 px-5 py-2 rounded-full bg-[#1F2937] border-2 border-[#37464F] shadow-md text-sm font-extrabold tracking-wide font-display text-white animate-pulse pointer-events-none">
+        <div
+          className="absolute bottom-10 left-1/2 -translate-x-1/2 px-6 py-2.5 bg-[#0D0B08] rounded-full border-[2.5px] border-[#C9A84C]/35 font-display font-bold text-sm text-[#C9A84C] tracking-widest uppercase animate-pulse pointer-events-none shadow-[0_0_16px_rgba(201,168,76,0.18)]"
+        >
           {travelLabel}
         </div>
       )}
 
+      {/* Unlock confirm modal */}
       {pendingCountry && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/50 pointer-events-auto animate-overlay-fade">
-          <div className="animate-modal-pop w-80 rounded-3xl bg-[#1F2937] border-2 border-[#37464F] p-7 text-center shadow-2xl">
-            <div className="text-4xl mb-3">{pendingCountry.flag}</div>
-            <h3 className="font-display text-xl font-extrabold mb-2 text-white">
-              Unlock {pendingCountry.name}?
+        <div className="absolute inset-0 flex items-center justify-center bg-black/65 pointer-events-auto animate-overlay-fade z-20">
+          <div
+            className="animate-modal-pop w-80 p-7 text-center rounded-[28px] shadow-[0_0_60px_rgba(0,0,0,0.9)]"
+            style={{ background: '#0D0B08', border: '3px solid rgba(201,168,76,0.32)' }}
+          >
+            <div className="flex justify-center mb-2">
+              <SackboyCharacter country={pendingCountry.name} size={92} state="locked" />
+            </div>
+            <h3 className="font-display text-lg font-bold mb-2 text-[#F5F0E8] tracking-wider">
+              Recruit the {pendingCountry.name} agent?
             </h3>
-            <p className="text-sm text-gray-400 font-medium mb-6">
-              This will cost <span className="text-white font-extrabold">{UNLOCK_COST} tokens</span>.
+            <p className="font-mono text-sm text-[#8B7355] mb-6">
+              Springs them from the bench for{' '}
+              <span className="font-bold text-[#C9A84C]">{UNLOCK_COST} ducats</span>
             </p>
             <div className="flex gap-3">
               <button
                 type="button"
                 onClick={() => setPendingCountry(null)}
-                className="flex-1 py-2.5 rounded-2xl bg-[#1F2937] hover:bg-[#28323c] border-2 border-[#37464F] border-b-4 active:border-b-2 active:translate-y-0.5 transition-all font-display font-extrabold uppercase tracking-wide text-gray-400"
+                className="btn-chunky flex-1 py-2.5 rounded-2xl bg-transparent border-[2.5px] border-[#3D2E0D] hover:border-[#C9A84C]/30 font-display font-bold text-sm text-[#5A4A2A] hover:text-[#C9A84C]/60 uppercase tracking-wider"
               >
-                Cancel
+                Not Yet
               </button>
               <button
                 type="button"
                 onClick={handleConfirmUnlock}
-                className="flex-1 py-2.5 rounded-2xl bg-[#58CC02] hover:bg-[#61D908] border-2 border-[#46A302] border-b-4 active:border-b-2 active:translate-y-0.5 transition-all text-white font-display font-extrabold uppercase tracking-wide"
+                className="btn-chunky flex-1 py-2.5 rounded-2xl bg-[#C9A84C]/12 border-[2.5px] border-[#C9A84C]/55 hover:bg-[#C9A84C]/20 font-display font-bold text-sm text-[#C9A84C] uppercase tracking-wider"
               >
-                Confirm
+                Recruit!
               </button>
             </div>
           </div>

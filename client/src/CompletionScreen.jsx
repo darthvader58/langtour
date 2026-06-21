@@ -15,52 +15,58 @@ export default function CompletionScreen({ country, flag, onReturn }) {
   }, [])
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden text-white font-sans animate-overlay-fade">
-      <div className={`absolute inset-0 bg-gradient-to-b ${character.gradient} opacity-80`} />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_15%,_rgba(0,0,0,0.88)_100%)]" />
+    <div className="relative w-screen h-screen overflow-hidden text-[#F5F0E8] font-mono animate-overlay-fade">
+      <div className={`absolute inset-0 bg-gradient-to-b ${character.gradient} opacity-70`} />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_15%,_rgba(0,0,0,0.9)_100%)]" />
+
+      {/* Grain */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-[0.025]"
+        style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(201,168,76,0.08) 3px, rgba(201,168,76,0.08) 4px)' }}
+      />
 
       <div className="relative z-10 flex flex-col items-center justify-center text-center h-full max-w-lg mx-auto px-8">
-        {/* Passport stamp */}
+        {/* Passport stamp ring */}
         <div className={`mb-8 ${showStamp ? 'animate-stamp' : 'opacity-0'}`}>
-          <div className="relative w-40 h-40 rounded-full border-[8px] border-[#58CC02] flex flex-col items-center justify-center bg-[#0F1418]/90 shadow-[0_0_60px_rgba(88,204,2,0.45)]">
+          <div className="relative w-40 h-40 rounded-full border-[6px] border-[#C9A84C] flex flex-col items-center justify-center bg-[#0A0805]/90 shadow-[0_0_50px_rgba(201,168,76,0.35)]">
             <span className="text-5xl">{flag}</span>
-            <span className="font-display text-[9px] font-extrabold uppercase tracking-[0.25em] text-[#58CC02] mt-1.5">
+            <span className="font-display text-[9px] font-bold uppercase tracking-[0.25em] text-[#C9A84C] mt-1.5">
               Mastered
             </span>
-            <div className="absolute inset-2 rounded-full border border-[#58CC02]/30" />
+            <div className="absolute inset-2 rounded-full border border-[#C9A84C]/25" />
           </div>
         </div>
 
         <div
-          className="font-display text-[11px] font-extrabold uppercase tracking-[0.35em] text-white/40 mb-2 animate-fade-in-up"
+          className="font-mono text-[10px] font-bold uppercase tracking-[0.4em] text-[#C9A84C]/40 mb-2 animate-fade-in-up"
           style={{ animationDelay: '0.1s' }}
         >
           Mission Complete
         </div>
 
         <h2
-          className="font-display text-4xl font-extrabold text-white mb-2 animate-fade-in-up"
+          className="font-display text-4xl font-bold text-[#F5F0E8] mb-2 tracking-wider animate-fade-in-up"
           style={{ animationDelay: '0.2s' }}
         >
-          {country} <span className="text-[#58CC02]">Mastered!</span>
+          {country} <span className="text-[#C9A84C]">Mastered</span>
         </h2>
 
         <p
-          className="text-gray-400 font-medium mb-10 animate-fade-in-up"
+          className="text-[#8B7355] text-sm mb-10 animate-fade-in-up"
           style={{ animationDelay: '0.35s' }}
         >
-          You've completed all scenarios as a {character.type}.
+          All scenarios completed as a {character.type}.
         </p>
 
         {showReward && (
-          <div className="flex items-center gap-4 rounded-3xl bg-[#1F2937]/80 backdrop-blur border-2 border-[#37464F] px-8 py-5 mb-10 animate-token-pop shadow-xl">
+          <div className="flex items-center gap-4 bg-[#0D0B06]/80 border border-[#C9A84C]/30 px-8 py-5 mb-10 animate-token-pop shadow-[0_0_30px_rgba(201,168,76,0.1)]">
             <span className="text-4xl">🪙</span>
             <div className="text-left">
-              <div className="font-display text-3xl font-extrabold text-[#FFC800]">
+              <div className="font-display text-3xl font-bold text-[#C9A84C]">
                 +{REWARD_TOKENS}
               </div>
-              <div className="text-xs text-gray-400 font-bold uppercase tracking-widest">
-                Tokens Earned
+              <div className="font-mono text-[10px] text-[#8B7355] uppercase tracking-widest">
+                Ducats Earned
               </div>
             </div>
           </div>
@@ -70,7 +76,7 @@ export default function CompletionScreen({ country, flag, onReturn }) {
           <button
             type="button"
             onClick={onReturn}
-            className="animate-fade-in-up px-10 py-4 rounded-2xl bg-[#58CC02] hover:bg-[#61D908] border-2 border-[#46A302] border-b-4 active:border-b-2 active:translate-y-0.5 transition-all text-white font-display font-extrabold text-lg uppercase tracking-widest shadow-2xl"
+            className="animate-fade-in-up px-10 py-4 bg-[#C9A84C]/10 border border-[#C9A84C]/50 hover:bg-[#C9A84C]/20 transition-all font-display font-bold text-[#C9A84C] text-lg uppercase tracking-widest shadow-[0_0_30px_rgba(201,168,76,0.1)]"
           >
             Return to Globe
           </button>
