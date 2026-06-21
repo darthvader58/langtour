@@ -37,3 +37,8 @@ build
 
 # Data directories
 voice-audio/
+
+# Database
+*.db
+*.db-shm
+*.db-wal
