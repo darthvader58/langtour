@@ -133,7 +133,7 @@ function LockIcon() {
 
 function CoinIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="w-6 h-6 pulse-glow-gold" fill="none">
+    <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none">
       <defs>
         <radialGradient id="coinGradient" cx="35%" cy="30%" r="70%">
           <stop offset="0%" stopColor="#fff6c8" />
@@ -470,30 +470,31 @@ export default function LandingPage({ onCountrySelect }) {
 
       <header className="absolute top-0 left-0 right-0 flex items-center justify-between p-6 pointer-events-none">
         <div className="pointer-events-auto">
-          <h1 className="font-display text-3xl font-bold tracking-wide text-gradient-animated drop-shadow-lg">
-            Langtour
+          <h1 className="font-display text-3xl font-extrabold tracking-wide drop-shadow-md">
+            <span className="text-white">Lang</span>
+            <span className="text-[#58CC02]">tour</span>
           </h1>
-          <p className="text-xs text-white/50 tracking-[0.2em] uppercase">
+          <p className="text-xs text-white/60 font-bold tracking-[0.2em] uppercase">
             Speak the world
           </p>
         </div>
 
-        <div className="pointer-events-auto flex items-center gap-2.5 rounded-full bg-gradient-to-br from-white/10 to-white/[0.03] border border-yellow-300/20 backdrop-blur-xl px-5 py-2.5 shadow-[0_0_25px_-5px_rgba(250,204,21,0.4)]">
+        <div className="pointer-events-auto flex items-center gap-2.5 rounded-full bg-[#1F2937] border-2 border-[#37464F] px-5 py-2.5 shadow-md">
           <CoinIcon />
-          <span className="font-display text-xl font-bold tabular-nums text-yellow-200">
+          <span className="font-display text-xl font-extrabold tabular-nums text-white">
             {tokens}
           </span>
-          <span className="text-[10px] text-white/45 uppercase tracking-widest">
+          <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
             tokens
           </span>
         </div>
       </header>
 
-      <aside className="absolute top-1/2 left-6 -translate-y-1/2 w-64 rounded-2xl bg-white/[0.06] border border-white/15 backdrop-blur-2xl shadow-[0_8px_40px_rgba(0,0,0,0.5)] p-4 pointer-events-auto">
-        <h2 className="font-display text-sm uppercase tracking-widest text-white/50 mb-3 px-1">
+      <aside className="absolute top-1/2 left-6 -translate-y-1/2 w-64 rounded-3xl bg-[#1F2937] border-2 border-[#37464F] p-4 pointer-events-auto shadow-xl">
+        <h2 className="font-display text-sm font-extrabold uppercase tracking-widest text-gray-400 mb-3 px-1">
           Choose a Country
         </h2>
-        <ul className="flex flex-col gap-1.5">
+        <ul className="flex flex-col gap-2">
           {COUNTRIES.map((country) => (
             <li key={country.name}>
               <button
@@ -502,24 +503,24 @@ export default function LandingPage({ onCountrySelect }) {
                 onClick={() => handleSelectCountry(country)}
                 title={country.unlocked ? `Unlock ${country.name}` : 'Coming soon'}
                 className={
-                  'w-full flex items-center justify-between rounded-xl px-3 py-2.5 text-left transition-all duration-200 border ' +
+                  'w-full flex items-center justify-between rounded-2xl px-3 py-2.5 text-left transition-all duration-150 border-2 ' +
                   (country.unlocked
-                    ? 'bg-emerald-400/10 hover:bg-emerald-400/20 hover:scale-[1.03] cursor-pointer text-white border-emerald-300/40 pulse-glow-green'
-                    : 'bg-red-500/[0.06] text-white/35 cursor-not-allowed border-red-500/15')
+                    ? 'bg-[#58CC02] hover:bg-[#61D908] active:translate-y-0.5 cursor-pointer text-white font-extrabold border-[#46A302] border-b-4 active:border-b-2'
+                    : 'bg-[#1F2937] text-gray-600 cursor-not-allowed border-[#37464F]')
                 }
               >
                 <span className="flex items-center gap-2.5">
-                  <span className={'text-xl transition-opacity' + (country.unlocked ? '' : ' opacity-40 grayscale')}>
+                  <span className={'text-xl transition-opacity' + (country.unlocked ? '' : ' opacity-50 grayscale')}>
                     {country.flag}
                   </span>
-                  <span className="font-medium">{country.name}</span>
+                  <span className="font-display font-extrabold">{country.name}</span>
                 </span>
                 {country.unlocked ? (
-                  <span className="text-[10px] uppercase tracking-wide text-emerald-300 font-semibold">
+                  <span className="text-[10px] uppercase tracking-wide text-white/80 font-extrabold">
                     Unlocked
                   </span>
                 ) : (
-                  <span className="text-red-400/70">
+                  <span className="text-gray-600">
                     <LockIcon />
                   </span>
                 )}
