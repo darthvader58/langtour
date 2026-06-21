@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { CHARACTERS, SCENARIOS_BY_COUNTRY, SPECIAL_SCENARIO_BY_COUNTRY, levelForCompleted } from './gameData'
+import MissionBriefing from './components/MissionBriefing'
 
 function LockIcon({ className = 'w-6 h-6' }) {
   return (
@@ -69,7 +70,8 @@ function ScenarioCard({ scenario, unlocked, progress, completed, index, onClick 
               : 'border-[#37464F] cursor-not-allowed'))
       }
     >
-      <div className={unlocked ? '' : 'opacity-40 grayscale'}>
+      {!isSpecial && <div className={`scenario-bg scenario-bg--${scenario.id}`} />}
+      <div className={unlocked ? 'relative z-10' : 'relative z-10 opacity-40 grayscale'}>
         <div
           className={
             'flex h-12 w-12 items-center justify-center rounded-2xl text-3xl mb-4 ' +
@@ -198,7 +200,8 @@ function CharacterBadge({ country, progress }) {
 }
 
 export default function ScenariosPage({ country = 'China', flag, progress, onBack, onScenarioStart }) {
-  const [activeScenario, setActiveScenario] = useState(null)
+  const [activeScenario, setActiveScenario]   = useState(null)
+  const [missionScenario, setMissionScenario] = useState(null)
 
   const scenarios = SCENARIOS_BY_COUNTRY[country] ?? []
   const specialScenario = SPECIAL_SCENARIO_BY_COUNTRY[country]
@@ -218,6 +221,12 @@ export default function ScenariosPage({ country = 'China', flag, progress, onBac
     const scenario = activeScenario
     if (!scenario) return
     setActiveScenario(null)
+    setMissionScenario(scenario)
+  }
+
+  function handleAcceptMission() {
+    const scenario = missionScenario
+    setMissionScenario(null)
     onScenarioStart?.(scenario)
   }
 
@@ -286,6 +295,15 @@ export default function ScenariosPage({ country = 'China', flag, progress, onBac
           scenario={activeScenario}
           onClose={() => setActiveScenario(null)}
           onStart={handleStartScenario}
+        />
+      )}
+
+      {missionScenario && (
+        <MissionBriefing
+          scenario={missionScenario}
+          country={country}
+          onAccept={handleAcceptMission}
+          onCancel={() => setMissionScenario(null)}
         />
       )}
     </div>
