@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import LandingPage from './LandingPage'
 import ScenariosPage from './ScenariosPage'
 import VoiceTestPage from './pages/VoiceTestPage'
+import ScenarioRunner from './components/ScenarioRunner'
 import CharacterStoryPopup from './CharacterStoryPopup'
 import LevelUpAnimation from './components/LevelUpAnimation'
 import PassportStamp from './components/PassportStamp'
@@ -14,6 +15,7 @@ const STARTING_TOKENS = 100
 
 function App() {
   const [selectedCountry,    setSelectedCountry]    = useState(null)
+  const [activeScenario,     setActiveScenario]      = useState(null)
   const [hash,               setHash]                = useState(window.location.hash)
   const [tokens,             setTokens]              = useState(STARTING_TOKENS)
   const [unlockedCountries,  setUnlockedCountries]   = useState(['China'])
@@ -82,6 +84,20 @@ function App() {
     showNextPostScreen(queue)
   }
 
+  // Launch a scenario into the ScenarioRunner gameplay (from feat/lessons)
+  function handleScenarioStart(scenario) {
+    setActiveScenario(scenario)
+  }
+
+  // Called by ScenarioRunner/GameplayPhase when the mission ends
+  function handleEndScenario(result) {
+    const scenario = activeScenario
+    setActiveScenario(null)
+    if (scenario && result?.completed) {
+      handleCompleteScenario(scenario)
+    }
+  }
+
   function handleLevelUpDone() {
     setLevelUpData(null)
     showNextPostScreen(postQueue)
@@ -119,6 +135,15 @@ function App() {
     )
   }
 
+  if (activeScenario) {
+    return (
+      <ScenarioRunner
+        scenario={activeScenario}
+        onEndScenario={handleEndScenario}
+      />
+    )
+  }
+
   if (selectedCountry && !storySeen.includes(selectedCountry)) {
     return (
       <CharacterStoryPopup
@@ -134,7 +159,7 @@ function App() {
         country={selectedCountry}
         progress={getProgress(selectedCountry)}
         onBack={() => setSelectedCountry(null)}
-        onScenarioStart={handleCompleteScenario}
+        onScenarioStart={handleScenarioStart}
       />
     )
   }

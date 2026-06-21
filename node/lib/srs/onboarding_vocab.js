@@ -1,0 +1,156 @@
+// Curated Mandarin starter vocabulary by skill level. Drawn from HSK 1–4 frequency
+// lists, kept short and broadly useful. The onboarding endpoint inserts a slice of
+// the appropriate level into the user's deck. Topic tags let us bias selection
+// toward what the user said they're interested in (food/travel/work/media).
+
+export const STARTER_VOCAB = {
+  beginner: [
+    // Greetings & basics
+    ['你好', 'nǐ hǎo', 'hello', ['greet']],
+    ['谢谢', 'xièxie', 'thank you', ['greet']],
+    ['再见', 'zàijiàn', 'goodbye', ['greet']],
+    ['对不起', 'duìbuqǐ', "I'm sorry", ['greet']],
+    ['不客气', 'bú kèqi', "you're welcome", ['greet']],
+    // People & pronouns
+    ['我', 'wǒ', 'I / me', ['core']],
+    ['你', 'nǐ', 'you', ['core']],
+    ['他', 'tā', 'he / him', ['core']],
+    ['她', 'tā', 'she / her', ['core']],
+    ['朋友', 'péngyǒu', 'friend', ['social']],
+    // Verbs
+    ['吃', 'chī', 'to eat', ['food']],
+    ['喝', 'hē', 'to drink', ['food']],
+    ['看', 'kàn', 'to look / watch', ['media']],
+    ['听', 'tīng', 'to listen', ['media']],
+    ['说', 'shuō', 'to speak', ['core']],
+    ['去', 'qù', 'to go', ['travel']],
+    ['来', 'lái', 'to come', ['travel']],
+    // Objects
+    ['水', 'shuǐ', 'water', ['food']],
+    ['茶', 'chá', 'tea', ['food']],
+    ['饭', 'fàn', 'rice / meal', ['food']],
+    ['书', 'shū', 'book', ['media']],
+    // Places
+    ['家', 'jiā', 'home / family', ['social']],
+    ['学校', 'xuéxiào', 'school', ['core']],
+    // Adjectives & basics
+    ['好', 'hǎo', 'good / well', ['core']],
+    ['大', 'dà', 'big', ['core']],
+    ['小', 'xiǎo', 'small', ['core']],
+    // Time
+    ['今天', 'jīntiān', 'today', ['core']],
+    ['明天', 'míngtiān', 'tomorrow', ['core']],
+    // Numbers
+    ['一', 'yī', 'one', ['core']],
+    ['二', 'èr', 'two', ['core']],
+  ],
+  intermediate: [
+    ['因为', 'yīnwèi', 'because', ['core']],
+    ['所以', 'suǒyǐ', 'therefore', ['core']],
+    ['但是', 'dànshì', 'but / however', ['core']],
+    ['如果', 'rúguǒ', 'if', ['core']],
+    ['已经', 'yǐjīng', 'already', ['core']],
+    ['正在', 'zhèngzài', 'in the middle of …ing', ['core']],
+    ['可能', 'kěnéng', 'possibly / maybe', ['core']],
+    ['决定', 'juédìng', 'to decide', ['core']],
+    ['希望', 'xīwàng', 'to hope', ['core']],
+    ['觉得', 'juéde', 'to feel / to think', ['core']],
+    ['办公室', 'bàngōngshì', 'office', ['work']],
+    ['会议', 'huìyì', 'meeting', ['work']],
+    ['项目', 'xiàngmù', 'project', ['work']],
+    ['同事', 'tóngshì', 'colleague', ['work']],
+    ['火车', 'huǒchē', 'train', ['travel']],
+    ['飞机', 'fēijī', 'airplane', ['travel']],
+    ['酒店', 'jiǔdiàn', 'hotel', ['travel']],
+    ['护照', 'hùzhào', 'passport', ['travel']],
+    ['菜单', 'càidān', 'menu', ['food']],
+    ['餐厅', 'cāntīng', 'restaurant', ['food']],
+    ['味道', 'wèidào', 'flavor / taste', ['food']],
+    ['辣', 'là', 'spicy', ['food']],
+    ['电影', 'diànyǐng', 'movie', ['media']],
+    ['歌曲', 'gēqǔ', 'song', ['media']],
+    ['歌手', 'gēshǒu', 'singer', ['media']],
+    ['音乐', 'yīnyuè', 'music', ['media']],
+    ['故事', 'gùshi', 'story', ['media']],
+    ['有趣', 'yǒuqù', 'interesting', ['core']],
+    ['重要', 'zhòngyào', 'important', ['core']],
+    ['马上', 'mǎshàng', 'right away', ['core']],
+  ],
+  advanced: [
+    ['尽管', 'jǐnguǎn', 'even though', ['core']],
+    ['毕竟', 'bìjìng', 'after all', ['core']],
+    ['似乎', 'sìhū', 'seems as if', ['core']],
+    ['倾向', 'qīngxiàng', 'tendency / to lean toward', ['core']],
+    ['差异', 'chāyì', 'difference', ['core']],
+    ['本质', 'běnzhì', 'essence / nature', ['core']],
+    ['现象', 'xiànxiàng', 'phenomenon', ['core']],
+    ['趋势', 'qūshì', 'trend', ['work']],
+    ['策略', 'cèlüè', 'strategy', ['work']],
+    ['资源', 'zīyuán', 'resource', ['work']],
+    ['谈判', 'tánpàn', 'negotiation', ['work']],
+    ['投资', 'tóuzī', 'investment', ['work']],
+    ['企业', 'qǐyè', 'enterprise', ['work']],
+    ['行业', 'hángyè', 'industry', ['work']],
+    ['市场', 'shìchǎng', 'market', ['work']],
+    ['传统', 'chuántǒng', 'tradition', ['social']],
+    ['文化', 'wénhuà', 'culture', ['social']],
+    ['价值观', 'jiàzhíguān', 'values / value system', ['social']],
+    ['观点', 'guāndiǎn', 'point of view', ['core']],
+    ['争论', 'zhēnglùn', 'debate', ['core']],
+    ['批评', 'pīpíng', 'criticism', ['core']],
+    ['赞美', 'zànměi', 'to praise', ['core']],
+    ['启发', 'qǐfā', 'inspiration', ['core']],
+    ['贡献', 'gòngxiàn', 'contribution', ['core']],
+    ['履行', 'lǚxíng', 'to fulfill / carry out', ['core']],
+    ['经历', 'jīnglì', 'experience (n./v.)', ['core']],
+    ['享受', 'xiǎngshòu', 'to enjoy', ['core']],
+    ['挑战', 'tiǎozhàn', 'challenge', ['core']],
+    ['机会', 'jīhuì', 'opportunity', ['core']],
+    ['追求', 'zhuīqiú', 'to pursue', ['core']],
+  ],
+};
+
+export const VALID_LEVELS = ['beginner', 'intermediate', 'advanced'];
+export const VALID_TOPICS = ['food', 'travel', 'work', 'media', 'social'];
+
+export const BEGINNER_SCENE_PACKS = [
+  {
+    key: 'people',
+    label: 'Meet someone',
+    expressions: ['我', '你', '他', '她', '朋友', '你好'],
+    examples: {
+      我: ['我是学生。', 'I am a student.'],
+      你: ['你好吗？', 'How are you?'],
+      他: ['他是我的朋友。', 'He is my friend.'],
+      她: ['她是我的朋友。', 'She is my friend.'],
+      朋友: ['这是我的朋友。', 'This is my friend.'],
+      你好: ['你好！', 'Hello!'],
+    },
+  },
+  {
+    key: 'drink',
+    label: 'Choose a drink',
+    expressions: ['喝', '水', '茶', '吃', '饭', '好'],
+    examples: {
+      喝: ['我喝水。', 'I drink water.'],
+      水: ['我要水。', 'I would like water.'],
+      茶: ['我要喝茶。', 'I would like to drink tea.'],
+      吃: ['我吃饭。', 'I eat a meal.'],
+      饭: ['这个饭很好。', 'This meal is good.'],
+      好: ['这个茶很好。', 'This tea is good.'],
+    },
+  },
+  {
+    key: 'movement',
+    label: 'Go somewhere',
+    expressions: ['去', '来', '家', '学校', '今天', '明天'],
+    examples: {
+      去: ['我去学校。', 'I go to school.'],
+      来: ['你来我家。', 'You come to my home.'],
+      家: ['我回家。', 'I go home.'],
+      学校: ['学校很大。', 'The school is big.'],
+      今天: ['我今天去学校。', 'I go to school today.'],
+      明天: ['我明天回家。', 'I go home tomorrow.'],
+    },
+  },
+];
