@@ -55,7 +55,7 @@ function TypewriterLine({ text, delay = 0, speed = 22, className = '' }) {
 
 export default function MissionBriefing({ scenario, country, onAccept, onCancel }) {
   const meta = SCENARIO_META[scenario.id] ?? {
-    classification: 'CLASSIFIED', difficulty: 3, time: '10 min', location: 'UNKNOWN LOCATION',
+    classification: 'CLASSIFIED', difficulty: 3, time: '10 min', location: `${country.toUpperCase()} SECTOR`,
   }
   const [showButton, setShowButton] = useState(false)
   const [showStamp, setShowStamp] = useState(false)
@@ -176,7 +176,7 @@ export default function MissionBriefing({ scenario, country, onAccept, onCancel 
                 <div key={i} className="flex items-center gap-2">
                   <span className="text-[#C9A84C]/25 font-mono text-xs">›</span>
                   <span className="font-mono text-xs text-[#8B7355]">{word.en}</span>
-                  <span className="font-display text-sm text-[#C9A84C] ml-1">{word.zh}</span>
+                  <span className="font-display text-sm text-[#C9A84C] ml-1">{word.native ?? word.zh}</span>
                 </div>
               ))}
             </div>

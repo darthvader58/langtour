@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { CHARACTERS, SCENARIOS_BY_COUNTRY, SPECIAL_SCENARIO_BY_COUNTRY, levelForCompleted } from './gameData'
+import { CHARACTERS, COUNTRY_THEMES, SCENARIOS_BY_COUNTRY, SPECIAL_SCENARIO_BY_COUNTRY, levelForCompleted } from './gameData'
 import MissionBriefing from './components/MissionBriefing'
 import SackboyCharacter from './components/SackboyCharacter'
 
@@ -41,7 +41,7 @@ function CrownIcon({ className = 'w-8 h-8' }) {
   )
 }
 
-function HudProgressBar({ progress, gold }) {
+function HudProgressBar({ progress, gold, accent = '#C9A84C' }) {
   return (
     <div className="relative h-1 w-full bg-[#1A1208] border border-[#3D2E0D]/50 overflow-hidden">
       <div
@@ -50,8 +50,8 @@ function HudProgressBar({ progress, gold }) {
           width: `${progress}%`,
           background: gold
             ? 'linear-gradient(90deg, #8B6914, #C9A84C, #E8C547)'
-            : 'linear-gradient(90deg, #8B6914, #C9A84C)',
-          boxShadow: `0 0 4px rgba(201,168,76,${gold ? '0.7' : '0.4'})`,
+            : `linear-gradient(90deg, ${accent}77, ${accent})`,
+          boxShadow: `0 0 5px ${gold ? 'rgba(201,168,76,0.7)' : accent + '99'}`,
         }}
       />
     </div>
@@ -60,7 +60,7 @@ function HudProgressBar({ progress, gold }) {
 
 const CARD_ROTATIONS = ['-0.8deg', '0.6deg', '-0.4deg', '0.9deg', '-0.5deg', '0.3deg', '-0.7deg', '0.5deg']
 
-function ScenarioCard({ scenario, unlocked, progress, completed, index, onClick }) {
+function ScenarioCard({ scenario, unlocked, progress, completed, index, onClick, accent = '#C9A84C' }) {
   const isSpecial = Boolean(scenario.special)
   const rotation = isSpecial ? '0deg' : CARD_ROTATIONS[index % CARD_ROTATIONS.length]
 
@@ -93,10 +93,13 @@ function ScenarioCard({ scenario, unlocked, progress, completed, index, onClick 
 
       {/* Card content */}
       <div className={`relative z-10 p-5 ${unlocked ? '' : 'opacity-45 grayscale'}`}>
-        <div className={
-          'flex h-12 w-12 items-center justify-center text-2xl mb-4 rounded-2xl '
-          + (isSpecial ? 'border-[2.5px] border-[#C9A84C]/35 bg-[#C9A84C]/08' : 'border-[2.5px] border-[#3D2E0D] bg-[#0D0A04]')
-        }>
+        <div
+          className={
+            'flex h-12 w-12 items-center justify-center text-2xl mb-4 rounded-2xl border-[2.5px] '
+            + (isSpecial ? 'border-[#C9A84C]/35 bg-[#C9A84C]/08' : 'bg-[#0D0A04]')
+          }
+          style={isSpecial ? undefined : { borderColor: accent + '55' }}
+        >
           {isSpecial ? <CrownIcon /> : <span>{scenario.icon}</span>}
         </div>
 
@@ -108,7 +111,7 @@ function ScenarioCard({ scenario, unlocked, progress, completed, index, onClick 
         </p>
 
         <div className="flex items-center justify-between gap-3">
-          <HudProgressBar progress={progress} gold={isSpecial} />
+          <HudProgressBar progress={progress} gold={isSpecial} accent={accent} />
           <span className="font-mono text-[9px] tabular-nums text-[#4A3A15] shrink-0">{progress}%</span>
         </div>
       </div>
@@ -127,8 +130,8 @@ function ScenarioCard({ scenario, unlocked, progress, completed, index, onClick 
         <div
           className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full animate-wax-pulse"
           style={{
-            background: 'radial-gradient(circle at 35% 30%, #dc2626, #7f1d1d)',
-            boxShadow: '0 0 0 1px rgba(139,0,0,0.5)',
+            background: `radial-gradient(circle at 35% 30%, ${accent}, ${accent}88)`,
+            boxShadow: `0 0 0 1px ${accent}55`,
           }}
         />
       )}
@@ -153,7 +156,7 @@ function ScenarioCard({ scenario, unlocked, progress, completed, index, onClick 
   )
 }
 
-function VocabModal({ scenario, onClose, onStart }) {
+function VocabModal({ scenario, onClose, onStart, accent = '#C9A84C' }) {
   return (
     <div className="absolute inset-0 flex items-center justify-center bg-black/60 pointer-events-auto animate-overlay-fade z-20">
       <div className="animate-modal-pop w-[28rem] max-h-[85vh] overflow-y-auto bg-[#0D0B06] rounded-[26px] border-[3px] border-[#C9A84C]/28 p-7 shadow-[0_0_60px_rgba(0,0,0,0.9)]">
@@ -190,8 +193,8 @@ function VocabModal({ scenario, onClose, onStart }) {
             >
               <span className="font-mono text-xs text-[#8B7355]">{word.en}</span>
               <span className="flex items-baseline gap-2">
-                <span className="font-display text-lg font-bold text-[#F5F0E8]">{word.zh}</span>
-                <span className="font-mono text-xs text-[#C9A84C]/60 italic">{word.pinyin}</span>
+                <span className="font-display text-lg font-bold text-[#F5F0E8]">{word.native ?? word.zh}</span>
+                <span className="font-mono text-xs italic" style={{ color: accent + 'b0' }}>{word.roman ?? word.pinyin}</span>
               </span>
             </li>
           ))}
@@ -200,7 +203,8 @@ function VocabModal({ scenario, onClose, onStart }) {
         <button
           type="button"
           onClick={onStart}
-          className="btn-chunky w-full py-3 rounded-2xl border-[2.5px] border-[#C9A84C]/50 bg-[#C9A84C]/10 hover:bg-[#C9A84C]/18 font-display font-bold text-[#C9A84C] uppercase tracking-widest"
+          className="btn-chunky w-full py-3 rounded-2xl border-[2.5px] font-display font-bold uppercase tracking-widest"
+          style={{ borderColor: accent + '99', background: accent + '1f', color: accent }}
         >
           Start Scenario
         </button>
@@ -209,7 +213,7 @@ function VocabModal({ scenario, onClose, onStart }) {
   )
 }
 
-function CharacterBadge({ country, progress }) {
+function CharacterBadge({ country, progress, accent = '#C9A84C' }) {
   const character = CHARACTERS[country] ?? CHARACTERS.China
   const completedCount = progress.filter((p) => p >= 100).length
   const level = levelForCompleted(completedCount)
@@ -229,14 +233,15 @@ function CharacterBadge({ country, progress }) {
   return (
     <div
       className={
-        'flex items-center gap-2 bg-[#0D0B06] rounded-2xl border-[2.5px] border-[#C9A84C]/30 pl-2 pr-4 py-1.5 '
+        'flex items-center gap-2 bg-[#0D0B06] rounded-2xl border-[2.5px] pl-2 pr-4 py-1.5 '
         + (justLeveledUp ? 'animate-level-up' : '')
       }
+      style={{ borderColor: accent + '55' }}
     >
       <SackboyCharacter country={country} size={36} state="wave" className="shrink-0" />
       <span className="font-mono text-sm text-[#8B7355]">
         {character.type}{' '}
-        <span className="font-display font-bold text-[#C9A84C]">Lv {level}</span>
+        <span className="font-display font-bold" style={{ color: accent }}>Lv {level}</span>
       </span>
     </div>
   )
@@ -250,6 +255,10 @@ export default function ScenariosPage({ country = 'China', progress, onBack, onS
   const specialScenario = SPECIAL_SCENARIO_BY_COUNTRY[country]
   const hasScenarios = scenarios.length > 0
   const allCompleted = hasScenarios && progress.every((p) => p >= 100)
+
+  const theme = COUNTRY_THEMES[country] ?? COUNTRY_THEMES.China
+  const accent = theme.accents[0]
+  const [a1, a2, a3] = theme.accents
 
   function isUnlocked(index) {
     return index === 0 || progress[index - 1] >= 100
@@ -275,6 +284,16 @@ export default function ScenariosPage({ country = 'China', progress, onBack, onS
 
   return (
     <div className="relative w-screen h-screen overflow-y-auto overflow-x-hidden bg-[#0A0A0A] text-[#F5F0E8] font-mono">
+      {/* Country flag accent stripe */}
+      <div
+        className="fixed top-0 left-0 right-0 h-1.5 z-30"
+        style={{ background: `linear-gradient(90deg, ${a1} 0%, ${a1} 33.3%, ${a2} 33.3%, ${a2} 66.6%, ${a3} 66.6%, ${a3} 100%)` }}
+      />
+      {/* Ambient accent glow */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{ background: `radial-gradient(ellipse at 50% -10%, ${accent}1a, transparent 55%)` }}
+      />
       {/* Cartographic grid background */}
       <div
         className="absolute inset-0 pointer-events-none opacity-[0.03]"
@@ -301,11 +320,13 @@ export default function ScenariosPage({ country = 'China', progress, onBack, onS
           <SackboyCharacter country={country} size={56} state="wave" className="shrink-0" />
           <div>
             <h1 className="font-display text-2xl font-bold text-[#F5F0E8] tracking-wider">{country}</h1>
-            <p className="font-mono text-[9px] text-[#C9A84C]/35 uppercase tracking-[0.3em]">Field Operations</p>
+            <p className="font-mono text-[9px] font-bold uppercase tracking-[0.28em]" style={{ color: accent }}>
+              {theme.flavor}
+            </p>
           </div>
         </div>
 
-        <CharacterBadge country={country} progress={progress} />
+        <CharacterBadge country={country} progress={progress} accent={accent} />
       </header>
 
       <main className="relative z-10 px-8 py-8 pb-16">
@@ -321,6 +342,7 @@ export default function ScenariosPage({ country = 'China', progress, onBack, onS
                   unlocked={unlocked}
                   progress={progress[index]}
                   completed={progress[index] >= 100}
+                  accent={accent}
                   onClick={() => handleCardClick(scenario, unlocked)}
                 />
               )
@@ -332,6 +354,7 @@ export default function ScenariosPage({ country = 'China', progress, onBack, onS
                 unlocked={allCompleted}
                 progress={0}
                 completed={false}
+                accent={accent}
                 onClick={() => handleCardClick(specialScenario, allCompleted)}
               />
             )}
@@ -350,6 +373,7 @@ export default function ScenariosPage({ country = 'China', progress, onBack, onS
           scenario={activeScenario}
           onClose={() => setActiveScenario(null)}
           onStart={handleStartScenario}
+          accent={accent}
         />
       )}
 
