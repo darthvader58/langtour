@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "node --test 'test/**/*.test.js'",
+    "test": "node --experimental-test-module-mocks --test 'test/**/*.test.js'",
     "dev": "node server.js",
     "start": "node server.js",
     "migrate:sqlite": "node scripts/migrateSqliteToSupabase.js"
