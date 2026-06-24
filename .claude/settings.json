@@ -1,0 +1,19 @@
+{
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
+  "hooks": {
+    "SubagentStop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '[handoff] subagent done — Orchestrator: invoke code-reviewer on the diff before any commit; then auto-committer on APPROVE. Surface the next queued ticket.'"
+          }
+        ]
+      }
+    ]
+  }
+}

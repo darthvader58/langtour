@@ -45,3 +45,13 @@ voice-audio/
 
 *md
 settings.json
+
+.claude/
+
+# Track project-level Claude config (agent definitions + shared settings),
+# but keep per-machine settings.local.json and any other local-only files out.
+!.claude/
+!.claude/agents/
+!.claude/agents/**
+!.claude/settings.json
+.claude/settings.local.json
