@@ -47,8 +47,10 @@ test('generateText sanity check against MockLanguageModelV3 (confirms test harne
   assert.equal(text, 'hello');
 });
 
-test('generateTurn parses a well-formed model response into the NPC line shape', async () => {
-  const model = mockModel('{ "zh": "你好", "pinyin": "ni hao", "en": "Hello" }');
+test('generateTurn parses a well-formed model response into the npcLine + contract-03 fields', async () => {
+  const model = mockModel(
+    '{ "zh": "你好", "pinyin": "ni hao", "en": "Hello", "expectedIntent": "Greet the vendor back", "sidekickLine": "Wen: nice and easy." }'
+  );
   const result = await generateTurn(
     {
       scenarioContext: 'street market',
@@ -58,7 +60,10 @@ test('generateTurn parses a well-formed model response into the NPC line shape',
     },
     { model }
   );
-  assert.deepEqual(result, { zh: '你好', pinyin: 'ni hao', en: 'Hello' });
+  assert.deepEqual(result.npcLine, { zh: '你好', pinyin: 'ni hao', en: 'Hello' });
+  assert.equal(result.expectedIntent, 'Greet the vendor back');
+  assert.equal(result.sidekickLine, 'Wen: nice and easy.');
+  assert.deepEqual(result.targetWords, [{ id: undefined, expression: '你好', weight: 1 }]);
 });
 
 test('generateTurn falls back to the default NPC line when the model returns no JSON', async () => {
@@ -67,23 +72,35 @@ test('generateTurn falls back to the default NPC line when the model returns no 
     { scenarioContext: 'market', targetWords: [{ expression: 'a', meaning: 'b' }], langCode: 'zh' },
     { model }
   );
-  assert.equal(result.zh, '你好！你想买什么？');
-  assert.equal(result.en, 'Hello! What would you like to buy?');
+  assert.equal(result.npcLine.zh, '你好！你想买什么？');
+  assert.equal(result.npcLine.en, 'Hello! What would you like to buy?');
+  assert.equal(typeof result.expectedIntent, 'string');
+  assert.ok(result.expectedIntent.length > 0);
+  assert.equal(result.sidekickLine, null);
 });
 
-test('evaluateResponse parses a passed verdict from the model', async () => {
-  const model = mockModel('{ "status": "passed", "feedback": "Nice!", "usedWord": "你好" }');
+test('evaluateResponse parses a passed verdict from the model (legacy mirror fields included)', async () => {
+  const model = mockModel(
+    '{ "pass": true, "errorKind": null, "usedWordExpressions": ["你好"], "teachingNote": "Nice greeting!", "sidekickLine": "Wen: that landed well." }'
+  );
   const result = await evaluateResponse(
     {
       scenarioContext: 'market',
-      targetWords: [{ expression: '你好' }],
+      targetWords: [{ id: 1, expression: '你好' }],
       npcLine: { zh: '你好', en: 'Hello' },
+      expectedIntent: 'Greet the shopkeeper',
       userResponse: 'ni hao',
       langCode: 'zh',
     },
-    { model }
+    null,
+    { model, skipCatalogValidation: true }
   );
-  assert.deepEqual(result, { status: 'passed', feedback: 'Nice!', usedWord: '你好' });
+  assert.equal(result.pass, true);
+  assert.equal(result.errorKind, null);
+  assert.deepEqual(result.usedWordIds, [1]);
+  assert.equal(result.status, 'passed');
+  assert.equal(result.feedback, 'Nice greeting!');
+  assert.equal(result.usedWord, '你好');
 });
 
 test('evaluateResponse falls back to a failed verdict when the model returns no JSON', async () => {
@@ -96,9 +113,13 @@ test('evaluateResponse falls back to a failed verdict when the model returns no 
       userResponse: 'huh',
       langCode: 'zh',
     },
+    null,
     { model }
   );
-  assert.deepEqual(result, { status: 'failed', feedback: 'Could not evaluate.', usedWord: null });
+  assert.equal(result.status, 'failed');
+  assert.equal(result.pass, false);
+  assert.equal(result.usedWord, null);
+  assert.deepEqual(result.usedWordIds, []);
 });
 
 test('getSidekick returns the expected shape for a known country code', () => {
@@ -138,14 +159,19 @@ async function importFreshScenarioRoutes() {
   return import(`../routes/scenario.js?contractTest=${routeImportCounter}`);
 }
 
-test("POST /api/scenario/generate returns generateTurn's result verbatim as JSON", async () => {
+test("POST /api/scenario/generate preserves the legacy zh/pinyin/en wire shape (frontend regression)", async () => {
   mock.module(new URL('../lib/auth.js', import.meta.url).href, {
     namedExports: { requireUser: (req, res, next) => { req.userId = 'test-user'; next(); } },
   });
   mock.module(new URL('../lib/ai/index.js', import.meta.url).href, {
     namedExports: {
-      generateTurn: async () => ({ zh: '你好！', pinyin: 'ni hao', en: 'Hello!' }),
-      evaluateResponse: async () => ({ status: 'failed', feedback: 'unused', usedWord: null }),
+      generateTurn: async () => ({
+        npcLine: { zh: '你好！', pinyin: 'ni hao', en: 'Hello!' },
+        sidekickLine: 'Wen: easy does it.',
+        expectedIntent: 'Greet the vendor back',
+        targetWords: [{ id: 1, expression: '你好', weight: 1 }],
+      }),
+      evaluateResponse: async () => ({ status: 'failed', feedback: 'unused', usedWord: null, usedWordIds: [] }),
     },
   });
 
@@ -169,20 +195,38 @@ test("POST /api/scenario/generate returns generateTurn's result verbatim as JSON
     });
     const json = await res.json();
     assert.equal(res.status, 200);
-    assert.deepEqual(json, { zh: '你好！', pinyin: 'ni hao', en: 'Hello!' });
+    // Legacy keys/types — GameplayPhase.jsx reads data.zh/data.pinyin/data.en directly.
+    assert.equal(json.zh, '你好！');
+    assert.equal(json.pinyin, 'ni hao');
+    assert.equal(json.en, 'Hello!');
+    assert.equal(typeof json.zh, 'string');
+    assert.equal(typeof json.pinyin, 'string');
+    assert.equal(typeof json.en, 'string');
+    // Richer fields ride along additively; they must not replace the legacy keys.
+    assert.equal(json.sidekickLine, 'Wen: easy does it.');
+    assert.equal(json.expectedIntent, 'Greet the vendor back');
   } finally {
     server.close();
   }
 });
 
-test("POST /api/scenario/evaluate returns evaluateResponse's result verbatim as JSON (failed branch)", async () => {
+test("POST /api/scenario/evaluate preserves the legacy status/feedback/usedWord wire shape (failed branch)", async () => {
   mock.module(new URL('../lib/auth.js', import.meta.url).href, {
     namedExports: { requireUser: (req, res, next) => { req.userId = 'test-user'; next(); } },
   });
   mock.module(new URL('../lib/ai/index.js', import.meta.url).href, {
     namedExports: {
-      generateTurn: async () => ({ zh: 'unused', pinyin: 'unused', en: 'unused' }),
-      evaluateResponse: async () => ({ status: 'failed', feedback: 'Try again!', usedWord: null }),
+      generateTurn: async () => ({ npcLine: { zh: 'unused', pinyin: 'unused', en: 'unused' }, sidekickLine: null, expectedIntent: 'unused', targetWords: [] }),
+      evaluateResponse: async () => ({
+        pass: false,
+        errorKind: 'off_topic',
+        teachingNote: 'Try again!',
+        sidekickLine: 'Wen: not quite.',
+        usedWordIds: [],
+        status: 'failed',
+        feedback: 'Try again!',
+        usedWord: null,
+      }),
     },
   });
 
@@ -207,7 +251,13 @@ test("POST /api/scenario/evaluate returns evaluateResponse's result verbatim as 
     });
     const json = await res.json();
     assert.equal(res.status, 200);
-    assert.deepEqual(json, { status: 'failed', feedback: 'Try again!', usedWord: null });
+    // Legacy keys/types — GameplayPhase.jsx reads result.status/.feedback/.usedWord directly.
+    assert.equal(json.status, 'failed');
+    assert.equal(json.feedback, 'Try again!');
+    assert.equal(json.usedWord, null);
+    // Richer fields ride along additively.
+    assert.equal(json.errorKind, 'off_topic');
+    assert.deepEqual(json.usedWordIds, []);
   } finally {
     server.close();
   }
@@ -219,12 +269,24 @@ test('POST /api/scenario/evaluate on a pass with an unknown word skips FSRS upda
   });
   mock.module(new URL('../lib/ai/index.js', import.meta.url).href, {
     namedExports: {
-      generateTurn: async () => ({ zh: 'unused', pinyin: 'unused', en: 'unused' }),
-      evaluateResponse: async () => ({ status: 'passed', feedback: 'Great job!', usedWord: '你好' }),
+      generateTurn: async () => ({ npcLine: { zh: 'unused', pinyin: 'unused', en: 'unused' }, sidekickLine: null, expectedIntent: 'unused', targetWords: [] }),
+      evaluateResponse: async () => ({
+        pass: true,
+        errorKind: null,
+        teachingNote: 'Great job!',
+        sidekickLine: 'Wen: nicely done.',
+        usedWordIds: [],
+        status: 'passed',
+        feedback: 'Great job!',
+        usedWord: '你好',
+      }),
     },
   });
   // getWordByExpression returns null (word not found) so the route's
-  // `if (wordRow)` guard short-circuits before touching FSRS/Supabase.
+  // legacy fallback `if (wordRow)` guard short-circuits before touching
+  // FSRS/Supabase. usedWordIds is empty here so the route takes that legacy
+  // fallback path on purpose (see lib_ai_evaluate.test.js for the
+  // usedWordIds-present path).
   mock.module(new URL('../lib/db/db.js', import.meta.url).href, {
     namedExports: { getWordByExpression: async () => null },
   });
@@ -250,7 +312,9 @@ test('POST /api/scenario/evaluate on a pass with an unknown word skips FSRS upda
     });
     const json = await res.json();
     assert.equal(res.status, 200);
-    assert.deepEqual(json, { status: 'passed', feedback: 'Great job!', usedWord: '你好' });
+    assert.equal(json.status, 'passed');
+    assert.equal(json.feedback, 'Great job!');
+    assert.equal(json.usedWord, '你好');
   } finally {
     server.close();
   }
