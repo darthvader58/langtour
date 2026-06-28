@@ -1,5 +1,6 @@
 // Barrel export for node/lib/supermemory.
-// See client.js / containerTag.js / forest.js for the documented surface.
+// See client.js / containerTag.js / forest.js / resurface.js / forestMirror.js
+// for the documented surface.
 
 export { userTag, isUserTag } from './containerTag.js';
 export {
@@ -13,3 +14,5 @@ export {
   appendForestNodes,
   forestTools,
 } from './forest.js';
+export { getDueForResurfacing } from './resurface.js';
+export { syncForestEdgesForUser } from './forestMirror.js';
