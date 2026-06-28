@@ -22,6 +22,13 @@ import {
 } from '../lib/voice/projectStore.js';
 import { DEEPGRAM_API_KEY, GEMINI_API_KEY } from '../lib/config.js';
 import { sseHeaders, sseEmit } from '../lib/sse.js';
+import { requireUser } from '../lib/auth.js';
+import { scorePronunciation } from '../lib/speech/index.js';
+import { COUNTRIES } from '../../client/src/gameData.js';
+
+// Supported lang codes for the score endpoint — same source of truth as catalog.js.
+// Client cannot extend this set; it's derived from the game catalog at startup.
+const SUPPORTED_LANG_CODES = new Set(COUNTRIES.map((c) => c.langCode));
 
 const NAME_LIMIT = 200;
 const VALID_STATUSES = ['draft', 'recording', 'ready', 'transcribing', 'completed', 'error'];
@@ -549,6 +556,48 @@ export function mountVoiceRoutes(app, httpServer) {
       res.json({ moved, errors });
     } catch (e) {
       res.status(500).json({ error: e.message });
+    }
+  });
+
+  // --- Pronunciation scoring (contract 05) ------------------------------------------
+  // Accepts the captured audio buffer and the target sentence; returns a PronScore.
+  // The engine is server-chosen (SPEECH_ENGINE env); callers cannot override it.
+  // Not yet wired into evaluateResponse — that threading is a follow-up pairing with T-D.
+  // Audio arrives as base64 (audio_b64) matching the pattern finalizeLiveSession uses.
+  //
+  // PronScore shape (0–100 scale, contract 05):
+  //   { accuracy, fluency, completeness, perWord: [{ word, score }] }
+  app.post('/api/voice/score', requireUser, async (req, res) => {
+    const { audio_b64, lang, targetText } = req.body ?? {};
+
+    if (!audio_b64 || typeof audio_b64 !== 'string' || audio_b64.length < 4) {
+      res.status(400).json({ error: 'audio_b64 is required and must be a non-empty base64 string' });
+      return;
+    }
+    if (!targetText || typeof targetText !== 'string' || !targetText.trim()) {
+      res.status(400).json({ error: 'targetText is required' });
+      return;
+    }
+    if (!lang || !SUPPORTED_LANG_CODES.has(String(lang))) {
+      res.status(400).json({
+        error: `Unknown lang "${lang}". Supported: ${[...SUPPORTED_LANG_CODES].join(', ')}`,
+      });
+      return;
+    }
+
+    try {
+      const audio = Buffer.from(audio_b64, 'base64');
+      // Pass the request-id header through if the client sends one (useful for audit logs).
+      const requestId = typeof req.headers['x-request-id'] === 'string'
+        ? req.headers['x-request-id']
+        : undefined;
+      const score = await scorePronunciation(audio, lang, targetText, { requestId });
+      res.json(score);
+    } catch (err) {
+      // Surface engine auth/config errors as 500 — these indicate admin misconfiguration,
+      // not a bad client request. The error message intentionally avoids leaking key values.
+      console.error('[voice/score] scoring error:', err.message);
+      res.status(500).json({ error: 'Pronunciation scoring failed. Check server configuration.' });
     }
   });
 
