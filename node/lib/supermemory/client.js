@@ -35,7 +35,11 @@
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { supermemoryTools as buildSupermemoryTools } from '@supermemory/ai-sdk';
 import Supermemory from 'supermemory';
-import { SUPERMEMORY_API_KEY } from '../config.js';
+
+// Read SUPERMEMORY_API_KEY from process.env at call time (not via the cached
+// config.js export) so tests can `delete process.env.SUPERMEMORY_API_KEY`
+// to exercise the fail-loud path, and so a missing key surfaces on first use
+// rather than at module load. Same pattern as node/lib/speech/azureAdapter.js.
 
 const SUPERMEMORY_PROXY_BASE = 'https://api.supermemory.ai/v3';
 
@@ -47,7 +51,7 @@ const PROVIDER_UPSTREAM_BASE = {
 };
 
 function requireApiKey(apiKey) {
-  const key = apiKey || SUPERMEMORY_API_KEY;
+  const key = apiKey || process.env.SUPERMEMORY_API_KEY || '';
   if (!key) {
     throw new Error(
       'SUPERMEMORY_API_KEY is missing. Set it in node/.env (see CLAUDE.md Supermemory section) before using Supermemory features.'
