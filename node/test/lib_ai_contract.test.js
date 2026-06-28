@@ -287,8 +287,22 @@ test('POST /api/scenario/evaluate on a pass with an unknown word skips FSRS upda
   // FSRS/Supabase. usedWordIds is empty here so the route takes that legacy
   // fallback path on purpose (see lib_ai_evaluate.test.js for the
   // usedWordIds-present path).
+  //
+  // The route now also imports `db` and `userClient` from db.js (T-E). Since
+  // usedWordIds is empty, neither is called, but both must be present in the
+  // mock so the route and its transitive dependency (lib/graph/graph.js) can
+  // instantiate without a SyntaxError.
   mock.module(new URL('../lib/db/db.js', import.meta.url).href, {
-    namedExports: { getWordByExpression: async () => null },
+    namedExports: {
+      getWordByExpression: async () => null,
+      db: { from: () => ({ select: () => ({ eq: () => ({ eq: () => ({ order: () => ({ limit: () => Promise.resolve({ data: [], error: null }) }) }) }) }) }) },
+      userClient: () => ({ rpc: async () => ({ data: null, error: null }) }),
+      // Stubs for lib/graph/graph.js which is statically imported by the route.
+      getAllWordEmbeddings: async () => [],
+      listUserWords: async () => [],
+      saveWordEmbedding: async () => null,
+      getWordEmbeddingRow: async () => null,
+    },
   });
 
   const express = (await import('express')).default;

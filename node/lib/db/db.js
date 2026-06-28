@@ -18,6 +18,22 @@ export const db = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
 
+// Creates a per-request Supabase client that carries the caller's JWT in the
+// Authorization header so auth.uid() resolves correctly inside SECURITY DEFINER
+// RPCs.  The service-role key remains as the apikey (bypasses key restrictions);
+// the user JWT is what PostgREST reads for auth.uid() and JWT claims.
+//
+// Call pattern: userClient(req.headers.authorization).rpc('fn_name', args)
+//
+// The resulting client must NOT be cached across requests — the JWT is
+// request-scoped and potentially short-lived.
+export function userClient(authorizationHeader) {
+  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
+    global: { headers: { Authorization: authorizationHeader } },
+  });
+}
+
 function assertResult(result, context) {
   if (result.error) throw new Error(`${context}: ${result.error.message}`);
   return result.data;
