@@ -103,6 +103,23 @@ export function normalizeProgress(payload = {}, fallback = {}) {
   }
 }
 
+// Normalise the optional `forest` field from the word-graph API response.
+// The API may return camelCase or snake_case field names; both are handled.
+// Returns null when there is nothing to normalize.
+function normalizeForest(rawForest) {
+  if (!rawForest) return null
+  const rawEdges = rawForest.edges ?? rawForest.forestEdges ?? []
+  const edges = rawEdges
+    .map(edge => ({
+      parentId: String(edge.parentId ?? edge.parent_id ?? ''),
+      childId: String(edge.childId ?? edge.child_id ?? ''),
+      kind: String(edge.kind ?? ''),
+    }))
+    .filter(e => e.parentId && e.childId && e.kind)
+  const labels = rawForest.labels ?? rawForest.nodeLabels ?? {}
+  return { edges, labels }
+}
+
 export function normalizeGraph(payload = {}) {
   const rawNodes = payload.nodes ?? payload.words ?? []
   const nodes = rawNodes.map((node, index) => {
@@ -126,5 +143,6 @@ export function normalizeGraph(payload = {}) {
     target: String(edge.target ?? edge.targetId ?? edge.to),
     similarity: number(edge.similarity ?? edge.sim, 0),
   })).filter((edge) => idSet.has(edge.source) && idSet.has(edge.target))
-  return { nodes, edges }
+  const forest = normalizeForest(payload.forest ?? null)
+  return { nodes, edges, forest }
 }

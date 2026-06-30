@@ -34,4 +34,44 @@ describe('profile model', () => {
   it('creates safe identity fallback initials', () => {
     expect(displayIdentity({ email: 'agent@example.com' })).toMatchObject({ name: 'agent', initials: 'A' })
   })
+
+  it('normalizes forest edges and labels from a word-graph payload', () => {
+    const graph = normalizeGraph({
+      nodes: [],
+      edges: [],
+      forest: {
+        edges: [
+          { parentId: 'root', childId: 'food', kind: 'root' },
+          // snake_case variant that the backend might send
+          { parent_id: 'food', child_id: '1', kind: 'superset' },
+        ],
+        labels: { food: 'Food & Stuff' },
+      },
+    })
+    expect(graph.forest).not.toBeNull()
+    expect(graph.forest.edges).toHaveLength(2)
+    expect(graph.forest.edges[0]).toMatchObject({ parentId: 'root', childId: 'food', kind: 'root' })
+    expect(graph.forest.edges[1]).toMatchObject({ parentId: 'food', childId: '1', kind: 'superset' })
+    expect(graph.forest.labels).toEqual({ food: 'Food & Stuff' })
+  })
+
+  it('returns null forest when the payload has no forest field', () => {
+    const graph = normalizeGraph({ nodes: [], edges: [] })
+    expect(graph.forest).toBeNull()
+  })
+
+  it('filters forest edges that are missing required fields', () => {
+    const graph = normalizeGraph({
+      nodes: [],
+      edges: [],
+      forest: {
+        edges: [
+          { parentId: 'root', childId: 'food', kind: 'root' }, // valid
+          { parentId: '', childId: 'food', kind: 'root' },     // invalid — empty parentId
+          { parentId: 'root', childId: 'food', kind: '' },     // invalid — empty kind
+        ],
+      },
+    })
+    expect(graph.forest.edges).toHaveLength(1)
+  })
 })

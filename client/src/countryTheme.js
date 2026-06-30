@@ -7,6 +7,31 @@ const THEMES = {
   Brazil: { accent: '#49c96b', soft: '#88e69f', ink: '#04170a', glow: 'rgba(73,201,107,.3)' },
 }
 
+// Word-mastery state colors — these are the single source of truth for mastery
+// coloring across the whole app. Three.js uses the constants directly (CSS vars
+// can't be passed to material constructors); CSS contexts receive them via
+// getCountryThemeStyle / --mastery-* vars.
+//
+// Two sets: "canvas" colors for the light-background Three.js graph, and "ui"
+// colors for dark-background legend text.  Both originate here.
+export const MASTERY_COLORS = Object.freeze({
+  // Canvas (light background — the Three.js graph canvas is white/light)
+  mastered:  '#078765',  // deep teal
+  learning:  '#2478b8',  // blue
+  due:       '#d98418',  // amber
+  unseen:    '#d43e5d',  // red/pink (never reviewed or stability 0)
+  // Forest hierarchy structural nodes
+  root:      '#4a5568',  // neutral slate
+  superset:  '#6d28d9',  // indigo — topic cluster
+  situation: '#0369a1',  // sky — scenario context
+  // UI / dark-background equivalents (legend text, status dots)
+  uiMastered:  '#63e6be',
+  uiLearning:  '#79c7ff',
+  uiDue:       '#ff8da1',
+  uiSuperset:  '#c4b5fd',
+  uiSituation: '#7dd3fc',
+})
+
 export function getCountryTheme(country) {
   return THEMES[country] ?? THEMES.China
 }
@@ -14,6 +39,21 @@ export function getCountryTheme(country) {
 export function getCountryThemeStyle(country) {
   const theme = getCountryTheme(country)
   return {
+    // Mastery state tokens — exposed as CSS vars so CSS consumers don't need
+    // to import the JS constant.
+    '--mastery-mastered':    MASTERY_COLORS.mastered,
+    '--mastery-learning':    MASTERY_COLORS.learning,
+    '--mastery-due':         MASTERY_COLORS.due,
+    '--mastery-unseen':      MASTERY_COLORS.unseen,
+    '--mastery-root':        MASTERY_COLORS.root,
+    '--mastery-superset':    MASTERY_COLORS.superset,
+    '--mastery-situation':   MASTERY_COLORS.situation,
+    '--mastery-ui-mastered':   MASTERY_COLORS.uiMastered,
+    '--mastery-ui-learning':   MASTERY_COLORS.uiLearning,
+    '--mastery-ui-due':        MASTERY_COLORS.uiDue,
+    '--mastery-ui-superset':   MASTERY_COLORS.uiSuperset,
+    '--mastery-ui-situation':  MASTERY_COLORS.uiSituation,
+    // Country accent tokens
     '--accent': theme.accent,
     '--accent-soft': theme.soft,
     '--accent-ink': theme.ink,
