@@ -4,6 +4,7 @@ import { getGrowingTargetState } from '../lib/graph/growingTarget.js';
 import { updateWordFSRS } from '../lib/srs/fsrs_update.js';
 import { requireUser } from '../lib/auth.js';
 import { generateTurn, evaluateResponse } from '../lib/ai/index.js';
+import { scorePronunciation } from '../lib/speech/index.js';
 
 export function mountScenarioRoutes(app) {
 
@@ -107,7 +108,42 @@ export function mountScenarioRoutes(app) {
   // record_scenario_turn (T-E); grant fields ride alongside additively.
   app.post('/api/scenario/evaluate', requireUser, async (req, res) => {
     try {
-      const { scenarioContext, targetWords, npcLine, expectedIntent, userResponse, langCode, countryCode, scenarioId, pronScore } = req.body;
+      // Any client-supplied pronScore is intentionally absent from this
+      // destructuring.  The only score that reaches evaluateResponse is the
+      // server-computed result from audio_b64 below — never a client value.
+      // See CLAUDE.md §server-truth and T-L for the reasoning.
+      const { scenarioContext, targetWords, npcLine, expectedIntent, userResponse, langCode, countryCode, scenarioId, audio_b64 } = req.body;
+
+      // Server-side pronunciation scoring (T-L, Option A: consolidated endpoint).
+      // The client sends the captured audio as audio_b64 instead of a pre-computed
+      // pronScore.  scorePronunciation is called here so the server owns the result.
+      // If audio_b64 is absent (legacy/transcript-only callers) the evaluator
+      // degrades gracefully to transcript-only judgment (pronScore = null).
+      // If the engine throws (config/auth/unexpected error), same degraded path.
+      // The dispatcher's sentinel { accuracy:0, fluency:0, completeness:0, perWord:[] }
+      // for engine 5xx is passed through — evaluateResponse handles it by skipping
+      // the incomprehensible_pronunciation override (empty perWord → no mis-scored
+      // target words, so the floor check does not fire).
+      // Reject base64 payloads above ~6 MB decoded (~8 MB encoded). server.js sets
+      // a 200 MB JSON body cap which is appropriate for some endpoints but would
+      // let a single forged audio_b64 here allocate ~150 MB. A plausible mic clip
+      // (30s WebM/Opus) lives well under this cap; anything larger is either
+      // misuse or a DoS attempt.
+      const AUDIO_B64_MAX = 8_000_000;
+      let serverPronScore = null;
+      if (audio_b64 && typeof audio_b64 === 'string' && audio_b64.length >= 4 && userResponse) {
+        if (audio_b64.length > AUDIO_B64_MAX) {
+          console.error(`[evaluate] audio_b64 rejected: ${audio_b64.length} bytes exceeds ${AUDIO_B64_MAX} cap`);
+        } else {
+          try {
+            const audio = Buffer.from(audio_b64, 'base64');
+            serverPronScore = await scorePronunciation(audio, langCode, userResponse);
+          } catch (scoreErr) {
+            // Log and continue — transcript-only eval is correct even without a score.
+            console.error('[evaluate] scorePronunciation failed:', scoreErr.message ?? String(scoreErr));
+          }
+        }
+      }
 
       const result = await evaluateResponse(
         {
@@ -121,7 +157,7 @@ export function mountScenarioRoutes(app) {
           userResponse,
           langCode,
         },
-        pronScore ?? null,
+        serverPronScore,
       );
 
       // If passed, update FSRS for every server-attested used word. Prefer
