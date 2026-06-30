@@ -192,8 +192,10 @@ export const azureAdapter = {
     } catch (err) {
       clearTimeout(timer);
       if (err.name === 'AbortError') {
-        console.error(`[azure] scorePronunciation timed out after ${AZURE_TIMEOUT_MS}ms`);
-        return { accuracy: 0, fluency: 0, completeness: 0, perWord: [] };
+        // A timeout is a transient failure — same class as 503/504. Throw Engine5xxError
+        // so the dispatcher can fall back to GOPT rather than short-circuiting with a
+        // zeroed sentinel here (which bypasses the fallback chain entirely).
+        throw new Engine5xxError(`Azure timeout after ${AZURE_TIMEOUT_MS}ms`);
       }
       throw err;
     }

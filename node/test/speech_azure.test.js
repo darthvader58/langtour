@@ -175,6 +175,34 @@ test('500 from Azure → Engine5xxError thrown (enables dispatcher fallback)', a
 });
 
 // ---------------------------------------------------------------------------
+// Timeout (AbortError) → Engine5xxError so the dispatcher can fall back to GOPT
+// ---------------------------------------------------------------------------
+
+test('AbortError from timeout → throws Engine5xxError (enables dispatcher gopt fallback)', async (t) => {
+  // Simulate the AbortController signal firing: fetch rejects with a DOMException whose
+  // name is 'AbortError'. Node ≥18 ships DOMException in the global scope.
+  t.mock.method(globalThis, 'fetch', async () => {
+    throw new DOMException('The operation was aborted.', 'AbortError');
+  });
+
+  const { Engine5xxError } = await import('../lib/speech/errors.js');
+  await assert.rejects(
+    () => azureAdapter.scorePronunciation({ audio: fakeWav(), lang: 'zh', targetText: '你好' }),
+    (err) => {
+      assert.ok(
+        err instanceof Engine5xxError,
+        `expected Engine5xxError, got ${err.constructor.name}: ${err.message}`
+      );
+      assert.ok(
+        err.message.includes('timeout'),
+        `expected "timeout" in error message, got: ${err.message}`
+      );
+      return true;
+    }
+  );
+});
+
+// ---------------------------------------------------------------------------
 // Locale mapping — all six target languages
 // ---------------------------------------------------------------------------
 

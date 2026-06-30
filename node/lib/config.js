@@ -14,9 +14,6 @@ export const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_
 export const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 export const VOICE_AUDIO_DIR = process.env.VOICE_AUDIO_DIR || '';
 
-// Speech scoring engine selection and credentials.
-// Keys are read at call-time by each adapter (fail-loud on first use if missing).
-// Never commit real values — set in the Railway deploy environment.
-export const SPEECH_ENGINE = process.env.SPEECH_ENGINE || 'azure';
-export const AZURE_SPEECH_KEY = process.env.AZURE_SPEECH_KEY || '';
-export const AZURE_SPEECH_REGION = process.env.AZURE_SPEECH_REGION || '';
+// Speech scoring: any new adapter must read process.env at call-time, not import-time.
+// Caching env vars as module-level exports here introduces stale-config bugs — do not add them.
+// Set SPEECH_ENGINE, AZURE_SPEECH_KEY, and AZURE_SPEECH_REGION in the Railway deploy environment.
