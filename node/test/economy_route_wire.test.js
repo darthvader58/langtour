@@ -58,13 +58,20 @@ function mockQuery(result) {
 // imports getAllWordEmbeddings / listUserWords / saveWordEmbedding from db.js.
 // The route does NOT call these in the /evaluate handler, but they must be
 // present in the mock so graph.js can instantiate without a SyntaxError.
-function makeDbMock({ priorTurns = [], rpcResult = null } = {}) {
+function makeDbMock({ priorTurns = [], rpcResult = null, vocabRows = null, wordRows = null } = {}) {
   const rpcCalls = [];
 
   const mockDb = {
     from(table) {
       if (table === 'scenario_turn_grants') {
         return mockQuery({ data: priorTurns, error: null });
+      }
+      // Growing-target tables: supply rows when the test wants to exercise that path.
+      if (table === 'game_scenario_vocabulary' && vocabRows !== null) {
+        return mockQuery({ data: vocabRows, error: null });
+      }
+      if (table === 'learning_words' && wordRows !== null) {
+        return mockQuery({ data: wordRows, error: null });
       }
       // Catch-all for any other table (e.g. tables accessed by code paths we
       // are not directly testing here, such as the FSRS fallback).
@@ -112,9 +119,11 @@ async function bootServer(opts = {}) {
     evalResult,
     priorTurns = [],
     rpcResult = null,
+    vocabRows = null,
+    wordRows = null,
   } = opts;
 
-  const dbMock = makeDbMock({ priorTurns, rpcResult });
+  const dbMock = makeDbMock({ priorTurns, rpcResult, vocabRows, wordRows });
   const { rpcCalls } = dbMock;
 
   mock.module(new URL('../lib/auth.js', import.meta.url).href, {
@@ -436,6 +445,172 @@ test('missing countryCode or scenarioId skips the RPC silently (no 500)', async 
     assert.equal(rpcCalls.length, 0, 'RPC must not be called when countryCode/scenarioId are missing');
     const json = await res.json();
     assert.equal(json.status, 'passed');
+  } finally {
+    server.close();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Growing-target contract (T-H)
+// ---------------------------------------------------------------------------
+
+// These tests verify that evaluate returns targetWords[] and scenarioComplete
+// additively alongside the legacy eval+grant fields.  They supply full vocab
+// and word data to the DB mock so getGrowingTargetState has something to work with.
+
+const GROWING_VOCAB_ROWS = [
+  { display_order: 0, english: 'Market', chinese: '市场', pinyin: 'shìchǎng' },
+  { display_order: 1, english: 'How much?', chinese: '多少钱？', pinyin: 'duōshao qián' },
+  { display_order: 2, english: 'Too expensive', chinese: '太贵了', pinyin: 'tài guì le' },
+  { display_order: 3, english: 'Discount', chinese: '打折', pinyin: 'dǎzhé' },
+  { display_order: 4, english: 'Fresh', chinese: '新鲜', pinyin: 'xīnxiān' },
+  { display_order: 5, english: 'Bargain', chinese: '还价', pinyin: 'huánjià' },
+];
+
+const GROWING_WORD_ROWS = [
+  { id: 101, expression: '市场', reading: 'shìchǎng', meaning: 'Market' },
+  { id: 102, expression: '多少钱？', reading: 'duōshao qián', meaning: 'How much?' },
+  { id: 103, expression: '太贵了', reading: 'tài guì le', meaning: 'Too expensive' },
+  { id: 104, expression: '打折', reading: 'dǎzhé', meaning: 'Discount' },
+  { id: 105, expression: '新鲜', reading: 'xīnxiān', meaning: 'Fresh' },
+  { id: 106, expression: '还价', reading: 'huánjià', meaning: 'Bargain' },
+];
+
+test('growing-target fields (targetWords, scenarioComplete) are present in the evaluate response (T-H contract)', async () => {
+  // No prior turns → the growing-target state is: window=2, target=[市场, 多少钱？], complete=false.
+  const { port, server } = await bootServer({
+    priorTurns: [],
+    vocabRows: GROWING_VOCAB_ROWS,
+    wordRows: GROWING_WORD_ROWS,
+    evalResult: {
+      pass: false,
+      errorKind: 'off_topic',
+      teachingNote: 'Try again.',
+      sidekickLine: 'Keep going.',
+      usedWordIds: [],
+      status: 'failed',
+      feedback: 'Try again.',
+      usedWord: null,
+    },
+  });
+
+  try {
+    const res = await fetch(`http://localhost:${port}/api/scenario/evaluate`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: 'Bearer test-token' },
+      body: JSON.stringify({
+        scenarioContext: 'street market',
+        targetWords: [{ id: 101, expression: '市场', meaning: 'Market' }],
+        npcLine: { zh: '你好', en: 'Hello' },
+        userResponse: 'uh...',
+        langCode: 'zh',
+        countryCode: 'china',
+        scenarioId: 'street-market',
+      }),
+    });
+
+    assert.equal(res.status, 200);
+    const json = await res.json();
+
+    // Legacy eval fields must still be present (backward compatibility).
+    assert.equal(json.status, 'failed');
+    assert.equal(json.feedback, 'Try again.');
+
+    // Growing-target contract (T-H): these fields MUST be present when
+    // countryCode + scenarioId are sent.  T-J wires against this shape.
+    assert.ok('targetWords' in json, 'targetWords must be present in evaluate response');
+    assert.ok('scenarioComplete' in json, 'scenarioComplete must be present in evaluate response');
+    assert.ok(Array.isArray(json.targetWords), 'targetWords must be an array');
+    assert.equal(typeof json.scenarioComplete, 'boolean', 'scenarioComplete must be a boolean');
+
+    // With no prior attestations the window starts at 2 (INITIAL_TARGET_SIZE=2),
+    // so targetWords should have the first 2 catalog words.
+    assert.equal(json.targetWords.length, 2, 'initial window must have 2 target words');
+    assert.equal(json.targetWords[0].expression, '市场');
+    assert.equal(json.targetWords[1].expression, '多少钱？');
+    assert.equal(json.scenarioComplete, false, 'no words attested → not complete');
+  } finally {
+    server.close();
+  }
+});
+
+test('growing-target: scenarioComplete=true when all essential words are attested before the call', async () => {
+  // 4 essential words already attested (ids 101-104) in prior turns.
+  // getGrowingTargetState reads them from scenario_turn_grants.
+  const { port, server } = await bootServer({
+    priorTurns: [{ used_word_ids: [101, 102, 103, 104] }],
+    vocabRows: GROWING_VOCAB_ROWS,
+    wordRows: GROWING_WORD_ROWS,
+    evalResult: {
+      pass: true,
+      errorKind: null,
+      teachingNote: 'Excellent!',
+      sidekickLine: 'Outstanding.',
+      usedWordIds: [105],
+      status: 'passed',
+      feedback: 'Excellent!',
+      usedWord: '新鲜',
+    },
+  });
+
+  try {
+    const res = await fetch(`http://localhost:${port}/api/scenario/evaluate`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: 'Bearer test-token' },
+      body: JSON.stringify({
+        scenarioContext: 'street market',
+        targetWords: [{ id: 105, expression: '新鲜', meaning: 'Fresh' }],
+        npcLine: { zh: '新鲜吗', en: 'Is it fresh?' },
+        userResponse: '很新鲜',
+        langCode: 'zh',
+        countryCode: 'china',
+        scenarioId: 'street-market',
+      }),
+    });
+
+    assert.equal(res.status, 200);
+    const json = await res.json();
+
+    // All 4 essential words (display_order 0-3) are attested → complete.
+    assert.equal(json.scenarioComplete, true, '4 essential words attested → scenarioComplete must be true');
+  } finally {
+    server.close();
+  }
+});
+
+test('growing-target fields are absent when countryCode/scenarioId are missing', async () => {
+  const { port, server } = await bootServer({
+    evalResult: {
+      pass: false,
+      errorKind: 'off_topic',
+      teachingNote: 'Try.',
+      sidekickLine: 'Hmm.',
+      usedWordIds: [],
+      status: 'failed',
+      feedback: 'Try.',
+      usedWord: null,
+    },
+  });
+
+  try {
+    const res = await fetch(`http://localhost:${port}/api/scenario/evaluate`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: 'Bearer test-token' },
+      body: JSON.stringify({
+        scenarioContext: 'market',
+        targetWords: [],
+        npcLine: { zh: '你好', en: 'Hello' },
+        userResponse: '...',
+        langCode: 'zh',
+        // No countryCode or scenarioId
+      }),
+    });
+
+    assert.equal(res.status, 200);
+    const json = await res.json();
+    // Without countryCode+scenarioId, the growing-target branch does not run.
+    assert.ok(!('targetWords' in json), 'targetWords must not appear without countryCode+scenarioId');
+    assert.ok(!('scenarioComplete' in json), 'scenarioComplete must not appear without countryCode+scenarioId');
   } finally {
     server.close();
   }

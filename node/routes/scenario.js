@@ -1,5 +1,6 @@
 import { getWordByExpression, db, userClient } from '../lib/db/db.js';
 import { getDiscoveryWords } from '../lib/graph/graph.js';
+import { getGrowingTargetState } from '../lib/graph/growingTarget.js';
 import { updateWordFSRS } from '../lib/srs/fsrs_update.js';
 import { requireUser } from '../lib/auth.js';
 import { generateTurn, evaluateResponse } from '../lib/ai/index.js';
@@ -42,14 +43,36 @@ export function mountScenarioRoutes(app) {
   // engine needs the validated country/scenario pair.
   app.post('/api/scenario/generate', requireUser, async (req, res) => {
     try {
-      const { scenarioContext, targetWords, previousTurns, langCode, countryCode, scenarioId, forestSlice } = req.body;
+      const { scenarioContext, targetWords: clientTargetWords, previousTurns, langCode, countryCode, scenarioId, forestSlice } = req.body;
+
+      // Server-authoritative growing target: when countryCode + scenarioId are
+      // present, override the client-sent targetWords with the server-computed
+      // growing-target set for this (user, scenario) state.  Falls back to
+      // client-sent words for legacy callers that omit those fields.
+      let authorityTargetWords = clientTargetWords;
+      let growingStateForGenerate = null;
+      if (countryCode && scenarioId) {
+        try {
+          growingStateForGenerate = await getGrowingTargetState({
+            userId: req.userId,
+            countryCode,
+            scenarioId,
+          });
+          authorityTargetWords = growingStateForGenerate.targetWords;
+        } catch (growErr) {
+          // Non-fatal: log and fall back to client-sent words.  The AI prompt
+          // gets client-provided context, which is still useful; it just hasn't
+          // been independently validated server-side.
+          console.error('[growingTarget] generate: getGrowingTargetState failed:', growErr.message ?? String(growErr));
+        }
+      }
 
       const result = await generateTurn({
         userId: req.userId,
         countryCode,
         scenarioId,
         scenarioContext,
-        targetWords,
+        targetWords: authorityTargetWords,
         previousTurns,
         langCode,
         forestSlice,
@@ -64,6 +87,10 @@ export function mountScenarioRoutes(app) {
         sidekickLine: result.sidekickLine,
         expectedIntent: result.expectedIntent,
         targetWords: result.targetWords,
+        // Growing-target contract (T-H): present when server-computed, additive.
+        ...(growingStateForGenerate && {
+          scenarioComplete: growingStateForGenerate.scenarioComplete,
+        }),
       });
     } catch (e) {
       console.error(e);
@@ -159,10 +186,33 @@ export function mountScenarioRoutes(app) {
         }
       }
 
+      // Growing-target contract (T-H): compute the NEXT state for the frontend
+      // after the turn has been recorded.  Because record_scenario_turn has
+      // already run (above), getGrowingTargetState sees the updated attestation
+      // set — so the returned targetWords are the words the player still needs
+      // for the NEXT turn, and scenarioComplete reflects the state after this
+      // pass.  Non-fatal: a failure here does not void the eval result.
+      let growingTargetState = null;
+      if (countryCode && scenarioId) {
+        try {
+          growingTargetState = await getGrowingTargetState({
+            userId: req.userId,
+            countryCode,
+            scenarioId,
+          });
+        } catch (growErr) {
+          console.error('[growingTarget] evaluate: getGrowingTargetState failed:', growErr.message ?? String(growErr));
+        }
+      }
+
       // Wire shape: legacy keys (status/feedback/usedWord) are preserved
-      // unchanged.  Grant fields ride alongside additively; Phase 4 frontend
-      // refits to the richer shape later.
-      res.json(grant ? { ...result, ...grant } : result);
+      // unchanged.  Grant fields and growing-target fields ride alongside
+      // additively; Phase 4 frontend (T-J) refits to the richer shape later.
+      const baseResponse = grant ? { ...result, ...grant } : result;
+      const growingTargetFields = growingTargetState
+        ? { targetWords: growingTargetState.targetWords, scenarioComplete: growingTargetState.scenarioComplete }
+        : {};
+      res.json({ ...baseResponse, ...growingTargetFields });
     } catch (e) {
       console.error(e);
       res.status(500).json({ error: e.message });
