@@ -2,15 +2,39 @@ import { useState, useEffect } from 'react';
 import MicrophoneRecorder from './MicrophoneRecorder';
 import { authFetch } from '../api';
 import ToyIcon from './ToyIcon';
+import { deriveProgress, detectNewWordIds, normalizeWord } from './gameplayProgress.js';
 
-export default function GameplayPhase({ scenario, targetWords, langCode, onEndScenario }) {
+// Completion is driven entirely by `scenarioComplete: true` from the server
+// evaluate response — there is no client-side turn counter.  The server
+// policy (INITIAL_TARGET_SIZE=2, GROW_PER_ATTEST=2, ESSENTIAL_FRACTION=2/3)
+// lives in node/lib/graph/growingTargetPolicy.js and is authoritative.
+
+export default function GameplayPhase({ scenario, targetWords, langCode, country, onEndScenario }) {
   const [state, setState] = useState('generating'); // generating, npc_turn, user_turn, evaluating, feedback, scenario_complete
   const [npcLine, setNpcLine] = useState(null);
   const [userResponse, setUserResponse] = useState('');
   const [feedback, setFeedback] = useState(null);
   const [previousTurns, setPreviousTurns] = useState([]);
-  const [turnsCompleted, setTurnsCompleted] = useState(0);
-  const TOTAL_TURNS = 4;
+
+  // Server-authoritative target word set.  Seeded from discovery words; updated
+  // from evaluate response after every turn.  These are the UN-attested words
+  // remaining in the current growth window.
+  const [currentTargetWords, setCurrentTargetWords] = useState(targetWords);
+
+  // IDs of words the player has attested in this session — for progress display
+  // only.  Completion is decided by the server's `scenarioComplete`, never by
+  // the size of this set.
+  const [attestedWordIds, setAttestedWordIds] = useState(new Set());
+
+  // IDs of words that entered the target window on the most recent grow event.
+  // Cleared when the player continues to the next turn.
+  const [newWordIds, setNewWordIds] = useState(new Set());
+
+  // Derived progress — pure calculation, no I/O.
+  const { attestedCount, windowSize, progressPct } = deriveProgress(
+    attestedWordIds.size,
+    currentTargetWords,
+  );
 
   useEffect(() => {
     if (state !== 'generating') return undefined;
@@ -23,9 +47,13 @@ export default function GameplayPhase({ scenario, targetWords, langCode, onEndSc
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             scenarioContext: scenario.title,
-            targetWords,
+            targetWords: currentTargetWords,
             previousTurns,
-            langCode
+            langCode,
+            // Send country + scenario so the server can compute the growing
+            // target server-side and return an authoritative targetWords set.
+            countryCode: country,
+            scenarioId: scenario.id,
           }),
           signal: controller.signal
         });
@@ -42,7 +70,7 @@ export default function GameplayPhase({ scenario, targetWords, langCode, onEndSc
 
     generateNpcLine();
     return () => controller.abort();
-  }, [previousTurns, scenario.title, state, targetWords]);
+  }, [previousTurns, scenario.title, scenario.id, state, currentTargetWords, langCode, country]);
 
   const playNpcAudio = () => {
     if (!npcLine) return;
@@ -62,13 +90,28 @@ export default function GameplayPhase({ scenario, targetWords, langCode, onEndSc
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           scenarioContext: scenario.title,
-          targetWords,
+          targetWords: currentTargetWords,
           npcLine,
           userResponse: transcript,
-          langCode
+          langCode,
+          // Required for server to compute the growing-target state and return
+          // the authoritative targetWords + scenarioComplete after this turn.
+          countryCode: country,
+          scenarioId: scenario.id,
         }),
       });
       const result = await response.json();
+
+      // Track attested word IDs from the server-confirmed attestation list.
+      // Display only — completion is driven by result.scenarioComplete.
+      if (result.status === 'passed' && Array.isArray(result.usedWordIds) && result.usedWordIds.length > 0) {
+        setAttestedWordIds((prev) => {
+          const next = new Set(prev);
+          result.usedWordIds.forEach((id) => next.add(id));
+          return next;
+        });
+      }
+
       setFeedback(result);
       setState('feedback');
     } catch (e) {
@@ -79,29 +122,43 @@ export default function GameplayPhase({ scenario, targetWords, langCode, onEndSc
   };
 
   const handleNextTurn = () => {
-    if (feedback?.status === 'passed') {
-      const newTurns = turnsCompleted + 1;
-      setTurnsCompleted(newTurns);
-      if (newTurns >= TOTAL_TURNS) {
-        setState('scenario_complete');
-      } else {
-        setPreviousTurns([...previousTurns, { speaker: 'NPC', text: npcLine.zh }, { speaker: 'User', text: userResponse }]);
-        setState('generating');
-      }
+    if (feedback?.status === 'passed' && feedback?.scenarioComplete) {
+      // Server confirmed: all essential words attested — scenario is done.
+      setState('scenario_complete');
+    } else if (feedback?.status === 'passed') {
+      // Passed but not yet complete: update the target word set and detect
+      // words that newly entered the window (grow event).
+      const nextTargetWords = feedback.targetWords ?? currentTargetWords;
+      const newIds = detectNewWordIds(currentTargetWords, nextTargetWords);
+
+      setCurrentTargetWords(nextTargetWords);
+      setNewWordIds(newIds);
+      setPreviousTurns((prev) => [
+        ...prev,
+        { speaker: 'NPC', text: npcLine.zh },
+        { speaker: 'User', text: userResponse },
+      ]);
+      setState('generating');
     } else {
-      setState('user_turn'); // Retry
+      // Failed: update target words from server truth (no change expected),
+      // clear any new-word highlights, and let the player retry.
+      if (feedback?.targetWords) setCurrentTargetWords(feedback.targetWords);
+      setNewWordIds(new Set());
+      setState('user_turn');
     }
   };
 
+  // Dev-only skip: advances the conversation without server evaluation.
+  // Never triggers scenario_complete — use the quit button to exit during dev.
+  // This button is hidden on mobile (sm:flex) so it never appears on real devices.
   const handleDevSkip = () => {
-    const newTurns = turnsCompleted + 1;
-    setTurnsCompleted(newTurns);
-    if (newTurns >= TOTAL_TURNS) {
-      setState('scenario_complete');
-    } else {
-      setPreviousTurns([...previousTurns, { speaker: 'NPC', text: npcLine?.zh || 'Skipped' }, { speaker: 'User', text: '(Dev Skip)' }]);
-      setState('generating');
-    }
+    setPreviousTurns((prev) => [
+      ...prev,
+      { speaker: 'NPC', text: npcLine?.zh || 'Skipped' },
+      { speaker: 'User', text: '(Dev Skip)' },
+    ]);
+    setNewWordIds(new Set());
+    setState('generating');
   };
 
   return (
@@ -129,23 +186,47 @@ export default function GameplayPhase({ scenario, targetWords, langCode, onEndSc
           </div>
         </div>
 
-        {/* Progress Bar */}
+        {/* Progress bar — width is the server-derived attestedCount / windowSize ratio. */}
         <div className="h-2.5 w-full overflow-hidden rounded-full border border-white/[.06] bg-[#07101d]">
           <div
             className="h-full rounded-full bg-[var(--accent)] transition-all duration-500 ease-out"
-            style={{ width: `${(turnsCompleted / TOTAL_TURNS) * 100}%` }}
+            style={{ width: `${progressPct}%` }}
           />
+        </div>
+        {/* Progress label — derived from server attestation state, not a fixed denominator. */}
+        <div className="mt-1.5 flex items-center justify-end">
+          <span className="text-[10px] font-bold tabular-nums text-slate-500">
+            {attestedCount} of {windowSize} attested
+          </span>
         </div>
       </div>
 
-      {/* Target Words Indicator */}
+      {/* Target Words — server-authoritative growing set.
+          Words in newWordIds just entered the window (grow event) and pulse briefly. */}
       {state !== 'scenario_complete' && (
         <div className="mb-3 flex flex-wrap gap-1.5 px-1 sm:mb-5 sm:gap-2">
-          {targetWords.map((w, index) => (
-            <div key={`${w.expression ?? w.zh}-${index}`} className={`rounded-xl border px-3 py-1.5 text-xs font-bold ${feedback?.status === 'passed' && feedback.usedWord === w.expression ? 'bg-[var(--accent-15)] border-[var(--accent-40)] text-[var(--accent-soft)]' : 'bg-[#0b1727] border-white/10 text-slate-400'}`}>
-              {w.zh}
-            </div>
-          ))}
+          {currentTargetWords.map((w) => {
+            const { expr, reading, meaning } = normalizeWord(w);
+            const isNew = w.id != null && newWordIds.has(w.id);
+            return (
+              <div
+                key={w.id ?? expr}
+                className={`rounded-xl border px-3 py-2 text-xs transition-all ${
+                  isNew
+                    ? 'border-[var(--mastery-ui-learning-50)] bg-[var(--mastery-ui-learning-12)] text-[var(--mastery-ui-learning)] animate-pulse'
+                    : 'border-white/10 bg-[#0b1727] text-slate-400'
+                }`}
+              >
+                <span className="block font-extrabold text-sm leading-tight">{expr}</span>
+                {reading && (
+                  <span className="mt-0.5 block text-[10px] font-medium opacity-70">{reading}</span>
+                )}
+                {meaning && (
+                  <span className="mt-0.5 block text-[10px] opacity-50">{meaning}</span>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -210,7 +291,7 @@ export default function GameplayPhase({ scenario, targetWords, langCode, onEndSc
               </h3>
               <p className="text-gray-300 font-medium">{feedback.feedback}</p>
               {feedback.status === 'passed' && feedback.usedWord && (
-                <p className="mt-2 text-sm text-[var(--accent-soft)] font-bold">Mastered: “{feedback.usedWord}”</p>
+                <p className="mt-2 text-sm text-[var(--accent-soft)] font-bold">Mastered: "{feedback.usedWord}"</p>
               )}
               <button
                 onClick={handleNextTurn}
@@ -237,14 +318,16 @@ export default function GameplayPhase({ scenario, targetWords, langCode, onEndSc
         <MicrophoneRecorder langCode={langCode} onRecordingComplete={handleRecordingComplete} />
       )}
 
-      {/* Win Screen */}
+      {/* Win Screen — copy is dynamic: attestedWordIds.size not a hardcoded "4". */}
       {state === 'scenario_complete' && (
         <div className="flex-1 flex flex-col items-center justify-center animate-fade-in-up text-center">
           <div className="w-24 h-24 bg-[#FFC800]/20 rounded-full flex items-center justify-center mb-6 shadow-[0_0_40px_rgba(255,200,0,0.4)] text-[#FFC800]">
             <ToyIcon name="trophy" size={55} />
           </div>
           <h2 className="font-display font-extrabold text-3xl text-white mb-2">Scenario Complete!</h2>
-          <p className="text-gray-400 font-medium mb-8">You successfully mastered 4 new words in conversation.</p>
+          <p className="text-gray-400 font-medium mb-8">
+            You successfully mastered {attestedWordIds.size} new word{attestedWordIds.size === 1 ? '' : 's'} in conversation.
+          </p>
           <button
             onClick={() => onEndScenario({ completed: true, id: scenario.id })}
             className="w-full rounded-2xl border border-[var(--accent-30)] bg-[var(--accent)] py-4 font-display text-base font-extrabold uppercase tracking-widest text-[var(--accent-ink)] transition-all hover:brightness-110 active:translate-y-0.5"

@@ -53,6 +53,10 @@ export function getCountryThemeStyle(country) {
     '--mastery-ui-due':        MASTERY_COLORS.uiDue,
     '--mastery-ui-superset':   MASTERY_COLORS.uiSuperset,
     '--mastery-ui-situation':  MASTERY_COLORS.uiSituation,
+    // Alpha variants of the "currently learning" color — used by the growing-
+    // target word chips to highlight words that just entered the window.
+    '--mastery-ui-learning-12': `color-mix(in srgb, ${MASTERY_COLORS.uiLearning} 12%, transparent)`,
+    '--mastery-ui-learning-50': `color-mix(in srgb, ${MASTERY_COLORS.uiLearning} 50%, transparent)`,
     // Country accent tokens
     '--accent': theme.accent,
     '--accent-soft': theme.soft,

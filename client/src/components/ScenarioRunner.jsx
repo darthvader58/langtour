@@ -45,6 +45,7 @@ export default function ScenarioRunner({ scenario, langCode, country, onEndScena
       <GameplayPhase
         scenario={scenario}
         targetWords={targetWords}
+        country={country}
         langCode={langCode}
         onEndScenario={onEndScenario}
       />
