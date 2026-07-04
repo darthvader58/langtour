@@ -128,13 +128,35 @@ export function topNeighborEdges(items, neighbors = 3) {
   }).sort((a, b) => a.source - b.source || a.target - b.target);
 }
 
-export function buildWordGraph(words, embeddingRows, { now = Date.now() } = {}) {
+// Words absent from the learning_user_word_forest mirror fall back to
+// superset: null, masteryTier: 0, lastUsedAt: null (LEFT JOIN semantics,
+// applied in memory since the forest rows and word catalog are separate
+// queries -- matching this file's existing progress/embedding merge style).
+export function buildForestIndex(forestRows) {
+  return new Map((forestRows ?? []).map((row) => [Number(row.word_id), row]));
+}
+
+// One entry per superset actually present among the given nodes, for
+// root -> tree -> word rendering. Nodes without a superset aren't grouped.
+export function buildTrees(nodes) {
+  const wordIdsBySuperset = new Map();
+  for (const node of nodes) {
+    if (!node.superset) continue;
+    if (!wordIdsBySuperset.has(node.superset)) wordIdsBySuperset.set(node.superset, []);
+    wordIdsBySuperset.get(node.superset).push(node.id);
+  }
+  return [...wordIdsBySuperset.entries()].map(([superset, wordIds]) => ({ superset, wordIds }));
+}
+
+export function buildWordGraph(words, embeddingRows, { now = Date.now(), forestRows = [] } = {}) {
   const embeddingById = new Map(embeddingRows.map((row) => [Number(row.word_id), parseEmbedding(row.embedding)]));
+  const forestById = buildForestIndex(forestRows);
   const embedded = words.map((word) => ({ ...word, embedding: embeddingById.get(Number(word.id)) }))
     .filter((word) => word.embedding);
   const positions = pca3(embedded.map((word) => word.embedding));
   const nodes = embedded.map((word, index) => {
     const recall = retrievability({ stability: word.stability, last_review_at: word.last_review_at, now });
+    const forest = forestById.get(Number(word.id));
     return {
       id: Number(word.id),
       expression: word.expression,
@@ -151,11 +173,15 @@ export function buildWordGraph(words, embeddingRows, { now = Date.now() } = {}) 
       retrievability: recall,
       mastered: recall >= 0.9 && Number(word.stability) >= 7,
       due: recall < 0.9,
+      superset: forest?.superset ?? null,
+      masteryTier: Number(forest?.mastery_tier) || 0,
+      lastUsedAt: forest?.last_used_at ?? null,
     };
   });
   return {
     nodes,
     edges: topNeighborEdges(embedded),
+    trees: buildTrees(nodes),
     meta: { encountered: words.length, embedded: embedded.length, missingEmbeddings: words.length - embedded.length },
   };
 }

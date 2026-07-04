@@ -52,6 +52,16 @@ async function loadWords() {
   );
 }
 
+async function loadWordForest(userId) {
+  return readAll(
+    () => db.from('learning_user_word_forest')
+      .select('word_id,superset,mastery_tier,last_used_at')
+      .eq('user_id', userId)
+      .order('word_id'),
+    'Load profile word forest',
+  );
+}
+
 async function loadReviews(userId) {
   return readAll(
     () => db.from('learning_review_logs')
@@ -135,13 +145,14 @@ async function graphResponse(userId, rawCountryCode, scenarioId) {
   const language = languageForCountry(key);
   if (!countryCode || !language) throw new TypeError('Unknown countryCode');
 
-  const [progress, words, embeddings] = await Promise.all([
+  const [progress, words, embeddings, forestRows] = await Promise.all([
     loadUserProgress(userId),
     loadWords(),
     readAll(
       () => db.from('learning_word_embeddings').select('word_id,embedding').order('word_id'),
       'Load profile word embeddings',
     ),
+    loadWordForest(userId),
   ]);
   const progressById = new Map(progress.filter((row) => Number(row.reps) > 0).map((row) => [Number(row.word_id), row]));
   let encountered = words
@@ -167,7 +178,7 @@ async function graphResponse(userId, rawCountryCode, scenarioId) {
     countryCode,
     language,
     scenarioId: scenarioId || null,
-    ...buildWordGraph(encountered, embeddings),
+    ...buildWordGraph(encountered, embeddings, { forestRows }),
   };
 }
 
