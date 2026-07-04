@@ -22,6 +22,15 @@ import {
 } from '../lib/voice/projectStore.js';
 import { DEEPGRAM_API_KEY, GEMINI_API_KEY } from '../lib/config.js';
 import { sseHeaders, sseEmit } from '../lib/sse.js';
+import {
+  normalizeLang,
+  liveUrl,
+  batchUrl,
+  KEEPALIVE_INTERVAL_MS,
+  PENDING_AUDIO_MAX_CHUNKS,
+  reconnectDelayMs,
+  shouldReconnect,
+} from '../lib/voice/langParams.js';
 
 const NAME_LIMIT = 200;
 const VALID_STATUSES = ['draft', 'recording', 'ready', 'transcribing', 'completed', 'error'];
@@ -36,6 +45,8 @@ const VALID_STATUSES = ['draft', 'recording', 'ready', 'transcribing', 'complete
 // Chinese coverage than nova-3, and a batch pass over the *complete* audio diarizes far
 // better than the streaming pass. Deepgram auto-detects speaker count — there is no
 // parameter to hint or constrain it (verified against the live API), so we don't try.
+// Per-language model selection now lives in lib/voice/langParams.js — notably Arabic,
+// which nova-2 does not support at all, is routed to nova-3 there.
 
 const liveSessions = new Map();
 const playbackAudioCache = new Map();
@@ -167,8 +178,11 @@ async function translateSegments(segments, sourceLang = 'zh') {
   const texts = segments.map((s, i) => `[${i}] ${s.text}`).join('\n');
   if (!texts.trim()) return segments;
 
-  const targetName = sourceLang === 'zh' ? 'English' : 'Chinese';
-  const sourceName = sourceLang === 'zh' ? 'Chinese' : 'English';
+  // Learners always read English translations; name the source language properly so
+  // Gemini isn't guessing (the old zh/en toggle sent non-Chinese audio to Chinese).
+  const LANG_NAMES = { zh: 'Chinese', hi: 'Hindi', fr: 'French', es: 'Spanish', ar: 'Arabic', pt: 'Portuguese' };
+  const targetName = 'English';
+  const sourceName = LANG_NAMES[sourceLang] || 'Chinese';
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
   try {
@@ -207,15 +221,15 @@ async function translateSegments(segments, sourceLang = 'zh') {
 
 // Shared high-accuracy pass. Takes a complete audio buffer (WebM/Opus) and returns
 // diarized segments. Used by both the automatic final pass on stop and the manual
-// Transcribe button. Engine-pluggable: today Deepgram batch nova-2; a Whisper fallback
-// could slot in here later (see plan, "Out of scope").
+// Transcribe button. Engine-pluggable: model per language via langParams.js; a Whisper
+// fallback could slot in here later (see plan, "Out of scope"). The joined segment text
+// is the finalized utterance transcript the client posts to /api/scenario/evaluate —
+// transcription only, no pass/fail judgment here.
 async function batchTranscribe(audioBuffer, sourceLang = 'zh') {
   if (!DEEPGRAM_API_KEY) throw new Error('DEEPGRAM_API_KEY not configured');
   if (!audioBuffer || audioBuffer.length === 0) throw new Error('No audio data to transcribe');
 
-  const dynamicBatchUrl = `https://api.deepgram.com/v1/listen?model=nova-2&language=${sourceLang}&diarize=true&punctuate=true&smart_format=true`;
-
-  const response = await fetch(dynamicBatchUrl, {
+  const response = await fetch(batchUrl(sourceLang), {
     method: 'POST',
     headers: {
       'Authorization': `Token ${DEEPGRAM_API_KEY}`,
@@ -584,8 +598,7 @@ export function mountVoiceRoutes(app, httpServer) {
     if (!project) { sendJson(client, { type: 'error', message: 'Project not found' }); client.close(); return; }
     if (!DEEPGRAM_API_KEY) { sendJson(client, { type: 'error', message: 'DEEPGRAM_API_KEY not configured' }); client.close(); return; }
 
-    const sourceLang = project.sourceLang || 'zh';
-    const dynamicLiveUrl = `wss://api.deepgram.com/v1/listen?diarize=true&model=nova-3&language=${sourceLang}&interim_results=true&utterance_end_ms=1000`;
+    const sourceLang = normalizeLang(project.sourceLang || 'zh');
 
     updateVoiceProject(relPath, { status: 'recording' });
 
@@ -593,69 +606,119 @@ export function mountVoiceRoutes(app, httpServer) {
     const existing = liveSessions.get(relPath);
     if (existing) {
       replacedClient = existing.client;
+      existing.finalizing = true; // suppress the old session's reconnect logic
+      if (existing.keepAlive) clearInterval(existing.keepAlive);
       try { existing.dg.close(); } catch { /* ignore */ }
       liveSessions.delete(relPath);
     }
 
-    const dg = new WebSocket(dynamicLiveUrl, { headers: { Authorization: `Token ${DEEPGRAM_API_KEY}` } });
-    const allWords = [];
-    const pendingAudio = [];
-    const session = { dg, client, allWords, pendingAudio };
+    const session = {
+      dg: null,
+      client,
+      allWords: [],
+      pendingAudio: [],
+      keepAlive: null,
+      reconnects: 0,
+      readySent: false,
+      finalizing: false,
+    };
     liveSessions.set(relPath, session);
-    console.log('[voice] Opening Deepgram live WS');
 
-    dg.on('open', () => {
-      console.log('[voice] Deepgram live WS connected');
-      while (pendingAudio.length && dg.readyState === WebSocket.OPEN) {
-        dg.send(pendingAudio.shift());
-      }
-      sendJson(client, { type: 'ready' });
-      // Notify the replaced client after the new connection is fully ready so
-      // any newly attached listeners have a chance to receive the message.
-      if (replacedClient) {
-        const toNotify = replacedClient;
-        replacedClient = null;
-        setTimeout(() => {
-          sendJson(toNotify, { type: 'error', message: 'This project was opened in another tab or window' });
-        }, 0);
-      }
-    });
+    // Connect (and on transient upstream drops, reconnect) to Deepgram. Losing a beat of
+    // live captions is fine — the authoritative transcript is the batch pass on stop —
+    // so a mid-recording drop buffers audio, retries with short backoff, and only
+    // surfaces an error to the client once retries are exhausted.
+    function connectDeepgram() {
+      const dg = new WebSocket(liveUrl(sourceLang), { headers: { Authorization: `Token ${DEEPGRAM_API_KEY}` } });
+      session.dg = dg;
+      console.log('[voice] Opening Deepgram live WS', session.reconnects > 0 ? `(reconnect ${session.reconnects})` : '');
 
-    dg.on('message', (data) => {
-      try {
-        const msg = JSON.parse(data.toString());
-        if (msg.type !== 'Results') return;
-        const channel = msg.channel?.alternatives?.[0];
-        if (!channel || !channel.transcript) return;
-        const isFinal = msg.is_final || msg.speech_final;
-        if (isFinal && channel.words?.length) {
-          for (const w of channel.words) allWords.push(w);
-          sendJson(client, { type: 'words', segments: wordsToSegments(allWords) });
-        } else if (!isFinal) {
-          sendJson(client, { type: 'delta', text: channel.transcript });
+      dg.on('open', () => {
+        console.log('[voice] Deepgram live WS connected');
+        while (session.pendingAudio.length && dg.readyState === WebSocket.OPEN) {
+          dg.send(session.pendingAudio.shift());
         }
-      } catch { /* ignore parse errors */ }
-    });
+        // Deepgram closes a silent stream after ~10s; periodic KeepAlive frames cover
+        // the open→first-chunk gap and any pause in speech.
+        if (session.keepAlive) clearInterval(session.keepAlive);
+        session.keepAlive = setInterval(() => {
+          try {
+            if (dg.readyState === WebSocket.OPEN) dg.send(JSON.stringify({ type: 'KeepAlive' }));
+          } catch { /* ignore */ }
+        }, KEEPALIVE_INTERVAL_MS);
 
-    dg.on('error', (err) => {
-      console.error('[voice] Deepgram live WS error:', err.message || err);
-      sendJson(client, { type: 'error', message: 'Deepgram connection error' });
-    });
-    dg.on('unexpected-response', (_req, res) => {
-      console.error('[voice] Deepgram unexpected response:', res.statusCode, res.statusMessage);
-      sendJson(client, { type: 'error', message: `Deepgram HTTP ${res.statusCode}` });
-    });
-    dg.on('close', (code, reason) => {
-      console.log('[voice] Deepgram live WS closed:', code, reason?.toString() || '');
-    });
+        if (session.readySent) return; // reconnect: the client-side recorder is already running
+        session.readySent = true;
+        sendJson(client, { type: 'ready' });
+        // Notify the replaced client after the new connection is fully ready so
+        // any newly attached listeners have a chance to receive the message.
+        if (replacedClient) {
+          const toNotify = replacedClient;
+          replacedClient = null;
+          setTimeout(() => {
+            sendJson(toNotify, { type: 'error', message: 'This project was opened in another tab or window' });
+          }, 0);
+        }
+      });
+
+      dg.on('message', (data) => {
+        try {
+          const msg = JSON.parse(data.toString());
+          if (msg.type !== 'Results') return;
+          const channel = msg.channel?.alternatives?.[0];
+          if (!channel || !channel.transcript) return;
+          const isFinal = msg.is_final || msg.speech_final;
+          if (isFinal && channel.words?.length) {
+            for (const w of channel.words) session.allWords.push(w);
+            sendJson(client, { type: 'words', segments: wordsToSegments(session.allWords) });
+          } else if (!isFinal) {
+            sendJson(client, { type: 'delta', text: channel.transcript });
+          }
+        } catch { /* ignore parse errors */ }
+      });
+
+      dg.on('error', (err) => {
+        // Transient network errors are followed by 'close', where reconnection is
+        // decided — don't scare the client yet.
+        console.error('[voice] Deepgram live WS error:', err.message || err);
+      });
+      dg.on('unexpected-response', (_req, res) => {
+        // An HTTP rejection (bad key, bad params) will not heal by retrying.
+        console.error('[voice] Deepgram unexpected response:', res.statusCode, res.statusMessage);
+        session.reconnects = Infinity;
+        sendJson(client, { type: 'error', message: `Deepgram HTTP ${res.statusCode}` });
+      });
+      dg.on('close', (code, reason) => {
+        console.log('[voice] Deepgram live WS closed:', code, reason?.toString() || '');
+        if (session.keepAlive) { clearInterval(session.keepAlive); session.keepAlive = null; }
+        // Reconnect only if this session is still live: not finalized/replaced, still
+        // the registered session, browser still connected, and this is the current socket.
+        if (session.finalizing || liveSessions.get(relPath) !== session) return;
+        if (session.dg !== dg || client.readyState !== WebSocket.OPEN) return;
+        if (!shouldReconnect(session.reconnects)) {
+          sendJson(client, { type: 'error', message: 'Deepgram connection error' });
+          return;
+        }
+        const delay = reconnectDelayMs(session.reconnects);
+        session.reconnects += 1;
+        setTimeout(() => {
+          if (session.finalizing || liveSessions.get(relPath) !== session) return;
+          if (client.readyState !== WebSocket.OPEN) return;
+          connectDeepgram();
+        }, delay);
+      });
+    }
+
+    connectDeepgram();
 
     client.on('message', async (data, isBinary) => {
       if (isBinary) {
-        // Audio chunk → straight to Deepgram, no decoding. Browser WS open can happen
-        // before the upstream Deepgram WS is ready, so buffer early chunks instead of
-        // dropping the beginning of the recording.
-        if (dg.readyState === WebSocket.OPEN) dg.send(data);
-        else if (dg.readyState === WebSocket.CONNECTING) pendingAudio.push(Buffer.from(data));
+        // Audio chunk → straight to Deepgram, no decoding. Buffer whenever the upstream
+        // socket isn't OPEN — before the first connect completes AND across reconnects —
+        // instead of dropping audio. The cap only guards runaway memory.
+        const dg = session.dg;
+        if (dg && dg.readyState === WebSocket.OPEN) dg.send(data);
+        else if (session.pendingAudio.length < PENDING_AUDIO_MAX_CHUNKS) session.pendingAudio.push(Buffer.from(data));
         return;
       }
       // Text control message.
@@ -668,7 +731,8 @@ export function mountVoiceRoutes(app, httpServer) {
 
     client.on('close', () => {
       console.log('[voice] live-ws client closed for project', relPath);
-      try { if (dg.readyState === WebSocket.OPEN) dg.close(); } catch { /* ignore */ }
+      if (session.keepAlive) { clearInterval(session.keepAlive); session.keepAlive = null; }
+      try { if (session.dg && session.dg.readyState === WebSocket.OPEN) session.dg.close(); } catch { /* ignore */ }
       // Only drop the session if it's still the active one (finalize may already have run).
       if (liveSessions.get(relPath) === session) liveSessions.delete(relPath);
     });
@@ -680,12 +744,14 @@ export function mountVoiceRoutes(app, httpServer) {
     const session = liveSessions.get(relPath);
     if (!session) { console.log('[voice] stop: no session for', relPath); return; }
     const { dg, client } = session;
+    session.finalizing = true; // stop any reconnect attempt from resurrecting the stream
+    if (session.keepAlive) { clearInterval(session.keepAlive); session.keepAlive = null; }
     liveSessions.delete(relPath);
 
-    if (dg.readyState === WebSocket.OPEN) {
+    if (dg && dg.readyState === WebSocket.OPEN) {
       try { dg.send(JSON.stringify({ type: 'CloseStream' })); } catch { /* ignore */ }
     }
-    setTimeout(() => { try { if (dg.readyState === WebSocket.OPEN) dg.close(); } catch { /* ignore */ } }, 2000);
+    setTimeout(() => { try { if (dg && dg.readyState === WebSocket.OPEN) dg.close(); } catch { /* ignore */ } }, 2000);
 
     const audioB64 = msg?.audio_b64 ? String(msg.audio_b64) : '';
 
