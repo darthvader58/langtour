@@ -251,6 +251,107 @@ export async function insertReviewLog(values) {
   assertResult(await db.from('learning_review_logs').insert(values), 'Insert review log');
 }
 
+export async function getWordsByIds(ids) {
+  if (!ids || ids.length === 0) return [];
+  const rows = assertResult(
+    await db.from('learning_words').select('id,expression,reading,meaning,language').in('id', ids),
+    'Load words by id',
+  );
+  // Preserve caller order — target-word lists are ordered (seed first, grown after).
+  const byId = new Map(rows.map((row) => [row.id, row]));
+  return ids.map((id) => byId.get(id)).filter(Boolean);
+}
+
+export async function getWordsByExpressions(expressions, language) {
+  if (!expressions || expressions.length === 0) return [];
+  let query = db.from('learning_words').select('id,expression,reading,meaning,language').in('expression', expressions);
+  if (language) query = query.eq('language', language);
+  return assertResult(await query, 'Load words by expression');
+}
+
+// generateTurn may grow the target set with words carrying id: null (the model
+// cannot mint DB ids — see ai-module.md). Resolve them against the shared
+// dictionary, inserting missing rows, and return them with real ids assigned.
+export async function resolveOrCreateWords(words, language) {
+  if (!words || words.length === 0) return [];
+  const rows = words.map((w) => ({
+    expression: w.expression,
+    reading: w.reading ?? null,
+    meaning: w.meaning ?? null,
+    language,
+  }));
+  assertResult(
+    await db.from('learning_words').upsert(rows, { onConflict: 'expression,language', ignoreDuplicates: true }),
+    'Resolve grown words',
+  );
+  const resolved = await getWordsByExpressions(words.map((w) => w.expression), language);
+  const byExpression = new Map(resolved.map((row) => [row.expression, row]));
+  return words.map((w) => byExpression.get(w.expression)).filter(Boolean);
+}
+
+// --- user_generated_scenarios (economy contract: service-role insert at
+// generation time; completion/claim authorized against these rows in the
+// 20260703000000 migration). Only the backend writes here; RLS lets the user
+// select their own rows. ---
+
+export async function insertGeneratedScenario(userId, row) {
+  assertResult(
+    await db.from('user_generated_scenarios').insert({ user_id: userId, ...row }),
+    'Insert generated scenario',
+  );
+}
+
+export async function getGeneratedScenario(userId, countryCode, scenarioId) {
+  return assertResult(
+    await db.from('user_generated_scenarios')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('country_code', countryCode)
+      .eq('scenario_id', scenarioId)
+      .maybeSingle(),
+    'Load generated scenario',
+  );
+}
+
+export async function listGeneratedScenarios(userId, countryCode) {
+  return assertResult(
+    await db.from('user_generated_scenarios')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('country_code', countryCode)
+      .order('position'),
+    'List generated scenarios',
+  );
+}
+
+export async function updateGeneratedScenarioProgress(userId, countryCode, scenarioId, patch) {
+  assertResult(
+    await db.from('user_generated_scenarios')
+      .update(patch)
+      .eq('user_id', userId)
+      .eq('country_code', countryCode)
+      .eq('scenario_id', scenarioId),
+    'Update generated scenario',
+  );
+}
+
+// record_scenario_completion is SECURITY DEFINER keyed on auth.uid(), so the
+// backend must call it *as the user*: a per-request client whose Authorization
+// header carries the user's JWT (PostgREST resolves auth.uid() from it) while
+// the apikey stays server-side. Verified against supabase-js docs via Context7.
+export async function recordScenarioCompletionAsUser(accessToken, countryCode, scenarioId) {
+  const asUser = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+    global: { headers: { Authorization: `Bearer ${accessToken}` } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { data, error } = await asUser.rpc('record_scenario_completion', {
+    p_country_code: countryCode,
+    p_scenario_id: scenarioId,
+  });
+  if (error) throw new Error(`Record scenario completion: ${error.message}`);
+  return data;
+}
+
 export async function getWordEmbeddingRow(wordId) {
   return assertResult(await db.from('learning_word_embeddings').select('embedding').eq('word_id', wordId).maybeSingle(), 'Load embedding');
 }
