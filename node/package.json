@@ -19,7 +19,7 @@
   "dependencies": {
     "@ai-sdk/google": "^3.0.83",
     "@supabase/supabase-js": "^2.108.2",
-    "@supermemory/ai-sdk": "1.0.8",
+    "@supermemory/tools": "2.0.0",
     "ai": "^6.0.208",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",

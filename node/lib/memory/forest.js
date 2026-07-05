@@ -1,5 +1,5 @@
 import Supermemory from 'supermemory';
-import { supermemoryTools } from '@supermemory/ai-sdk';
+import { supermemoryTools } from '@supermemory/tools/ai-sdk';
 import { SUPERMEMORY_API_KEY } from '../config.js';
 
 // Per-user word-forest memory: Supermemory is the source of truth for learning
