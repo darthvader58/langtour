@@ -131,9 +131,12 @@ function App() {
         scenario={activeScenario}
         langCode={langCode}
         country={selectedCountry}
+        isAdmin={profile.isAdmin}
         onEndScenario={async (result) => {
+          // Completion is already recorded server-side (inside /api/scenario/evaluate
+          // after an evaluator pass, or the admin skip); just refresh our view.
           if (result?.completed && result?.id && !profile.completedScenarios.includes(result.id) && selectedCountry) {
-            await profile.completeScenario(selectedCountry.toLowerCase(), result.id)
+            await profile.reloadGameState()
           }
           setActiveScenario(null);
 

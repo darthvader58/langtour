@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { authFetch } from '../api'
 
 export function useProfile() {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
   const [unlockedCountries, setUnlockedCountries] = useState([])
   const [completedScenarios, setCompletedScenarios] = useState([])
+  const [isAdmin, setIsAdmin] = useState(false)
   const [authLoading, setAuthLoading] = useState(Boolean(supabase))
   const [gameStateLoading, setGameStateLoading] = useState(Boolean(supabase))
   const [authError, setAuthError] = useState('')
@@ -16,6 +18,7 @@ export function useProfile() {
       setProfile(null)
       setUnlockedCountries([])
       setCompletedScenarios([])
+      setIsAdmin(false)
       setGameStateLoading(false)
       return
     }
@@ -45,6 +48,15 @@ export function useProfile() {
       else setCompletedScenarios((completionsResult.data ?? []).map((row) => row.scenario_id))
     } finally {
       setGameStateLoading(false)
+    }
+
+    // Admin status is server-computed (email === ADMIN_EMAIL). Best-effort: a
+    // failure just hides the admin-only skip and never blocks gameplay.
+    try {
+      const res = await authFetch('/api/profile/progress')
+      setIsAdmin(res.ok ? Boolean((await res.json()).isAdmin) : false)
+    } catch {
+      setIsAdmin(false)
     }
   }, [])
 
@@ -119,24 +131,11 @@ export function useProfile() {
     return data
   }, [user])
 
-  const awardTokens = useCallback(async (amount) => {
-    if (!supabase || !user) return null
-    const { data: newBalance, error } = await supabase.rpc('award_tokens', { p_amount: amount })
-    if (error) { console.error('Unable to award tokens:', error.message); return null }
-    setProfile((current) => current ? { ...current, tokens: newBalance } : current)
-    return newBalance
-  }, [user])
-
-  const completeScenario = useCallback(async (countryCode, scenarioId) => {
-    if (!supabase || !user) { setAuthError('Sign in to save scenario progress.'); return false }
-    const { error } = await supabase.rpc('record_scenario_completion', {
-      p_country_code: countryCode,
-      p_scenario_id: scenarioId,
-    })
-    if (error) { console.error('Unable to save scenario completion:', error.message); return false }
-    setCompletedScenarios((current) => current.includes(scenarioId) ? current : [...current, scenarioId])
-    await loadGameState(user)
-    return true
+  // Completion is recorded server-side inside POST /api/scenario/evaluate (after
+  // an evaluator-confirmed pass) or via the admin skip — never from the browser.
+  // The client only refreshes its game-state view once the server has recorded it.
+  const reloadGameState = useCallback(async () => {
+    if (user) await loadGameState(user)
   }, [loadGameState, user])
 
   const claimCountryReward = useCallback(async (countryCode) => {
@@ -164,6 +163,7 @@ export function useProfile() {
     rank: profile?.rank ?? null,
     unlockedCountries,
     completedScenarios,
+    isAdmin,
     authLoading: authLoading || (gameStateLoading && !profile),
     authError,
     authMessage,
@@ -172,8 +172,7 @@ export function useProfile() {
     signUpWithEmail,
     signOut,
     unlockCountry,
-    awardTokens,
-    completeScenario,
+    reloadGameState,
     claimCountryReward,
     resetProgress,
   }

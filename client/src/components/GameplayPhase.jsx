@@ -28,7 +28,7 @@ function recentPriorTurns(priorTurns) {
 // evaluating -> feedback -> either generating (next turn) or scenario_complete.
 // scenarioComplete only ever comes from the server's evaluate response
 // (docs/contracts/ai-module.md) — nothing here marks a scenario done.
-export default function GameplayPhase({ scenario, countryCode, langCode, firstTurn, onEndScenario }) {
+export default function GameplayPhase({ scenario, countryCode, langCode, firstTurn, isAdmin = false, onEndScenario }) {
   const [state, setState] = useState('npc_turn');
   const [scenarioId] = useState(firstTurn.scenarioId);
   const [npcLine, setNpcLine] = useState(firstTurn.npcLine);
@@ -143,6 +143,25 @@ export default function GameplayPhase({ scenario, countryCode, langCode, firstTu
     }
   };
 
+  // Admin-only evaluator skip (server-enforced: /api/scenario/admin-complete
+  // re-checks identity against ADMIN_EMAIL and records completion via the
+  // service-role RPC). Rendered only for the admin; a non-admin who forced the
+  // call still gets a 403.
+  const handleAdminSkip = async () => {
+    try {
+      const response = await authFetch('/api/scenario/admin-complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ countryCode, scenarioId }),
+      });
+      if (!response.ok) throw new Error('admin skip failed');
+      onEndScenario({ completed: true, id: scenarioId });
+    } catch (e) {
+      console.error(e);
+      setGenError('Admin skip failed.');
+    }
+  };
+
   const progress = progressPercent(growth);
 
   return (
@@ -153,12 +172,23 @@ export default function GameplayPhase({ scenario, countryCode, langCode, firstTu
           <h2 className="flex min-w-0 items-center gap-2 font-display text-lg font-extrabold text-white sm:text-2xl">
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[var(--accent-25)] bg-[var(--surface-bg)] text-xl sm:h-11 sm:w-11 sm:text-2xl">{icon}</span><span className="truncate">{title}</span>
           </h2>
-          <button
-            onClick={() => onEndScenario()}
-            className="flex h-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.035] px-3 font-display text-[10px] font-extrabold uppercase tracking-wider text-slate-500 transition-all hover:bg-white/[0.07] hover:text-white sm:h-[42px] sm:px-4 sm:text-xs sm:tracking-widest"
-          >
-            Quit
-          </button>
+          <div className="flex items-center gap-2">
+            {isAdmin && state !== 'scenario_complete' && (
+              <button
+                onClick={handleAdminSkip}
+                title="Admin: skip evaluator and complete this scenario"
+                className="flex h-9 items-center justify-center rounded-xl border border-amber-400/30 bg-amber-400/10 px-3 font-display text-[10px] font-extrabold uppercase tracking-wider text-amber-300 transition-all hover:bg-amber-400/20 sm:h-[42px] sm:px-4 sm:text-xs sm:tracking-widest"
+              >
+                Skip
+              </button>
+            )}
+            <button
+              onClick={() => onEndScenario()}
+              className="flex h-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.035] px-3 font-display text-[10px] font-extrabold uppercase tracking-wider text-slate-500 transition-all hover:bg-white/[0.07] hover:text-white sm:h-[42px] sm:px-4 sm:text-xs sm:tracking-widest"
+            >
+              Quit
+            </button>
+          </div>
         </div>
 
         {/* Progress Bar — driven by growth.usedWordIds/targetSize, not a fixed turn count */}

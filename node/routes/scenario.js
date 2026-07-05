@@ -13,6 +13,7 @@
 // tested before node/lib/ai/ and node/lib/memory/ exist in a checkout.
 
 import { COUNTRIES } from '../../client/src/gameData.js';
+import { ADMIN_EMAIL } from '../lib/config.js';
 import {
   PERSONA_BY_COUNTRY,
   ensureTargetWords,
@@ -54,19 +55,21 @@ async function loadDefaultDeps() {
       getGeneratedScenario: dbApi.getGeneratedScenario,
       listGeneratedScenarios: dbApi.listGeneratedScenarios,
       updateGeneratedScenarioProgress: dbApi.updateGeneratedScenarioProgress,
-      recordScenarioCompletionAsUser: dbApi.recordScenarioCompletionAsUser,
+      recordScenarioCompletion: dbApi.recordScenarioCompletion,
     },
+    identity: { getUserEmail: dbApi.getUserEmail },
   };
+}
+
+// Admin identity is decided server-side. An empty ADMIN_EMAIL matches no one.
+function isAdminEmail(email) {
+  return ADMIN_EMAIL !== '' && typeof email === 'string' &&
+    email.trim().toLowerCase() === ADMIN_EMAIL.trim().toLowerCase();
 }
 
 function resolveCountry(code) {
   if (typeof code !== 'string') return null;
   return COUNTRY_BY_CODE.get(code.trim().toLowerCase()) ?? null;
-}
-
-function bearerToken(req) {
-  const match = (req.headers.authorization || '').match(/^Bearer (.+)$/);
-  return match ? match[1] : null;
 }
 
 function sanitizePriorTurns(priorTurns) {
@@ -336,9 +339,10 @@ export function mountScenarioRoutes(app, injectedDeps = null) {
 
     if (scenarioComplete) {
       // Server-confirmed pass + met turn goal: the only path to completion.
-      // The RPC runs as the user (auth.uid()) and re-validates the scenario
-      // against the user's generated chain.
-      await deps.store.recordScenarioCompletionAsUser(bearerToken(req), country.code, row.scenario_id);
+      // The completion RPC is service-role-only (finding S3); it runs with the
+      // server-verified req.userId and re-validates the scenario against the
+      // user's generated chain. The browser cannot reach it directly.
+      await deps.store.recordScenarioCompletion(req.userId, country.code, row.scenario_id);
       await deps.forest.recordSituationClear(req.userId, {
         scenarioId: row.scenario_id,
         superset: row.superset,
@@ -362,5 +366,45 @@ export function mountScenarioRoutes(app, injectedDeps = null) {
         chainComplete: Boolean(row.chain_complete),
       },
     });
+  }));
+
+  // Admin-only evaluator skip (replaces the old client dev-skip). The caller's
+  // identity is resolved SERVER-SIDE from the verified req.userId and must equal
+  // ADMIN_EMAIL — never trusted from the request body. The scenario must still be
+  // in the user's own generated chain (the completion RPC re-validates). Any
+  // non-admin gets 403; completion here uses the same service-role RPC as the
+  // evaluator path, just without the pass check.
+  app.post('/api/scenario/admin-complete', withAuth, handle(async (req, res, deps) => {
+    const { countryCode, scenarioId } = req.body ?? {};
+    const country = resolveCountry(countryCode);
+    if (!country) {
+      res.status(400).json({ error: 'Unknown countryCode' });
+      return;
+    }
+    if (typeof scenarioId !== 'string' || scenarioId.length === 0) {
+      res.status(400).json({ error: 'Unknown scenarioId' });
+      return;
+    }
+
+    const email = await deps.identity.getUserEmail(req.userId);
+    if (!isAdminEmail(email)) {
+      res.status(403).json({ error: 'Forbidden' });
+      return;
+    }
+
+    const row = await deps.store.getGeneratedScenario(req.userId, country.code, scenarioId);
+    if (!row) {
+      res.status(400).json({ error: 'Unknown scenarioId' });
+      return;
+    }
+
+    await deps.store.recordScenarioCompletion(req.userId, country.code, row.scenario_id);
+    await deps.forest.recordSituationClear(req.userId, {
+      scenarioId: row.scenario_id,
+      superset: row.superset,
+      countryCode: country.code,
+    });
+
+    res.json({ completed: true, scenarioId: row.scenario_id });
   }));
 }

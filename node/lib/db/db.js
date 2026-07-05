@@ -335,21 +335,29 @@ export async function updateGeneratedScenarioProgress(userId, countryCode, scena
   );
 }
 
-// record_scenario_completion is SECURITY DEFINER keyed on auth.uid(), so the
-// backend must call it *as the user*: a per-request client whose Authorization
-// header carries the user's JWT (PostgREST resolves auth.uid() from it) while
-// the apikey stays server-side. Verified against supabase-js docs via Context7.
-export async function recordScenarioCompletionAsUser(accessToken, countryCode, scenarioId) {
-  const asUser = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-    global: { headers: { Authorization: `Bearer ${accessToken}` } },
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-  const { data, error } = await asUser.rpc('record_scenario_completion', {
+// record_scenario_completion is now SECURITY DEFINER, service-role-only, and
+// takes an explicit p_user_id (auth.uid() is null under the service role — see
+// migration 20260704000002, finding S3). The backend calls it through the shared
+// service-role `db` client with the server-verified req.userId, only after an
+// evaluator-confirmed pass (or the server-gated admin skip). The browser can no
+// longer reach completion. Verified against supabase-js docs via Context7.
+export async function recordScenarioCompletion(userId, countryCode, scenarioId) {
+  const { data, error } = await db.rpc('record_scenario_completion', {
+    p_user_id: userId,
     p_country_code: countryCode,
     p_scenario_id: scenarioId,
   });
   if (error) throw new Error(`Record scenario completion: ${error.message}`);
   return data;
+}
+
+// Resolve a user's email server-side from the trusted req.userId, for the
+// admin-skip gate. Uses the service-role Admin API — the email is never taken
+// from the client. Returns null if the user has no email on record.
+export async function getUserEmail(userId) {
+  const { data, error } = await db.auth.admin.getUserById(userId);
+  if (error) throw new Error(`Load user identity: ${error.message}`);
+  return data?.user?.email ?? null;
 }
 
 export async function getWordEmbeddingRow(wordId) {

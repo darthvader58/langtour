@@ -16,7 +16,7 @@ const SHELL_CLASS = 'flex min-h-dvh w-screen flex-col items-center justify-cente
 // (docs/contracts/ai-module.md, node/routes/scenario.js): try to resume the
 // clicked scenario, and if the chain engine hasn't generated it yet for this
 // user, let it plan the real next one instead of forcing a specific id.
-export default function ScenarioRunner({ scenario, langCode, country, onEndScenario }) {
+export default function ScenarioRunner({ scenario, langCode, country, isAdmin = false, onEndScenario }) {
   const [phase, setPhase] = useState('loading') // loading -> input -> gameplay -> chain-complete -> error
   const [firstTurn, setFirstTurn] = useState(null)
   const [errorMessage, setErrorMessage] = useState('')
@@ -110,6 +110,7 @@ export default function ScenarioRunner({ scenario, langCode, country, onEndScena
         countryCode={countryCode}
         langCode={langCode}
         firstTurn={firstTurn}
+        isAdmin={isAdmin}
         onEndScenario={onEndScenario}
       />
     </div>

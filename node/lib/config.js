@@ -15,3 +15,7 @@ export const VOICE_AUDIO_DIR = process.env.VOICE_AUDIO_DIR || '';
 export const SUPERMEMORY_API_KEY = process.env.SUPERMEMORY_API_KEY || '';
 export const AZURE_SPEECH_KEY = process.env.AZURE_SPEECH_KEY || '';
 export const AZURE_SPEECH_REGION = process.env.AZURE_SPEECH_REGION || '';
+// Single owner/admin email for the evaluator-skip affordance. Resolved
+// server-side against the authenticated user's identity; never client-sent. When
+// empty, no user is ever admin (an empty === empty match is explicitly rejected).
+export const ADMIN_EMAIL = process.env.ADMIN_EMAIL || '';

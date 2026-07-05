@@ -1,4 +1,5 @@
 import { requireUser } from '../lib/auth.js';
+import { ADMIN_EMAIL } from '../lib/config.js';
 import { db } from '../lib/db/db.js';
 import { assertTimeZone, buildProgressMetrics } from '../lib/profile/metrics.js';
 import { shapeProfileHistory } from '../lib/profile/history.js';
@@ -33,6 +34,13 @@ async function readAll(buildQuery, context, pageSize = 1000) {
 
 function invalidRequest(res, message) {
   res.status(400).json({ error: message });
+}
+
+// Admin status is decided server-side from the authenticated identity. An empty
+// ADMIN_EMAIL matches no one.
+function isAdminEmail(email) {
+  return ADMIN_EMAIL !== '' && typeof email === 'string' &&
+    email.trim().toLowerCase() === ADMIN_EMAIL.trim().toLowerCase();
 }
 
 async function loadUserProgress(userId) {
@@ -96,7 +104,11 @@ async function loadProfileHistory(userId) {
   ]);
   if (authResult.error) throw new Error(`Load profile identity: ${authResult.error.message}`);
   if (profileResult.error) throw new Error(`Load profile: ${profileResult.error.message}`);
-  return shapeProfileHistory({
+  return {
+    // Server-computed; the UI shows the evaluator-skip only to the admin, but the
+    // /api/scenario/admin-complete route re-checks identity regardless.
+    isAdmin: isAdminEmail(authResult.data.user?.email),
+    ...shapeProfileHistory({
     authUser: authResult.data.user,
     profile: profileResult.data,
     levels: resultData(levelsResult, 'Load levels'),
@@ -106,7 +118,8 @@ async function loadProfileHistory(userId) {
     completions: resultData(completionsResult, 'Load scenario completions'),
     scenarioCatalog: resultData(scenariosResult, 'Load scenario catalog'),
     rewardClaims: resultData(claimsResult, 'Load country reward claims'),
-  });
+    }),
+  };
 }
 
 async function progressResponse(userId, timeZone) {
