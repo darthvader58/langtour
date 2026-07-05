@@ -1,13 +1,11 @@
 import { useState } from 'react';
+import { wordKey, wordMeaning, wordReading, wordText } from './wordDisplay';
 
 export default function InputPhase({ words, langCode, onComplete }) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  // In the future, this will fetch from the backend:
-  // /api/scenario/discovery?scenarioId=...
-  
   const currentWord = words[currentIndex];
-  
+
   const handleNext = () => {
     if (currentIndex < words.length - 1) {
       setCurrentIndex(currentIndex + 1);
@@ -15,11 +13,11 @@ export default function InputPhase({ words, langCode, onComplete }) {
       onComplete();
     }
   };
-  
+
   const playAudio = () => {
     // Basic text-to-speech fallback
-    const utterance = new SpeechSynthesisUtterance(currentWord.zh);
-    const voiceLangs = { hi: 'hi-IN', fr: 'fr-FR', es: 'es-MX', zh: 'zh-CN' };
+    const utterance = new SpeechSynthesisUtterance(wordText(currentWord));
+    const voiceLangs = { hi: 'hi-IN', fr: 'fr-FR', es: 'es-MX', zh: 'zh-CN', ar: 'ar-SA', pt: 'pt-BR' };
     utterance.lang = voiceLangs[langCode] || 'zh-CN';
     window.speechSynthesis.speak(utterance);
   };
@@ -33,15 +31,15 @@ export default function InputPhase({ words, langCode, onComplete }) {
   }
 
   return (
-    <div className="relative mx-auto flex w-full max-w-lg flex-col items-center overflow-hidden rounded-[1.5rem] border border-white/10 bg-[#0b1727]/92 p-4 shadow-[0_30px_100px_rgba(0,0,0,.45)] animate-fade-in-up sm:rounded-[2rem] sm:p-7 [@media(max-height:650px)]:p-3">
+    <div className="relative mx-auto flex w-full max-w-lg flex-col items-center overflow-hidden rounded-[1.5rem] border border-white/10 bg-[var(--surface-card)] p-4 shadow-[0_30px_100px_rgba(0,0,0,.45)] animate-fade-in-up sm:rounded-[2rem] sm:p-7 [@media(max-height:650px)]:p-3">
       <div className="mb-4 flex w-full items-center justify-between gap-3 sm:mb-6">
         <div><p className="font-display text-[9px] font-extrabold uppercase tracking-[.3em] text-[var(--accent)]">Mission vocabulary</p><h2 className="mt-1 font-display text-xl font-extrabold text-white">Pack your phrasebook</h2></div>
-        <span className="rounded-xl border border-white/10 bg-[#07101d] px-3 py-2 text-xs font-extrabold tabular-nums text-slate-400">{currentIndex + 1} / {words.length}</span>
+        <span className="rounded-xl border border-white/10 bg-[var(--surface-bg)] px-3 py-2 text-xs font-extrabold tabular-nums text-slate-400">{currentIndex + 1} / {words.length}</span>
       </div>
-      <div className="mb-4 flex w-full gap-2 sm:mb-6">{words.map((word, index) => <span key={`${word.expression ?? word.zh}-${index}`} className={'h-1.5 flex-1 rounded-full transition-colors ' + (index <= currentIndex ? 'bg-[var(--accent)]' : 'bg-white/10')} />)}</div>
-      
-      <div className="relative mb-4 flex min-h-[230px] w-full flex-col items-center justify-center rounded-[1.4rem] border border-white/[.08] bg-[#07101d] p-5 shadow-inner sm:mb-7 sm:min-h-[280px] sm:rounded-[1.6rem] sm:p-8 [@media(max-height:650px)]:min-h-[180px]">
-        <button 
+      <div className="mb-4 flex w-full gap-2 sm:mb-6">{words.map((word, index) => <span key={wordKey(word, index)} className={'h-1.5 flex-1 rounded-full transition-colors ' + (index <= currentIndex ? 'bg-[var(--accent)]' : 'bg-white/10')} />)}</div>
+
+      <div className="relative mb-4 flex min-h-[230px] w-full flex-col items-center justify-center rounded-[1.4rem] border border-white/[.08] bg-[var(--surface-bg)] p-5 shadow-inner sm:mb-7 sm:min-h-[280px] sm:rounded-[1.6rem] sm:p-8 [@media(max-height:650px)]:min-h-[180px]">
+        <button
           onClick={playAudio}
           className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--accent-25)] bg-[var(--accent-10)] text-[var(--accent-soft)] transition-colors hover:bg-[var(--accent-20)]"
           aria-label="Play audio"
@@ -52,13 +50,13 @@ export default function InputPhase({ words, langCode, onComplete }) {
         </button>
 
         <span className="mb-3 max-w-full break-words text-center font-display text-4xl font-extrabold text-white sm:mb-4 sm:text-6xl">
-          {currentWord.zh}
+          {wordText(currentWord)}
         </span>
         <span className="mb-4 text-center text-lg font-bold italic text-[#52b9db] sm:mb-6 sm:text-xl">
-          {currentWord.pinyin}
+          {wordReading(currentWord)}
         </span>
         <span className="text-lg text-gray-300 font-medium text-center">
-          {currentWord.en}
+          {wordMeaning(currentWord)}
         </span>
       </div>
 

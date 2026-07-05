@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import AudioTranscriptPlayer from '../components/voice/AudioTranscriptPlayer';
 import { API } from '../api';
 
@@ -70,7 +70,23 @@ export default function VoiceTestPage() {
   };
 
   useEffect(() => {
-    fetchProjectsList();
+    let cancelled = false;
+    fetch(`${API}/api/voice/projects?limit=50`)
+      .then((response) => response.json())
+      .then((data) => {
+        if (cancelled) return;
+        const extractProjects = (nodes) => {
+          let p = [];
+          for (const n of nodes) {
+            if (n.type === 'project') p.push(n);
+            if (n.children) p = p.concat(extractProjects(n.children));
+          }
+          return p;
+        };
+        setProjectsList(extractProjects(data.tree?.children || []));
+      })
+      .catch((e) => console.error('Failed to fetch projects', e));
+    return () => { cancelled = true; };
   }, []);
 
   const startRecording = async () => {

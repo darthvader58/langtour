@@ -1,5 +1,3 @@
-import React from 'react';
-
 export default function SegmentedText({ text = '', activeRanges = [], inline = false, onWordClick, style }) {
   const isCharActive = (index) => {
     return activeRanges.some(r => index >= r.start && index < r.end);

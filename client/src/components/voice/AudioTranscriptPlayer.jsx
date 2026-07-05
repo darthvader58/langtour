@@ -139,6 +139,23 @@ export default function AudioTranscriptPlayer({
   const [loaded, setLoaded] = useState(false);
   const [hoveredIndex, setHoveredIndex] = useState(-1);
 
+  // Reset transport state for a cleared audioUrl during render (React's
+  // recommended "adjust state when a prop changes" pattern) instead of in an
+  // effect, so no effect body calls setState synchronously.
+  const [trackedAudioUrl, setTrackedAudioUrl] = useState(audioUrl);
+  if (audioUrl !== trackedAudioUrl) {
+    setTrackedAudioUrl(audioUrl);
+    if (!audioUrl) {
+      setPlaying(false);
+      setDuration(0);
+      setDecodedDuration(0);
+      setLoaded(false);
+      setError('');
+      setCurrentTime(0);
+      setHoveredIndex(-1);
+    }
+  }
+
   const speakerMap = useMemo(() => {
     const speakers = [...new Set(transcript.map(s => s.speaker).filter(Boolean))];
     return Object.fromEntries(
@@ -226,18 +243,6 @@ export default function AudioTranscriptPlayer({
   useEffect(() => {
     segmentRefs.current = [];
   }, [transcript]);
-
-  useEffect(() => {
-    if (!audioUrl) {
-      setPlaying(false);
-      setDuration(0);
-      setDecodedDuration(0);
-      setLoaded(false);
-      setError('');
-      setCurrentTime(0);
-      setHoveredIndex(-1);
-    }
-  }, [audioUrl]);
 
   useEffect(() => {
     if (activeIndex < 0) return;

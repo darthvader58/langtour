@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { fontSize, theme } from '../../theme';
 import { computePeaks } from './waveformPeaks';
 
@@ -6,13 +6,28 @@ export default function Waveform({ audioUrl, currentTime, duration, onDuration, 
   const containerRef = useRef(null);
   const canvasRef = useRef(null);
   const [buffer, setBuffer] = useState(null);
-  const [peaks, setPeaks] = useState([]);
   const [decodedDuration, setDecodedDuration] = useState(duration || 0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [dragging, setDragging] = useState(false);
   const draggingRef = useRef(false);
+
+  // Reset for a new audioUrl happens during render (React's blessed pattern for
+  // "adjust state when a prop changes") rather than in an effect, so the actual
+  // fetch effect below never calls setState synchronously in its own body.
+  const [trackedAudioUrl, setTrackedAudioUrl] = useState(audioUrl);
+  if (audioUrl !== trackedAudioUrl) {
+    setTrackedAudioUrl(audioUrl);
+    setLoading(true);
+    setError('');
+    setBuffer(null);
+  }
+
+  const peaks = useMemo(
+    () => (buffer && size.width > 0 ? computePeaks(buffer, size.width) : []),
+    [buffer, size.width],
+  );
 
   useEffect(() => {
     const el = containerRef.current;
@@ -39,9 +54,6 @@ export default function Waveform({ audioUrl, currentTime, duration, onDuration, 
   useEffect(() => {
     if (!audioUrl) return;
     let cancelled = false;
-    setLoading(true);
-    setError('');
-    setBuffer(null);
 
     fetch(audioUrl)
       .then(res => {
@@ -69,11 +81,6 @@ export default function Waveform({ audioUrl, currentTime, duration, onDuration, 
 
     return () => { cancelled = true; };
   }, [audioUrl, onDuration]);
-
-  useEffect(() => {
-    if (!buffer || size.width <= 0) return;
-    setPeaks(computePeaks(buffer, size.width));
-  }, [buffer, size.width]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
