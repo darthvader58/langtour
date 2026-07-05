@@ -9,41 +9,54 @@ export const COUNTRIES = [
 
 export const CHINA = COUNTRIES[0]
 
+// characterId is the shared persona key (docs/contracts/sidekick-personas.md,
+// docs/contracts/theme-tokens.md) — game-ai voices the sidekick by it, this
+// client picks portrait/palette by it. New countries add an entry here plus a
+// SIDEKICKS row in storyData.js; nothing else needs a code change.
 export const CHARACTERS = {
   China: {
     type: 'Spy',
     icon: '\u{1F575}\u{FE0F}',
+    characterId: 'shanghai-spy',
     story: 'You are a spy sent to infiltrate a Shanghai black market. To blend in, you must master Mandarin.',
     gradient: 'from-[#3a0a0a] via-[#1F2937] to-[#0F1418]',
   },
   India: {
     type: 'Bollywood Actor',
     icon: '🎬',
+    characterId: 'mumbai-star',
     story: 'You are an aspiring Bollywood actor trying to make it big in Mumbai. To win over the directors, you must master Hindi.',
     gradient: 'from-[#331a00] via-[#1F2937] to-[#0F1418]',
   },
   France: {
     type: 'Art Thief',
     icon: '\u{1F5BC}\u{FE0F}',
+    characterId: 'louvre-thief',
     story: 'You are a master thief plotting a heist inside the Louvre. To move unseen, you must master French.',
     gradient: 'from-[#241a05] via-[#1F2937] to-[#0F1418]',
   },
   Mexico: {
     type: 'Treasure Hunter',
     icon: '\u{1F5FA}\u{FE0F}',
+    characterId: 'relic-hunter',
     story: "You are a treasure hunter chasing a lost Aztec relic through Mexico City. To win the locals' trust, you must master Spanish.",
     gradient: 'from-[#1f1404] via-[#1F2937] to-[#0F1418]',
   },
   Egypt: {
     type: 'Archaeologist',
     icon: '\u{1F3FA}',
+    characterId: 'tomb-scholar',
     story: "You are an archaeologist racing to uncover a pharaoh's tomb before rivals do. To decode the secrets, you must master Arabic.",
     gradient: 'from-[#241704] via-[#1F2937] to-[#0F1418]',
   },
   Brazil: {
     type: 'Undercover Journalist',
     icon: '\u{1F399}\u{FE0F}',
-    story: 'You are an undercover journalist exposing a cartel in Rio de Janeiro. To gain access, you must master Portuguese.',
+    characterId: 'rio-reporter',
+    // Softened per docs/contracts/sidekick-personas.md (owner-approved 2026-07-03):
+    // "smuggling ring of stolen art", not a cartel — keeps the caper tone PG
+    // and consistent with the other five disguises.
+    story: 'You are an undercover journalist chasing a big story in Rio de Janeiro: a smuggling ring moving stolen art through the city. To gain access, you must master Portuguese.',
     gradient: 'from-[#031a14] via-[#1F2937] to-[#0F1418]',
   },
 }

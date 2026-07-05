@@ -118,6 +118,11 @@ export function normalizeGraph(payload = {}) {
       retrievability: number(node.retrievability, 0),
       stability: number(node.stability, 0),
       mastered: Boolean(node.mastered),
+      // docs/contracts/word-graph-payload.md: forest-mirror fields. Absent for
+      // a word never mirrored, matching the contract's stated default.
+      superset: node.superset ?? null,
+      masteryTier: number(node.masteryTier, 0),
+      lastUsedAt: node.lastUsedAt ?? null,
     }
   })
   const idSet = new Set(nodes.map((node) => node.id))
@@ -126,5 +131,15 @@ export function normalizeGraph(payload = {}) {
     target: String(edge.target ?? edge.targetId ?? edge.to),
     similarity: number(edge.similarity ?? edge.sim, 0),
   })).filter((edge) => idSet.has(edge.source) && idSet.has(edge.target))
-  return { nodes, edges }
+  // Top-level trees: one per superset present for the user (root -> tree ->
+  // word rendering). Word ids not present in this graph's nodes are dropped —
+  // the contract says the mirror is authoritative, but a stale/mismatched id
+  // should never crash the constellation view.
+  const trees = (payload.trees ?? [])
+    .map((tree) => ({
+      superset: tree.superset,
+      wordIds: (tree.wordIds ?? []).map(String).filter((id) => idSet.has(id)),
+    }))
+    .filter((tree) => tree.superset && tree.wordIds.length > 0)
+  return { nodes, edges, trees }
 }

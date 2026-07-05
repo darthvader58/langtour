@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { getCountryTheme, getCountryThemeStyle } from '../countryTheme';
+import { wordKey, wordText } from './wordDisplay';
 
 export default function VisualCluster({ targetWords, country }) {
   const mountRef = useRef(null);
@@ -33,7 +34,7 @@ export default function VisualCluster({ targetWords, country }) {
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     
     const material = new THREE.PointsMaterial({ 
-      color: new THREE.Color(getCountryTheme(country).accent),
+      color: new THREE.Color(getCountryTheme(country).palette.accent),
       size: 0.13,
       transparent: true, 
       opacity: 0.7,
@@ -99,8 +100,8 @@ export default function VisualCluster({ targetWords, country }) {
         {targetWords.length > 0 && (
           <div className="mt-6 flex flex-wrap gap-2 justify-center">
             {targetWords.map((w, index) => (
-              <span key={`${w.expression ?? w.zh}-${index}`} className="rounded-xl border border-[var(--accent-20)] bg-[var(--accent-10)] px-3 py-1.5 text-sm font-bold text-[var(--accent-soft)]">
-                {w.zh}
+              <span key={wordKey(w, index)} className="rounded-xl border border-[var(--accent-20)] bg-[var(--accent-10)] px-3 py-1.5 text-sm font-bold text-[var(--accent-soft)]">
+                {wordText(w)}
               </span>
             ))}
           </div>

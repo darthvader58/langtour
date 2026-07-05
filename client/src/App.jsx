@@ -10,6 +10,7 @@ import { API } from './api'
 import { useProfile } from './hooks/useProfile'
 import { COUNTRIES as LOCAL_COUNTRIES } from './gameData'
 import UserProfileOverlay from './components/profile/UserProfileOverlay'
+import { isFreshLangtourist, shouldShowArrivalStory } from './storyGate'
 
 function App() {
   const profile = useProfile()
@@ -17,6 +18,11 @@ function App() {
   const [activeScenario, setActiveScenario] = useState(null)
   const [hash, setHash] = useState(window.location.hash)
   const [storySeen, setStorySeen] = useState([])
+  // In-memory only (never localStorage): the server has no "seen intro" slot,
+  // so this session flag is the one UI-only exception the story-mode ticket
+  // allows. First-launch detection itself still comes from server profile
+  // data (zero unlocks/completions), not from this flag.
+  const [introDismissed, setIntroDismissed] = useState(false)
   const [completionCountry, setCompletionCountry] = useState(null)
   const [glowCountry, setGlowCountry] = useState(null)
   const [catalog, setCatalog] = useState(null)
@@ -89,6 +95,17 @@ function App() {
     return special ? [...regular, special] : regular
   }
 
+  const showIntro = isFreshLangtourist(profile) && !introDismissed && !selectedCountry && !activeScenario && !completionCountry
+
+  if (showIntro) {
+    return (
+      <CharacterStoryPopup
+        mode="intro"
+        onBeginMission={() => setIntroDismissed(true)}
+      />
+    )
+  }
+
   if (completionCountry) {
     const code = countries.find((c) => c.name === completionCountry)?.code ?? 'us'
     return (
@@ -134,9 +151,15 @@ function App() {
     )
   }
 
-  if (selectedCountry && !storySeen.includes(selectedCountry)) {
+  if (shouldShowArrivalStory({
+    country: selectedCountry,
+    storySeen,
+    completedScenarios: profile.completedScenarios,
+    scenarioIdsForCountry: selectedCountry ? scenarioIdsForCountry(selectedCountry) : [],
+  })) {
     return (
       <CharacterStoryPopup
+        mode="arrival"
         country={selectedCountry}
         character={characters[selectedCountry]}
         onBeginMission={() => setStorySeen([...storySeen, selectedCountry])}

@@ -87,6 +87,8 @@
 .agent-profile__legend .is-mastered { color: #63e6be; }
 .agent-profile__legend .is-learning { color: #79c7ff; }
 .agent-profile__legend .is-due { color: #ff8da1; }
+.agent-profile__legend .is-encountered { color: #6b7684; }
+.agent-profile__legend .is-stale { color: #f2a33a; }
 .agent-profile__graph { position: relative; min-height: 500px; overflow: hidden; border: 2px solid #a9c7da; border-radius: 20px; background: radial-gradient(circle at 50% 43%, rgba(255,255,255,.96), rgba(231,243,250,.92) 50%, rgba(210,229,241,.96)), linear-gradient(rgba(47,96,132,.06) 1px, transparent 1px), linear-gradient(90deg, rgba(47,96,132,.06) 1px, transparent 1px); background-size: auto, 32px 32px, 32px 32px; box-shadow: inset 0 0 0 6px rgba(255,255,255,.34); }
 .agent-profile__graph canvas { display: block; width: 100%; height: 100%; }
 .agent-profile__graph-state { position: absolute; inset: 0; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; padding: 30px; color: #5c7182; font-size: 12px; text-align: center; }
