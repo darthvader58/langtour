@@ -41,7 +41,7 @@ export async function initializeDatabase() {
   const countryRows = COUNTRIES.map((country, index) => {
     const character = CHARACTERS[country.name];
     return {
-      code: country.name.toLowerCase(),
+      code: country.code,
       name: country.name,
       flag: country.flag,
       latitude: country.lat,
@@ -58,7 +58,7 @@ export async function initializeDatabase() {
   const scenarioRows = [];
   const vocabularyRows = [];
   for (const country of COUNTRIES) {
-    const countryCode = country.name.toLowerCase();
+    const countryCode = country.code;
     const scenarios = SCENARIOS_BY_COUNTRY[country.name] ?? [];
     const special = SPECIAL_SCENARIO_BY_COUNTRY[country.name];
     for (const [index, scenario] of [...scenarios, ...(special ? [special] : [])].entries()) {

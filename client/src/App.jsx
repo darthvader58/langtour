@@ -82,7 +82,8 @@ function App() {
   } = catalog
 
   const handleUnlockCountry = async (countryName, cost) => {
-    const code = countryName.toLowerCase()
+    const code = countries.find((c) => c.name === countryName)?.code
+    if (!code) return false
     const result = await profile.unlockCountry(code, cost)
     if (!result) return false
     setGlowCountry(countryName)
@@ -115,7 +116,6 @@ function App() {
         character={characters[completionCountry]}
         rewardTokens={rewardTokens}
         onReturn={async () => {
-          const code = completionCountry.toLowerCase()
           setCompletionCountry(null);
           setSelectedCountry(null);
           await profile.claimCountryReward(code)

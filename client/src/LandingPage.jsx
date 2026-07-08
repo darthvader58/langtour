@@ -236,7 +236,7 @@ export default function LandingPage({ tokens, unlockedCountries, glowCountry, le
 
   function handleSelectCountry(country) {
     if (isTraveling) return;
-    const isUnlocked = unlockedCountries.includes(country.name.toLowerCase());
+    const isUnlocked = unlockedCountries.includes(country.code);
     if (isUnlocked) {
       setIsTraveling(true);
       setTravelLabel(`Flying to ${country.name}…`);
@@ -713,7 +713,7 @@ export default function LandingPage({ tokens, unlockedCountries, glowCountry, le
         </div>
         <ul className="flex flex-col gap-2 max-sm:grid max-sm:grid-cols-2">
           {countries.map((country) => {
-            const isUnlocked = unlockedCountries.includes(country.name.toLowerCase());
+            const isUnlocked = unlockedCountries.includes(country.code);
             return (
             <li key={country.name}>
               <button
