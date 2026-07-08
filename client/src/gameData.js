@@ -1,3 +1,9 @@
+// cover.logline is the single-line hook for each character's disguise —
+// authored once in the shared lore canon (docs/contracts/story-narration.md)
+// and reused here as CHARACTERS[country].story so the country-select card
+// and the arrival popup/lore codex never carry two copies of the same line.
+import { PERSONA_CANON } from '../../shared/personaCanon.js'
+
 export const COUNTRIES = [
   { name: 'China', code: 'cn', flag: '\u{1F1E8}\u{1F1F3}', lat: 35.8617, lng: 104.1954, langCode: 'zh' },
   { name: 'India', code: 'in', flag: '🇮🇳', lat: 20.5937, lng: 78.9629, langCode: 'hi' },
@@ -12,41 +18,41 @@ export const CHINA = COUNTRIES[0]
 // characterId is the shared persona key (docs/contracts/sidekick-personas.md,
 // docs/contracts/theme-tokens.md) — game-ai voices the sidekick by it, this
 // client picks portrait/palette by it. New countries add an entry here plus a
-// SIDEKICKS row in storyData.js; nothing else needs a code change.
+// PERSONA_CANON entry in shared/personaCanon.js; nothing else needs a code change.
 export const CHARACTERS = {
   China: {
     type: 'Spy',
     icon: '\u{1F575}\u{FE0F}',
     characterId: 'shanghai-spy',
-    story: 'You are a spy sent to infiltrate a Shanghai black market. To blend in, you must master Mandarin.',
+    story: PERSONA_CANON['shanghai-spy'].cover.logline,
     gradient: 'from-[#3a0a0a] via-[#1F2937] to-[#0F1418]',
   },
   India: {
     type: 'Bollywood Actor',
     icon: '🎬',
     characterId: 'mumbai-star',
-    story: 'You are an aspiring Bollywood actor trying to make it big in Mumbai. To win over the directors, you must master Hindi.',
+    story: PERSONA_CANON['mumbai-star'].cover.logline,
     gradient: 'from-[#331a00] via-[#1F2937] to-[#0F1418]',
   },
   France: {
     type: 'Art Thief',
     icon: '\u{1F5BC}\u{FE0F}',
     characterId: 'louvre-thief',
-    story: 'You are a master thief plotting a heist inside the Louvre. To move unseen, you must master French.',
+    story: PERSONA_CANON['louvre-thief'].cover.logline,
     gradient: 'from-[#241a05] via-[#1F2937] to-[#0F1418]',
   },
   Mexico: {
     type: 'Treasure Hunter',
     icon: '\u{1F5FA}\u{FE0F}',
     characterId: 'relic-hunter',
-    story: "You are a treasure hunter chasing a lost Aztec relic through Mexico City. To win the locals' trust, you must master Spanish.",
+    story: PERSONA_CANON['relic-hunter'].cover.logline,
     gradient: 'from-[#1f1404] via-[#1F2937] to-[#0F1418]',
   },
   Egypt: {
     type: 'Archaeologist',
     icon: '\u{1F3FA}',
     characterId: 'tomb-scholar',
-    story: "You are an archaeologist racing to uncover a pharaoh's tomb before rivals do. To decode the secrets, you must master Arabic.",
+    story: PERSONA_CANON['tomb-scholar'].cover.logline,
     gradient: 'from-[#241704] via-[#1F2937] to-[#0F1418]',
   },
   Brazil: {
@@ -54,9 +60,9 @@ export const CHARACTERS = {
     icon: '\u{1F399}\u{FE0F}',
     characterId: 'rio-reporter',
     // Softened per docs/contracts/sidekick-personas.md (owner-approved 2026-07-03):
-    // "smuggling ring of stolen art", not a cartel — keeps the caper tone PG
-    // and consistent with the other five disguises.
-    story: 'You are an undercover journalist chasing a big story in Rio de Janeiro: a smuggling ring moving stolen art through the city. To gain access, you must master Portuguese.',
+    // "smuggling ring of stolen art", not a cartel — kept PG and consistent
+    // with the other five disguises. Canon logline carries the same framing.
+    story: PERSONA_CANON['rio-reporter'].cover.logline,
     gradient: 'from-[#031a14] via-[#1F2937] to-[#0F1418]',
   },
 }

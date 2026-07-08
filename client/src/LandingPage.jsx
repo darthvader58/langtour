@@ -201,7 +201,16 @@ function LogoutIcon() {
   )
 }
 
-export default function LandingPage({ tokens, unlockedCountries, glowCountry, level, rank, auth, countries, characters, unlockCost, onUnlockCountry, onCountrySelect, onOpenProfile }) {
+function CodexIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z" />
+    </svg>
+  )
+}
+
+export default function LandingPage({ tokens, unlockedCountries, glowCountry, level, rank, auth, countries, characters, unlockCost, onUnlockCountry, onCountrySelect, onOpenProfile, onOpenLoreCodex }) {
   const mountRef = useRef(null)
   const triggerTravelRef = useRef(() => {})
   const onCountrySelectRef = useRef(onCountrySelect)
@@ -649,6 +658,17 @@ export default function LandingPage({ tokens, unlockedCountries, glowCountry, le
             <CoinIcon />
             <span>{tokens} LangCoins</span>
           </div>
+          {user && (
+            <button
+              type="button"
+              onClick={onOpenLoreCodex}
+              title="Open the lore codex"
+              aria-label="Open the lore codex"
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-[#0b1727]/85 text-slate-300 shadow-[0_12px_35px_rgba(0,0,0,.28)] backdrop-blur-xl transition-colors hover:bg-[#14243a] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff9a4d] sm:h-11 sm:w-11 sm:rounded-2xl"
+            >
+              <CodexIcon />
+            </button>
+          )}
           {user ? (
             <div className="flex items-center gap-1.5 sm:gap-2">
               <button

@@ -10,6 +10,7 @@ import { API } from './api'
 import { useProfile } from './hooks/useProfile'
 import { COUNTRIES as LOCAL_COUNTRIES } from './gameData'
 import UserProfileOverlay from './components/profile/UserProfileOverlay'
+import LoreCodex from './components/LoreCodex'
 import { isFreshLangtourist, shouldShowArrivalStory } from './storyGate'
 
 function App() {
@@ -28,6 +29,7 @@ function App() {
   const [catalog, setCatalog] = useState(null)
   const [catalogError, setCatalogError] = useState('')
   const [profileOpen, setProfileOpen] = useState(false)
+  const [loreCodexOpen, setLoreCodexOpen] = useState(false)
 
   useEffect(() => {
     fetch(`${API}/api/catalog`)
@@ -199,6 +201,7 @@ function App() {
         unlockCost={unlockCost}
         onUnlockCountry={handleUnlockCountry}
         onOpenProfile={() => setProfileOpen(true)}
+        onOpenLoreCodex={() => setLoreCodexOpen(true)}
         onCountrySelect={(country) => {
           setGlowCountry(current => current === country ? null : current);
           setSelectedCountry(country);
@@ -214,6 +217,13 @@ function App() {
         rank={profile.rank}
         unlockedCountries={profile.unlockedCountries}
         completedScenarios={profile.completedScenarios}
+      />
+      {/* unlockedCountries is the server-side country-code list from useProfile
+          — the only truth the codex is allowed to gate entries on. */}
+      <LoreCodex
+        open={loreCodexOpen}
+        onClose={() => setLoreCodexOpen(false)}
+        unlockedCountries={profile.unlockedCountries}
       />
     </>
   )
