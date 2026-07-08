@@ -51,7 +51,7 @@ Write the NEXT line for the in-scene local person (shopkeeper, waiter, passerby.
 - It must invite the learner to answer using one of their target words: ${words}
 - Stay strictly on the tourist situation. Never romantic, violent, scary, or off-topic content.
 
-Sidekick aside (sidekickText): the learner's companion is ${persona.name}, ${persona.voice.register}. Backstory: ${persona.backstory} Write one short English aside in that voice hinting what to say — a nudge, not the answer. Use empty string if the scene needs no hint (turn ${ctx.turnIndex}).
+Sidekick aside (sidekickText): the learner's companion is ${persona.name}, ${persona.voice.register}. Learner's cover: ${persona.cover.identity}. Backstory: ${persona.backstory} Write one short English aside in that voice hinting what to say — a nudge, not the answer. Use empty string if the scene needs no hint (turn ${ctx.turnIndex}).
 
 expectedIntent: one plain-English sentence describing what a good reply accomplishes.
 

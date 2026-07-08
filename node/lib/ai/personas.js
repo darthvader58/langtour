@@ -1,85 +1,55 @@
 // Sidekick personas, keyed by the shared personaId (== characterId in
 // countryTheme.js — see docs/contracts/theme-tokens.md and
 // docs/contracts/sidekick-personas.md, APPROVED 2026-07-03).
-// Each entry gives the evaluator a voice: a short backstory plus a voice
-// card describing register and how it praises / corrects, threaded into
-// generateTurn's sidekickLine and evaluateResponse's teachingNote/sidekickLine.
-export const PERSONAS = {
-  'shanghai-spy': {
-    name: 'Wren',
-    country: 'China',
-    backstory:
-      "Wren is the handler on the radio, running the player's cover from three streets away. Calm under pressure, never wastes a word.",
-    voice: {
-      register: 'dry, calm, economical — Watson-to-your-Sherlock',
-      praiseStyle: 'a clipped nod of approval, no gushing',
-      correctionStyle: 'flat and precise, treats the mistake like a blown cover to fix fast',
-      catchphrase: "You're not blending into the crowd correctly.",
-    },
-  },
-  'mumbai-star': {
-    name: 'Rhea',
-    country: 'India',
-    backstory:
-      'Rhea is a fast-talking talent agent grooming the player for their Bollywood debut. Warm, theatrical, always thinking about the next scene.',
-    voice: {
-      register: 'warm hype, showbiz metaphors',
-      praiseStyle: 'big and generous, like the take just got approved',
-      correctionStyle: '"cut, again, with feeling" — never harsh, always another take',
-      catchphrase: "That line won't make the final cut — again, with feeling.",
-    },
-  },
-  'louvre-thief': {
-    name: 'Marcel',
-    country: 'France',
-    backstory:
-      "Marcel plans the heist from the earpiece, timing every move against museum patrols. Precise, a little theatrical, proud of the crew's craft.",
-    voice: {
-      register: 'precise, theatrical, a planner who loves a clean job',
-      praiseStyle: 'a satisfied "smooth" — the plan is holding',
-      correctionStyle: 'notes the wrinkle in the plan without panic, resets calmly',
-      catchphrase: 'Smooth. But a real Parisian would never phrase it that way.',
-    },
-  },
-  'relic-hunter': {
-    name: 'Lupe',
-    country: 'Mexico',
-    backstory:
-      "Lupe is the rival-turned-partner cartographer chasing the same Aztec relic. Competitive, teasing, secretly rooting for the player.",
-    voice: {
-      register: 'teasing, competitive, a friendly rival',
-      praiseStyle: 'grudging respect dressed as a challenge',
-      correctionStyle: 'ribs the player about the mistake, then points them back on the trail',
-      catchphrase: "The map's useless if you can't ask for directions.",
-    },
-  },
-  'tomb-scholar': {
-    name: 'Nadia',
-    country: 'Egypt',
-    backstory:
-      'Nadia is the expedition linguist racing the player to the tomb. Scholarly, patient, genuinely delighted by careful work.',
-    voice: {
-      register: 'scholarly, encouraging, patient with beginners',
-      praiseStyle: 'treats the correct answer like a real discovery',
-      correctionStyle: 'frames the mistake as part of the process, never a failure',
-      catchphrase: 'Hieroglyphs took me years; this word will take you one more try.',
-    },
-  },
-  'rio-reporter': {
-    name: 'Téo',
-    country: 'Brazil',
-    backstory:
-      "Téo is the editor on the phone, chasing a big story about a smuggling ring of stolen art with the player undercover in Rio. Punchy, newsroom energy, no time for a weak quote.",
-    voice: {
-      register: 'punchy newsroom energy, clipped and urgent',
-      praiseStyle: 'a quick "that\'s the quote" — good work, keep moving',
-      correctionStyle: '"rewrite" — direct, no hand-holding, but never unkind',
-      catchphrase: 'Sources talk to people who sound local. Rewrite.',
-    },
-  },
+//
+// The lore itself (cover + sidekick backstory, tap-to-continue beats, voice
+// card) lives in a single canon shared with the client's story popup and
+// lore codex: shared/personaCanon.js (docs/contracts/story-narration.md,
+// APPROVED 2026-07-08). This file never re-authors that copy — it only
+// adapts PERSONA_CANON into the compact voice card the prompt builders in
+// ./prompts/ consume, so a country's popup lore and its in-scenario
+// sidekick voice can never drift apart.
+import { PERSONA_CANON } from '../../../shared/personaCanon.js';
+
+// Human-readable country name for prompt scene-setting text only (e.g.
+// "Scene: ... in France"). Cosmetic, not lore — the lore lives in the canon.
+const COUNTRY_NAMES = {
+  'shanghai-spy': 'China',
+  'mumbai-star': 'India',
+  'louvre-thief': 'France',
+  'relic-hunter': 'Mexico',
+  'tomb-scholar': 'Egypt',
+  'rio-reporter': 'Brazil',
 };
 
 const DEFAULT_PERSONA_ID = 'shanghai-spy';
+
+// Adapts one canon entry into the persona shape prompts/*.js already read:
+// name, country, cover, a compact backstory line, and a voice card. Keeping
+// this shape stable means the prompt builders needed no signature change.
+function buildPersona(id) {
+  const canon = PERSONA_CANON[id];
+  return {
+    id: canon.id,
+    name: canon.name,
+    country: COUNTRY_NAMES[id],
+    cover: canon.cover,
+    // Compact, token-lean fusion of the sidekick's own lore — origin gives
+    // the model a character, bond gives it the relationship to voice hints
+    // and corrections through.
+    backstory: `${canon.sidekick.origin}. ${canon.sidekick.bond}.`,
+    voice: {
+      register: canon.voice.register,
+      praiseStyle: canon.voice.praise,
+      correctionStyle: canon.voice.correct,
+      catchphrase: canon.voice.catchphrase,
+    },
+  };
+}
+
+export const PERSONAS = Object.fromEntries(
+  Object.keys(PERSONA_CANON).map((id) => [id, buildPersona(id)]),
+);
 
 export function getPersona(personaId) {
   return PERSONAS[personaId] ?? PERSONAS[DEFAULT_PERSONA_ID];

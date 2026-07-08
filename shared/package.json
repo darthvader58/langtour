@@ -1,0 +1,6 @@
+{
+  "name": "@langtour/shared",
+  "private": true,
+  "type": "module",
+  "description": "Dependency-free ESM shared between client/ and node/ — e.g. shared/personaCanon.js. See docs/contracts/story-narration.md."
+}

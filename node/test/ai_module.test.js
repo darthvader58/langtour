@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 import { createAi, getPersona, PERSONAS, languageName, LANGUAGE_NAMES } from '../lib/ai/index.js';
 import { buildTurnPrompt } from '../lib/ai/prompts/generate_turn.js';
 import { buildEvaluationPrompt } from '../lib/ai/prompts/evaluate_response.js';
+import { PERSONA_CANON } from '../../shared/personaCanon.js';
+
+const CANON_IDS = ['shanghai-spy', 'mumbai-star', 'louvre-thief', 'relic-hunter', 'tomb-scholar', 'rio-reporter'];
 
 const CTX = {
   userId: 'user-1',
@@ -192,4 +195,70 @@ test('evaluateResponse works with a pronScore and surfaces it to the prompt', as
   assert.match(calls[0].prompt, /accuracy 71/);
   assert.match(calls[0].prompt, /钱/);
   assert.match(calls[0].prompt, /secondary/);
+});
+
+// --- shared/personaCanon.js: schema + persona.js adapter -------------------
+
+test('PERSONA_CANON has all six characterIds with a complete schema', () => {
+  assert.deepEqual(Object.keys(PERSONA_CANON).sort(), [...CANON_IDS].sort());
+
+  const nonEmptyString = (v) => typeof v === 'string' && v.trim().length > 0;
+
+  for (const id of CANON_IDS) {
+    const canon = PERSONA_CANON[id];
+    assert.equal(canon.id, id, `${id} id field matches its key`);
+    assert.ok(nonEmptyString(canon.name), `${id} has a name`);
+    assert.ok(nonEmptyString(canon.role), `${id} has a role`);
+
+    for (const field of ['type', 'logline', 'identity', 'stakes']) {
+      assert.ok(nonEmptyString(canon.cover[field]), `${id} cover.${field} is a non-empty string`);
+    }
+    for (const field of ['origin', 'motivation', 'archetypeTie', 'bond']) {
+      assert.ok(nonEmptyString(canon.sidekick[field]), `${id} sidekick.${field} is a non-empty string`);
+    }
+    for (const field of ['register', 'catchphrase', 'praise', 'correct']) {
+      assert.ok(nonEmptyString(canon.voice[field]), `${id} voice.${field} is a non-empty string`);
+    }
+
+    assert.ok(Array.isArray(canon.beats), `${id} beats is an array`);
+    assert.ok(canon.beats.length >= 3 && canon.beats.length <= 5, `${id} has 3-5 beats`);
+    for (const beat of canon.beats) {
+      assert.ok(nonEmptyString(beat), `${id} every beat is a non-empty string`);
+    }
+  }
+});
+
+test('PERSONAS (node/lib/ai) is adapted from PERSONA_CANON, not a second copy', () => {
+  for (const id of CANON_IDS) {
+    const canon = PERSONA_CANON[id];
+    const persona = getPersona(id);
+    assert.equal(persona.name, canon.name, `${id} name comes from canon`);
+    assert.equal(persona.voice.catchphrase, canon.voice.catchphrase, `${id} catchphrase comes from canon`);
+    assert.equal(persona.voice.register, canon.voice.register, `${id} register comes from canon`);
+    assert.equal(persona.voice.praiseStyle, canon.voice.praise, `${id} praise style comes from canon`);
+    assert.equal(persona.voice.correctionStyle, canon.voice.correct, `${id} correction style comes from canon`);
+    assert.deepEqual(persona.cover, canon.cover, `${id} cover is passed through from canon`);
+    // backstory is a fusion of the sidekick's own canon lore, not new copy
+    assert.match(persona.backstory, new RegExp(canon.sidekick.origin.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  }
+});
+
+test('generateTurn prompt threads the player cover from the canon', async () => {
+  const { generateStructured, calls } = stubModel({
+    npcText: 'x', npcReading: 'x', npcTranslation: 'x', sidekickText: '', expectedIntent: 'x',
+  });
+  const ai = createAi({ generateStructured });
+  await ai.generateTurn(CTX);
+  const canon = PERSONA_CANON[CTX.personaId];
+  assert.ok(calls[0].prompt.includes(canon.cover.identity), 'prompt includes canon-derived cover identity');
+});
+
+test('evaluateResponse verdict prompt threads canon-derived voice (register + praise/correct style)', async () => {
+  const { generateStructured, calls } = stubModel(PASS_VERDICT);
+  const ai = createAi({ generateStructured });
+  await ai.evaluateResponse(CTX, '这个多少钱？');
+  const canon = PERSONA_CANON[CTX.personaId];
+  assert.ok(calls[0].prompt.includes(canon.voice.register), 'prompt includes canon voice register');
+  assert.ok(calls[0].prompt.includes(canon.voice.praise), 'prompt includes canon praise style');
+  assert.ok(calls[0].prompt.includes(canon.voice.correct), 'prompt includes canon correction style');
 });
