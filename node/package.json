@@ -17,7 +17,9 @@
     "node": ">=22.12"
   },
   "dependencies": {
+    "@ai-sdk/cerebras": "^3.0.6",
     "@ai-sdk/google": "^3.0.83",
+    "@ai-sdk/groq": "^4.0.6",
     "@supabase/supabase-js": "^2.108.2",
     "@supermemory/tools": "2.0.0",
     "ai": "^6.0.208",

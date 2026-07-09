@@ -130,6 +130,13 @@ export function mountScenarioRoutes(app, injectedDeps = null) {
       await fn(req, res, await getDeps());
     } catch (e) {
       console.error(e);
+      // Every provider in the model chain is rate-limited (docs/contracts/
+      // ai-module.md): a temporary outage, not a server fault — tell the
+      // client to retry without leaking provider details.
+      if (e?.code === 'model_quota_exhausted') {
+        res.status(503).json({ error: 'The guide needs a quick breather — try again in a minute.', retryable: true });
+        return;
+      }
       res.status(500).json({ error: e.message });
     }
   };

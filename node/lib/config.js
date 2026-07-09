@@ -9,6 +9,11 @@ dotenv.config({ path: join(__dirname, '..', '..', '.env.local') });
 export const PORT = process.env.PORT || 8765;
 export const DEEPGRAM_API_KEY = process.env.DEEPGRAM_API_KEY || '';
 export const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
+// Provider-chain fallbacks ahead of Gemini in node/lib/ai/model.js — both
+// optional; a missing key just skips that link in the chain (see
+// docs/contracts/ai-module.md).
+export const CEREBRAS_API_KEY = process.env.CEREBRAS_API_KEY || '';
+export const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
 export const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 export const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 export const VOICE_AUDIO_DIR = process.env.VOICE_AUDIO_DIR || '';

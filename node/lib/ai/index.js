@@ -11,6 +11,7 @@ import {
   evaluationSchema,
   ERROR_KINDS,
 } from './prompts/evaluate_response.js';
+import { ModelQuotaError } from './errors.js';
 
 // Strip punctuation/whitespace so "水!" still counts as the bare word 水.
 function normalize(text) {
@@ -119,4 +120,4 @@ const defaultAi = createAi();
 export const generateTurn = defaultAi.generateTurn;
 export const evaluateResponse = defaultAi.evaluateResponse;
 
-export { PERSONAS, getPersona, LANGUAGE_NAMES, languageName, ERROR_KINDS };
+export { PERSONAS, getPersona, LANGUAGE_NAMES, languageName, ERROR_KINDS, ModelQuotaError };
