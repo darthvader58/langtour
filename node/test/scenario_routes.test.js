@@ -16,6 +16,7 @@ import express from 'express';
 process.env.ADMIN_EMAIL ||= 'admin@example.com';
 const { mountScenarioRoutes } = await import('../routes/scenario.js');
 const { ADMIN_EMAIL } = await import('../lib/config.js');
+const { TOTAL_SITUATIONS } = await import('../lib/graph/chain.js');
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -77,6 +78,7 @@ function makeDeps(overrides = {}) {
         calls.progressUpdates.push({ userId, countryCode, scenarioId, patch }),
       recordScenarioCompletion: async (userId, countryCode, scenarioId) =>
         calls.completions.push({ userId, countryCode, scenarioId }),
+      listScenarioCompletions: async () => [],
     },
     // Default identity is a non-admin. Admin tests override this to return
     // ADMIN_EMAIL. Email is resolved server-side from req.userId — never client-sent.
@@ -103,7 +105,9 @@ async function startServer(deps) {
       headers: { 'content-type': 'application/json', authorization: 'Bearer test-jwt' },
       body: JSON.stringify(body),
     });
-  return { server, base, post };
+  const get = (path) =>
+    fetch(base + path, { headers: { authorization: 'Bearer test-jwt' } });
+  return { server, base, post, get };
 }
 
 // A stored row mid-scenario: 4 target words, cap 5, one already used.
@@ -412,6 +416,152 @@ test('evaluate validates inputs: unknown scenario and empty transcript are 400s'
       transcript: '   ',
     });
     assert.equal(empty.status, 400);
+  } finally {
+    server.close();
+  }
+});
+
+// --- GET /api/scenario/list (docs/contracts/scenario-list.md) ---
+
+test('list rejects unknown countryCode with 400', async () => {
+  const { deps } = makeDeps();
+  const { server, get } = await startServer(deps);
+  try {
+    const res = await get('/api/scenario/list?countryCode=zz');
+    assert.equal(res.status, 400);
+    assert.match((await res.json()).error, /countryCode/);
+  } finally {
+    server.close();
+  }
+});
+
+test('list: an empty chain returns scenarios: [], countryComplete: false, nextAvailable: true', async () => {
+  const { deps } = makeDeps(); // default store: no generated rows, no completions
+  const { server, get } = await startServer(deps);
+  try {
+    const res = await get('/api/scenario/list?countryCode=cn');
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.deepEqual(body.scenarios, []);
+    assert.equal(body.countryComplete, false);
+    assert.equal(body.nextAvailable, true);
+    assert.equal(body.totalSituations, TOTAL_SITUATIONS);
+  } finally {
+    server.close();
+  }
+});
+
+test('list reports completed flags from the scenario_completions join, not client state', async () => {
+  const rows = [
+    {
+      scenario_id: 'greetings', superset: 'meeting people', position: 0, chain_complete: false,
+      target_word_ids: [1, 2], used_word_ids: [1, 2], target_size: 2, adaptive_cap: 3,
+    },
+    {
+      scenario_id: 'making-plans', superset: 'meeting people', position: 1, chain_complete: true,
+      target_word_ids: [3, 4, 5], used_word_ids: [3], target_size: 3, adaptive_cap: 4,
+    },
+  ];
+  const { deps } = makeDeps({
+    store: {
+      listGeneratedScenarios: async () => rows,
+      listScenarioCompletions: async () => ['greetings'],
+    },
+  });
+  const { server, get } = await startServer(deps);
+  try {
+    const res = await get('/api/scenario/list?countryCode=cn');
+    const body = await res.json();
+    assert.equal(body.scenarios.length, 2);
+    assert.equal(body.scenarios[0].scenarioId, 'greetings');
+    assert.equal(body.scenarios[0].title, 'Greetings & Small Talk');
+    assert.equal(body.scenarios[0].completed, true);
+    assert.equal(body.scenarios[0].targetSize, 2);
+    assert.equal(body.scenarios[0].usedCount, 2);
+    assert.equal(body.scenarios[0].chainClosing, false);
+    assert.equal(body.scenarios[1].scenarioId, 'making-plans');
+    assert.equal(body.scenarios[1].completed, false);
+    assert.equal(body.scenarios[1].chainClosing, true);
+    // A chain_complete row exists but not every generated scenario is completed.
+    assert.equal(body.countryComplete, false);
+  } finally {
+    server.close();
+  }
+});
+
+test('list: countryComplete is true only when a chain_complete row exists AND every generated scenario is completed', async () => {
+  const rows = [
+    {
+      scenario_id: 'greetings', superset: 'meeting people', position: 0, chain_complete: false,
+      target_word_ids: [1], used_word_ids: [1], target_size: 1, adaptive_cap: 2,
+    },
+    {
+      scenario_id: 'making-plans', superset: 'meeting people', position: 1, chain_complete: true,
+      target_word_ids: [2], used_word_ids: [2], target_size: 1, adaptive_cap: 2,
+    },
+  ];
+  const { deps } = makeDeps({
+    store: {
+      listGeneratedScenarios: async () => rows,
+      listScenarioCompletions: async () => ['greetings', 'making-plans'],
+    },
+  });
+  const { server, get } = await startServer(deps);
+  try {
+    const res = await get('/api/scenario/list?countryCode=cn');
+    const body = await res.json();
+    assert.equal(body.countryComplete, true);
+  } finally {
+    server.close();
+  }
+});
+
+test('list: countryComplete stays false when every generated scenario is completed but no chain_complete row exists yet', async () => {
+  const rows = [
+    {
+      scenario_id: 'greetings', superset: 'meeting people', position: 0, chain_complete: false,
+      target_word_ids: [1], used_word_ids: [1], target_size: 1, adaptive_cap: 2,
+    },
+  ];
+  const { deps } = makeDeps({
+    store: {
+      listGeneratedScenarios: async () => rows,
+      listScenarioCompletions: async () => ['greetings'],
+    },
+  });
+  const { server, get } = await startServer(deps);
+  try {
+    const res = await get('/api/scenario/list?countryCode=cn');
+    const body = await res.json();
+    assert.equal(body.countryComplete, false);
+  } finally {
+    server.close();
+  }
+});
+
+test('list: nextAvailable is false once every catalog situation is generated', async () => {
+  const rows = Array.from({ length: TOTAL_SITUATIONS }, (_, i) => ({
+    scenario_id: `s${i}`,
+    superset: 'meeting people',
+    position: i,
+    chain_complete: i === TOTAL_SITUATIONS - 1,
+    target_word_ids: [],
+    used_word_ids: [],
+    target_size: 0,
+    adaptive_cap: 1,
+  }));
+  const { deps } = makeDeps({
+    store: {
+      listGeneratedScenarios: async () => rows,
+      listScenarioCompletions: async () => [],
+    },
+  });
+  const { server, get } = await startServer(deps);
+  try {
+    const res = await get('/api/scenario/list?countryCode=cn');
+    const body = await res.json();
+    assert.equal(body.nextAvailable, false);
+    assert.equal(body.totalSituations, TOTAL_SITUATIONS);
   } finally {
     server.close();
   }

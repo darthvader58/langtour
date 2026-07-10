@@ -51,6 +51,12 @@ export const SUPERSET_TREES = {
 // Breadth-first order: cover one situation per superset before going deeper.
 export const SUPERSET_PRIORITY = Object.keys(SUPERSET_TREES);
 
+// Total situations across every superset — the engine catalog's horizon.
+// GET /api/scenario/list (docs/contracts/scenario-list.md) uses this to derive
+// nextAvailable without duplicating the catalog shape.
+export const TOTAL_SITUATIONS = Object.values(SUPERSET_TREES)
+  .reduce((sum, situations) => sum + situations.length, 0);
+
 // Roughly how many words a tourist actually needs to survive each situation
 // family. Feeds the adaptive per-situation target cap — elementary and
 // to-the-point, never a full dictionary.

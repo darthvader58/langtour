@@ -16,6 +16,7 @@ import { COUNTRIES } from '../../client/src/gameData.js';
 import { ADMIN_EMAIL } from '../lib/config.js';
 import {
   PERSONA_BY_COUNTRY,
+  TOTAL_SITUATIONS,
   ensureTargetWords,
   generateNextScenario,
   situationById,
@@ -56,6 +57,7 @@ async function loadDefaultDeps() {
       listGeneratedScenarios: dbApi.listGeneratedScenarios,
       updateGeneratedScenarioProgress: dbApi.updateGeneratedScenarioProgress,
       recordScenarioCompletion: dbApi.recordScenarioCompletion,
+      listScenarioCompletions: dbApi.listScenarioCompletions,
     },
     identity: { getUserEmail: dbApi.getUserEmail },
   };
@@ -153,6 +155,49 @@ export function mountScenarioRoutes(app, injectedDeps = null) {
     // Legacy client field names (zh/pinyin/en) preserved during the transition.
     const words = dbWords.map((w) => ({ ...w, zh: w.expression, pinyin: w.reading, en: w.meaning }));
     res.json({ words });
+  }));
+
+  // This user's generated chain for a country, with completion truth joined
+  // from scenario_completions — the same tables the claim RPC gates on
+  // (docs/contracts/scenario-list.md). Read-only; no economy math here, the
+  // RPC re-checks server-side on claim.
+  app.get('/api/scenario/list', withAuth, handle(async (req, res, deps) => {
+    const { countryCode } = req.query;
+    const country = resolveCountry(countryCode);
+    if (!country) {
+      res.status(400).json({ error: 'Unknown countryCode' });
+      return;
+    }
+
+    const [existing, completedIds] = await Promise.all([
+      deps.store.listGeneratedScenarios(req.userId, country.code),
+      deps.store.listScenarioCompletions(req.userId, country.code),
+    ]);
+    const completedSet = new Set(completedIds);
+
+    const scenarios = existing.map((row) => ({
+      scenarioId: row.scenario_id,
+      title: situationById(row.scenario_id)?.title ?? row.scenario_id,
+      superset: row.superset,
+      position: row.position,
+      completed: completedSet.has(row.scenario_id),
+      targetSize: row.target_size ?? (row.target_word_ids ?? []).length,
+      usedCount: (row.used_word_ids ?? []).length,
+      chainClosing: Boolean(row.chain_complete),
+    }));
+
+    // Mirrors claim_country_reward's gate exactly: a chain_complete row exists
+    // AND every generated scenario in the chain has a completion row.
+    const chainClosed = existing.some((row) => row.chain_complete);
+    const countryComplete = chainClosed && existing.length > 0 &&
+      existing.every((row) => completedSet.has(row.scenario_id));
+
+    res.json({
+      scenarios,
+      nextAvailable: existing.length < TOTAL_SITUATIONS,
+      totalSituations: TOTAL_SITUATIONS,
+      countryComplete,
+    });
   }));
 
   // One dialog turn. Without scenarioId, first chains the next scenario for

@@ -335,6 +335,20 @@ export async function updateGeneratedScenarioProgress(userId, countryCode, scena
   );
 }
 
+// Read-only: the scenario_ids this user has a completion row for in a country.
+// Same table the claim RPC's pending_count check reads (economy contract) — this
+// mirrors that truth for display, it does not decide anything itself.
+export async function listScenarioCompletions(userId, countryCode) {
+  const rows = assertResult(
+    await db.from('scenario_completions')
+      .select('scenario_id')
+      .eq('user_id', userId)
+      .eq('country_code', countryCode),
+    'List scenario completions',
+  );
+  return rows.map((row) => row.scenario_id);
+}
+
 // record_scenario_completion is now SECURITY DEFINER, service-role-only, and
 // takes an explicit p_user_id (auth.uid() is null under the service role — see
 // migration 20260704000002, finding S3). The backend calls it through the shared
