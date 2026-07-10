@@ -14,44 +14,70 @@ describe('isFreshLangtourist', () => {
 })
 
 describe('hasEngagedCountry', () => {
-  it('is true when any of the country scenario ids has been completed', () => {
-    expect(hasEngagedCountry(['street-market'], ['street-market', 'restaurant'])).toBe(true)
+  it('is true when a completion row matches the country code', () => {
+    expect(hasEngagedCountry([{ countryCode: 'cn', scenarioId: 'greetings' }], 'cn')).toBe(true)
   })
 
-  it('is false when none of the country scenario ids have been completed', () => {
-    expect(hasEngagedCountry(['chai-stall'], ['street-market', 'restaurant'])).toBe(false)
+  it('is false when no completion row matches the country code', () => {
+    expect(hasEngagedCountry([{ countryCode: 'fr', scenarioId: 'greetings' }], 'cn')).toBe(false)
+  })
+
+  // Engine scenario ids are shared across every country's chain, so a
+  // same-id completion in a different country must never count.
+  it('does not count a same-scenario-id completion from a different country', () => {
+    expect(hasEngagedCountry([{ countryCode: 'fr', scenarioId: 'greetings' }], 'cn')).toBe(false)
+    expect(hasEngagedCountry([
+      { countryCode: 'fr', scenarioId: 'greetings' },
+      { countryCode: 'in', scenarioId: 'greetings' },
+    ], 'cn')).toBe(false)
+  })
+
+  it('is false without a country code', () => {
+    expect(hasEngagedCountry([{ countryCode: 'cn', scenarioId: 'greetings' }], null)).toBe(false)
+    expect(hasEngagedCountry([{ countryCode: 'cn', scenarioId: 'greetings' }])).toBe(false)
   })
 })
 
 describe('shouldShowArrivalStory', () => {
   it('is false with no selected country', () => {
-    expect(shouldShowArrivalStory({ country: null })).toBe(false)
+    expect(shouldShowArrivalStory({ country: null, countryCode: 'cn' })).toBe(false)
   })
 
   it('is false once already shown this session, even with no completions', () => {
     expect(shouldShowArrivalStory({
       country: 'China',
+      countryCode: 'cn',
       storySeen: ['China'],
-      completedScenarios: [],
-      scenarioIdsForCountry: ['street-market'],
+      completions: [],
     })).toBe(false)
   })
 
   it('is false once the server shows a completion for that country, even in a fresh session', () => {
     expect(shouldShowArrivalStory({
       country: 'China',
+      countryCode: 'cn',
       storySeen: [],
-      completedScenarios: ['street-market'],
-      scenarioIdsForCountry: ['street-market', 'restaurant'],
+      completions: [{ countryCode: 'cn', scenarioId: 'street-market' }],
     })).toBe(false)
   })
 
   it('is true for an unseen, uncompleted country', () => {
     expect(shouldShowArrivalStory({
       country: 'China',
+      countryCode: 'cn',
       storySeen: [],
-      completedScenarios: [],
-      scenarioIdsForCountry: ['street-market'],
+      completions: [],
+    })).toBe(true)
+  })
+
+  // The bug this fix closes: completing 'greetings' in France must not
+  // suppress China's arrival beat just because the scenario id matches.
+  it('is true for an uncompleted country even when the same scenario id was completed elsewhere', () => {
+    expect(shouldShowArrivalStory({
+      country: 'China',
+      countryCode: 'cn',
+      storySeen: [],
+      completions: [{ countryCode: 'fr', scenarioId: 'greetings' }],
     })).toBe(true)
   })
 })

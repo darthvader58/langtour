@@ -7,6 +7,12 @@ export function useProfile() {
   const [profile, setProfile] = useState(null)
   const [unlockedCountries, setUnlockedCountries] = useState([])
   const [completedScenarios, setCompletedScenarios] = useState([])
+  // Country-scoped completions: engine scenario ids are shared across every
+  // country ('greetings' exists for cn, fr, in, ...), so a plain scenario-id
+  // membership check can never be country-safe. This carries country_code
+  // alongside scenario_id for checks that need to stay scoped to one country
+  // (storyGate.js's arrival gate).
+  const [completions, setCompletions] = useState([])
   const [isAdmin, setIsAdmin] = useState(false)
   const [authLoading, setAuthLoading] = useState(Boolean(supabase))
   const [gameStateLoading, setGameStateLoading] = useState(Boolean(supabase))
@@ -18,6 +24,7 @@ export function useProfile() {
       setProfile(null)
       setUnlockedCountries([])
       setCompletedScenarios([])
+      setCompletions([])
       setIsAdmin(false)
       setGameStateLoading(false)
       return
@@ -35,7 +42,7 @@ export function useProfile() {
           .eq('user_id', sessionUser.id)
           .single(),
         supabase.from('country_unlocks').select('country_code').eq('user_id', sessionUser.id),
-        supabase.from('scenario_completions').select('scenario_id').eq('user_id', sessionUser.id),
+        supabase.from('scenario_completions').select('country_code,scenario_id').eq('user_id', sessionUser.id),
       ])
 
       if (profileResult.error) console.error('Unable to load Supabase profile:', profileResult.error.message)
@@ -44,8 +51,13 @@ export function useProfile() {
       if (unlocksResult.error) console.error('Unable to load country unlocks:', unlocksResult.error.message)
       else setUnlockedCountries((unlocksResult.data ?? []).map((row) => row.country_code))
 
-      if (completionsResult.error) console.error('Unable to load scenario completions:', completionsResult.error.message)
-      else setCompletedScenarios((completionsResult.data ?? []).map((row) => row.scenario_id))
+      if (completionsResult.error) {
+        console.error('Unable to load scenario completions:', completionsResult.error.message)
+      } else {
+        const rows = completionsResult.data ?? []
+        setCompletedScenarios(rows.map((row) => row.scenario_id))
+        setCompletions(rows.map((row) => ({ countryCode: row.country_code, scenarioId: row.scenario_id })))
+      }
     } finally {
       setGameStateLoading(false)
     }
@@ -163,6 +175,7 @@ export function useProfile() {
     rank: profile?.rank ?? null,
     unlockedCountries,
     completedScenarios,
+    completions,
     isAdmin,
     authLoading: authLoading || (gameStateLoading && !profile),
     authError,

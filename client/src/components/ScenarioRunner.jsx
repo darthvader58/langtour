@@ -35,8 +35,13 @@ export default function ScenarioRunner({ scenario, langCode, country, isAdmin = 
 
     async function start() {
       try {
-        let res = await requestTurn({ countryCode, scenarioId: scenario.id, priorTurns: [], turnIndex: 0 })
-        if (res.status === 400) {
+        // No id (the "Next Mission" card, docs/contracts/scenario-list.md) means
+        // there's nothing to resume — skip straight to the chain-plans-it call
+        // instead of wasting a round trip on a resume that can't succeed.
+        let res = scenario.id
+          ? await requestTurn({ countryCode, scenarioId: scenario.id, priorTurns: [], turnIndex: 0 })
+          : await requestTurn({ countryCode, priorTurns: [], turnIndex: 0 })
+        if (scenario.id && res.status === 400) {
           // Not generated yet for this user — the chain plans the real next one.
           res = await requestTurn({ countryCode, priorTurns: [], turnIndex: 0 })
         }

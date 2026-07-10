@@ -5,6 +5,7 @@ import ToyIcon from './ToyIcon';
 import { getSidekick } from '../storyData';
 import { isWordUsed, newlyGrownWords, normalizeGrowth, progressPercent } from './growthModel';
 import { wordKey, wordMeaning, wordText } from './wordDisplay';
+import { iconForSuperset } from './supersetIcons';
 
 const ERROR_KIND_LABEL = {
   'off-topic': 'Off topic',
@@ -44,8 +45,11 @@ export default function GameplayPhase({ scenario, countryCode, langCode, firstTu
   const [genError, setGenError] = useState('');
 
   const sidekick = getSidekick(firstTurn.personaId);
-  const title = scenario?.title ?? firstTurn.situation?.title ?? 'Scenario';
-  const icon = scenario?.icon ?? '\u{1F5FA}\u{FE0F}';
+  // The server's live situation title is the source of truth (docs/contracts/
+  // scenario-list.md "Header truth") — the clicked tile's title is only a
+  // fallback for the brief window before firstTurn resolves.
+  const title = firstTurn.situation?.title ?? scenario?.title ?? 'Scenario';
+  const icon = iconForSuperset(firstTurn.situation?.superset);
 
   const fetchNextTurn = useCallback(async (turns, index) => {
     setState('generating');

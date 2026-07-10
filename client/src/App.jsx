@@ -12,6 +12,8 @@ import { COUNTRIES as LOCAL_COUNTRIES } from './gameData'
 import UserProfileOverlay from './components/profile/UserProfileOverlay'
 import LoreCodex from './components/LoreCodex'
 import { isFreshLangtourist, shouldShowArrivalStory } from './storyGate'
+import { getMissionList } from './missionListApi'
+import { shouldShowCompletion } from './missionListModel'
 
 function App() {
   const profile = useProfile()
@@ -77,8 +79,6 @@ function App() {
   const {
     characters,
     countries,
-    scenariosByCountry,
-    specialScenarioByCountry,
     rewardTokens,
     unlockCost,
   } = catalog
@@ -90,12 +90,6 @@ function App() {
     if (!result) return false
     setGlowCountry(countryName)
     return true
-  }
-
-  const scenarioIdsForCountry = (countryName) => {
-    const regular = scenariosByCountry?.[countryName]?.map((s) => s.id) ?? []
-    const special = specialScenarioByCountry?.[countryName]?.id
-    return special ? [...regular, special] : regular
   }
 
   const showIntro = isFreshLangtourist(profile) && !introDismissed && !selectedCountry && !activeScenario && !completionCountry
@@ -142,13 +136,20 @@ function App() {
           }
           setActiveScenario(null);
 
+          // countryComplete is the server's own claim-reward gate mirrored into
+          // the list response (docs/contracts/scenario-list.md) — the only
+          // signal allowed to show CompletionScreen / trigger the claim call.
           if (selectedCountry) {
-            const allIds = scenarioIdsForCountry(selectedCountry)
-            const completedAfter = result?.completed && result?.id
-              ? [...profile.completedScenarios, result.id]
-              : profile.completedScenarios
-            if (allIds.length > 0 && allIds.every(id => completedAfter.includes(id))) {
-              setCompletionCountry(selectedCountry);
+            const code = countries.find((c) => c.name === selectedCountry)?.code
+            if (code) {
+              try {
+                const list = await getMissionList({ countryCode: code })
+                if (shouldShowCompletion(list)) {
+                  setCompletionCountry(selectedCountry);
+                }
+              } catch (err) {
+                console.error('Unable to check country completion:', err)
+              }
             }
           }
         }}
@@ -156,11 +157,15 @@ function App() {
     )
   }
 
+  const selectedCountryCode = selectedCountry
+    ? countries.find((c) => c.name === selectedCountry)?.code ?? null
+    : null
+
   if (shouldShowArrivalStory({
     country: selectedCountry,
+    countryCode: selectedCountryCode,
     storySeen,
-    completedScenarios: profile.completedScenarios,
-    scenarioIdsForCountry: selectedCountry ? scenarioIdsForCountry(selectedCountry) : [],
+    completions: profile.completions,
   })) {
     return (
       <CharacterStoryPopup
@@ -178,9 +183,6 @@ function App() {
       <ScenariosPage
         country={selectedCountry}
         code={code}
-        completedScenarios={profile.completedScenarios}
-        scenarios={scenariosByCountry[selectedCountry] ?? []}
-        specialScenario={specialScenarioByCountry[selectedCountry] ?? null}
         onBack={() => setSelectedCountry(null)}
         onScenarioStart={(scenario) => setActiveScenario(scenario)}
       />
