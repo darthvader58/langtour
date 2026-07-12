@@ -61,7 +61,10 @@ function App() {
     return <div className="flex h-screen items-center justify-center bg-[#0F1418] text-white">Loading Langtour…</div>
   }
 
-  if (!profile.user) {
+  // A PASSWORD_RECOVERY session carries a signed-in `user`, but the person
+  // is mid-reset, not ready for gameplay — keep them on AuthModal (in its
+  // set-new-password view) until they've chosen a new password.
+  if (!profile.user || profile.isPasswordRecovery) {
     return (
       <div className="flex h-screen items-center justify-center bg-[#0F1418] text-white">
         <AuthModal
@@ -71,6 +74,9 @@ function App() {
           onGoogle={profile.signInWithGoogle}
           onEmailSignIn={profile.signInWithEmail}
           onEmailSignUp={profile.signUpWithEmail}
+          onForgotPassword={profile.resetPasswordForEmail}
+          isPasswordRecovery={profile.isPasswordRecovery}
+          onUpdatePassword={profile.updateUserPassword}
         />
       </div>
     )

@@ -229,9 +229,12 @@ export default function LandingPage({ tokens, unlockedCountries, glowCountry, le
     authLoading,
     authError,
     authMessage,
+    isPasswordRecovery,
     signInWithGoogle,
     signInWithEmail,
     signUpWithEmail,
+    resetPasswordForEmail,
+    updateUserPassword,
     signOut,
   } = auth
   const avatarUrl = user?.user_metadata?.avatar_url || user?.user_metadata?.picture
@@ -713,15 +716,18 @@ export default function LandingPage({ tokens, unlockedCountries, glowCountry, le
         </div>
       )}
 
-      {showAuth && !user && (
+      {(showAuth || isPasswordRecovery) && (!user || isPasswordRecovery) && (
         <AuthModal
           loading={authLoading}
           error={visibleAuthError}
           message={authMessage}
-          onClose={() => setShowAuth(false)}
+          onClose={isPasswordRecovery ? undefined : () => setShowAuth(false)}
           onGoogle={signInWithGoogle}
           onEmailSignIn={signInWithEmail}
           onEmailSignUp={signUpWithEmail}
+          onForgotPassword={resetPasswordForEmail}
+          isPasswordRecovery={isPasswordRecovery}
+          onUpdatePassword={updateUserPassword}
         />
       )}
 
