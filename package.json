@@ -7,7 +7,9 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "concurrently \"npm run dev --prefix node\" \"npm run dev --prefix client\"",
     "build": "npm ci --prefix client && npm ci --prefix node --omit=dev && npm run build --prefix client",
-    "start": "npm start --prefix node"
+    "start": "npm start --prefix node",
+    "deploy": "wrangler deploy",
+    "preview": "wrangler dev"
   },
   "repository": {
     "type": "git",
@@ -25,7 +27,8 @@
   },
   "homepage": "https://github.com/darthvader58/langtour#readme",
   "devDependencies": {
-    "concurrently": "^10.0.3"
+    "concurrently": "^10.0.3",
+    "wrangler": "^4.110.0"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",
