@@ -48,6 +48,23 @@ async function startServer() {
     app.get('/{*path}', (_req, res) => res.sendFile(path.join(clientDist, 'index.html')));
   }
 
+  // Terminal error handler. The public origin gets probed with binary/garbage
+  // POST bodies carrying `Content-Type: application/json`, which express.json()
+  // then fails to parse — without this, that SyntaxError bubbles up as an
+  // unhandled error and floods the logs on every probe. Answer malformed bodies
+  // with a quiet 400, oversized ones with 413, and log only genuine surprises.
+  app.use((err, _req, res, next) => {
+    if (res.headersSent) return next(err);
+    if (err?.type === 'entity.parse.failed' || err instanceof SyntaxError) {
+      return res.status(400).json({ error: 'Invalid request body' });
+    }
+    if (err?.type === 'entity.too.large') {
+      return res.status(413).json({ error: 'Payload too large' });
+    }
+    console.error('Unhandled request error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  });
+
   httpServer.listen(PORT, '0.0.0.0', () => {
     console.log(`Langtour running at http://0.0.0.0:${PORT}`);
   });
