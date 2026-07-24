@@ -59,7 +59,9 @@ async function loadDefaultDeps() {
       recordScenarioCompletion: dbApi.recordScenarioCompletion,
       listScenarioCompletions: dbApi.listScenarioCompletions,
     },
-    identity: { getUserEmail: dbApi.getUserEmail },
+    // Email comes from the auth-verified token (req.authUser), set by
+    // requireUser — never from the client, and no service-role Admin API hop.
+    identity: { getUserEmail: (req) => req.authUser?.email ?? null },
   };
 }
 
@@ -438,7 +440,7 @@ export function mountScenarioRoutes(app, injectedDeps = null) {
       return;
     }
 
-    const email = await deps.identity.getUserEmail(req.userId);
+    const email = await deps.identity.getUserEmail(req);
     if (!isAdminEmail(email)) {
       res.status(403).json({ error: 'Forbidden' });
       return;

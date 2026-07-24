@@ -13,5 +13,9 @@ export async function requireUser(req, res, next) {
     return;
   }
   req.userId = data.user.id;
+  // The verified token already carries the user's identity (email, metadata,
+  // created_at). Stash it so routes never need a second service-role Admin API
+  // round trip to re-fetch what we just authenticated.
+  req.authUser = data.user;
   next();
 }

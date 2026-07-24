@@ -80,9 +80,12 @@ async function loadReviews(userId) {
   );
 }
 
-async function loadProfileHistory(userId) {
+// authUser is the token-verified identity from requireUser (req.authUser); it
+// already carries id/email/user_metadata/created_at, so there is no service-role
+// Admin API lookup here — that call fails on projects migrated to asymmetric
+// (ES256) JWT signing keys, and re-fetches only what the token already proved.
+async function loadProfileHistory(userId, authUser) {
   const [
-    authResult,
     profileResult,
     levelsResult,
     ranksResult,
@@ -92,7 +95,6 @@ async function loadProfileHistory(userId) {
     scenariosResult,
     claimsResult,
   ] = await Promise.all([
-    db.auth.admin.getUserById(userId),
     db.from('profiles').select('user_id,tokens,experience_points,level_id,rank_id,created_at,updated_at').eq('user_id', userId).maybeSingle(),
     db.from('levels').select('id,code,name,minimum_xp').eq('is_active', true).order('display_order'),
     db.from('ranks').select('id,code,name,minimum_xp').eq('is_active', true).order('display_order'),
@@ -102,14 +104,13 @@ async function loadProfileHistory(userId) {
     db.from('game_scenarios').select('id,country_code,title,icon,description,is_special,display_order').order('display_order'),
     db.from('country_reward_claims').select('country_code,claimed_at').eq('user_id', userId).order('claimed_at', { ascending: false }),
   ]);
-  if (authResult.error) throw new Error(`Load profile identity: ${authResult.error.message}`);
   if (profileResult.error) throw new Error(`Load profile: ${profileResult.error.message}`);
   return {
     // Server-computed; the UI shows the evaluator-skip only to the admin, but the
     // /api/scenario/admin-complete route re-checks identity regardless.
-    isAdmin: isAdminEmail(authResult.data.user?.email),
+    isAdmin: isAdminEmail(authUser?.email),
     ...shapeProfileHistory({
-    authUser: authResult.data.user,
+    authUser,
     profile: profileResult.data,
     levels: resultData(levelsResult, 'Load levels'),
     ranks: resultData(ranksResult, 'Load ranks'),
@@ -122,12 +123,12 @@ async function loadProfileHistory(userId) {
   };
 }
 
-async function progressResponse(userId, timeZone) {
+async function progressResponse(userId, timeZone, authUser) {
   const [progress, words, reviews, history] = await Promise.all([
     loadUserProgress(userId),
     loadWords(),
     loadReviews(userId),
-    loadProfileHistory(userId),
+    loadProfileHistory(userId, authUser),
   ]);
   const wordById = new Map(words.map((word) => [Number(word.id), word]));
   const merged = progress.map((row) => ({ ...wordById.get(Number(row.word_id)), ...row }))
@@ -199,7 +200,7 @@ export function mountProfileRoutes(app) {
   app.get('/api/profile/progress', requireUser, async (req, res) => {
     try {
       const timeZone = assertTimeZone(String(req.query.timezone || 'UTC'));
-      res.json(await progressResponse(req.userId, timeZone));
+      res.json(await progressResponse(req.userId, timeZone, req.authUser));
     } catch (error) {
       if (error instanceof TypeError) return invalidRequest(res, error.message);
       console.error('[Profile progress]', error);

@@ -365,15 +365,6 @@ export async function recordScenarioCompletion(userId, countryCode, scenarioId) 
   return data;
 }
 
-// Resolve a user's email server-side from the trusted req.userId, for the
-// admin-skip gate. Uses the service-role Admin API — the email is never taken
-// from the client. Returns null if the user has no email on record.
-export async function getUserEmail(userId) {
-  const { data, error } = await db.auth.admin.getUserById(userId);
-  if (error) throw new Error(`Load user identity: ${error.message}`);
-  return data?.user?.email ?? null;
-}
-
 export async function getWordEmbeddingRow(wordId) {
   return assertResult(await db.from('learning_word_embeddings').select('embedding').eq('word_id', wordId).maybeSingle(), 'Load embedding');
 }
