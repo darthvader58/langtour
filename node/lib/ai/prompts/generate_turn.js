@@ -6,6 +6,7 @@ import { languageName } from '../languages.js';
 // here costs tokens on each call.
 export const turnSchema = jsonSchema({
   type: 'object',
+  additionalProperties: false,
   properties: {
     npcText: { type: 'string', description: 'NPC line in the target language' },
     npcReading: { type: 'string', description: 'Romanization/reading of the NPC line' },
@@ -20,6 +21,7 @@ export const turnSchema = jsonSchema({
     },
     newWord: {
       type: 'object',
+      additionalProperties: false,
       description: 'A single new target word to introduce, only when the learner is ready',
       properties: {
         expression: { type: 'string' },

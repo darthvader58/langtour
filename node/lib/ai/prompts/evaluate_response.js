@@ -14,6 +14,7 @@ export const ERROR_KINDS = [
 // forms; index.js maps them back to word ids from ctx.targetWords.
 export const evaluationSchema = jsonSchema({
   type: 'object',
+  additionalProperties: false,
   properties: {
     pass: { type: 'boolean' },
     errorKind: {

@@ -10,12 +10,28 @@ import { ModelQuotaError } from '../lib/ai/errors.js';
 
 const SCHEMA = { fake: 'schema' };
 
-function apiError(statusCode, message = 'boom') {
+function apiError(statusCode, message = 'boom', extra = {}) {
   return new APICallError({
     message,
     url: 'https://example.com',
     requestBodyValues: {},
     statusCode,
+    ...extra,
+  });
+}
+
+// Shape @ai-sdk/cerebras actually parses onto APICallError.data when the
+// provider rejects our json_schema request format (see
+// node_modules/@ai-sdk/cerebras's cerebrasErrorSchema).
+function cerebrasFormatError() {
+  return apiError(400, "'additionalProperties' is required to be supplied and set to false.", {
+    data: {
+      message: "'additionalProperties' is required to be supplied and set to false.",
+      type: 'invalid_request_error',
+      param: 'response_format',
+      code: 'wrong_api_format',
+    },
+    isRetryable: false,
   });
 }
 
@@ -52,6 +68,21 @@ test('isProviderUnavailable: false for schema/validation errors — same bug on 
   assert.equal(isProviderUnavailable(err), false);
 });
 
+test('isProviderUnavailable: true for a Cerebras-style format-400 (code: wrong_api_format)', () => {
+  assert.equal(isProviderUnavailable(cerebrasFormatError()), true);
+});
+
+test('isProviderUnavailable: true for a format-400 identified by param: response_format alone', () => {
+  const err = apiError(400, 'response_format not supported', { data: { param: 'response_format' } });
+  assert.equal(isProviderUnavailable(err), true);
+});
+
+test('isProviderUnavailable: still false for an ordinary 400 with no format-rejection data', () => {
+  assert.equal(isProviderUnavailable(apiError(400, 'bad request')), false);
+  assert.equal(isProviderUnavailable(apiError(400, 'bad request', { data: { code: 'invalid_api_key' } })), false);
+  assert.equal(isProviderUnavailable(apiError(400, 'bad request', { data: 'not an object' })), false);
+});
+
 test('chain advances to the next provider on a stubbed 429 and returns the successful object', async () => {
   const calls = [];
   const call = async ({ model }) => {
@@ -83,6 +114,37 @@ test('chain advances through 5xx and network errors too', async () => {
   const result = await generateStructured({ schema: SCHEMA, prompt: 'p' });
   assert.deepEqual(calls, ['model:cerebras', 'model:groq', 'model:gemini']);
   assert.deepEqual(result, { ok: true });
+});
+
+test('chain advances past Cerebras on a format-400 and succeeds on the next provider', async () => {
+  const calls = [];
+  const call = async ({ model }) => {
+    calls.push(model);
+    if (model === 'model:cerebras') throw cerebrasFormatError();
+    return { ok: true, from: model };
+  };
+  const generateStructured = createGenerateStructured({
+    providers: [provider('cerebras'), provider('groq'), provider('gemini')],
+    call,
+  });
+  const result = await generateStructured({ schema: SCHEMA, prompt: 'p' });
+  assert.deepEqual(calls, ['model:cerebras', 'model:groq']);
+  assert.deepEqual(result, { ok: true, from: 'model:groq' });
+});
+
+test('chain does NOT advance on a genuine non-format 400 — rethrows immediately', async () => {
+  const calls = [];
+  const genuineError = apiError(400, 'bad request', { data: { code: 'invalid_api_key' } });
+  const call = async ({ model }) => {
+    calls.push(model);
+    throw genuineError;
+  };
+  const generateStructured = createGenerateStructured({
+    providers: [provider('cerebras'), provider('groq'), provider('gemini')],
+    call,
+  });
+  await assert.rejects(() => generateStructured({ schema: SCHEMA, prompt: 'p' }), genuineError);
+  assert.deepEqual(calls, ['model:cerebras']);
 });
 
 test('chain does NOT advance on a schema/validation error — rethrows immediately without trying later providers', async () => {

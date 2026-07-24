@@ -45,17 +45,42 @@ const PROVIDERS = [
   },
 ];
 
+// True only for a 400 that is a provider-specific *request-format*
+// rejection — the provider refused the shape of our request (e.g. its
+// structured-output/response_format contract), not the content of the
+// prompt. Concretely this is Cerebras rejecting a json_schema without
+// `additionalProperties: false` on every object node: statusCode 400,
+// parsed error body `{ code: 'wrong_api_format', param: 'response_format' }`
+// (see @ai-sdk/cerebras's error schema — that body lands on
+// APICallError.data). That's a per-provider input-format quirk, identical
+// on every retry to that provider, so the chain should skip straight to the
+// next provider instead of rethrowing — unlike a genuine prompt/generation
+// bug (NoObjectGeneratedError, or any other 4xx), which is the same bug on
+// every provider and must fail fast.
+function isFormatRejection(error) {
+  if (!APICallError.isInstance(error) || error.statusCode !== 400) return false;
+  const data = error.data;
+  return !!(
+    data &&
+    typeof data === 'object' &&
+    (data.code === 'wrong_api_format' || data.param === 'response_format')
+  );
+}
+
 // True only for errors that mean "this provider can't serve the request
-// right now" — rate-limit/quota or the provider itself being down. Schema/
-// validation errors (e.g. AI SDK's NoObjectGeneratedError) mean the prompt
-// itself is broken, which is the same bug on every provider in the chain, so
-// they fall through this check and are rethrown immediately instead of
-// silently trying (and failing) two more providers.
+// right now" — rate-limit/quota, the provider itself being down, or (see
+// isFormatRejection above) a provider-specific request-format rejection.
+// Schema/validation errors (e.g. AI SDK's NoObjectGeneratedError) and any
+// other 4xx mean the prompt itself is broken, which is the same bug on
+// every provider in the chain, so they fall through this check and are
+// rethrown immediately instead of silently trying (and failing) two more
+// providers.
 export function isProviderUnavailable(error) {
   if (APICallError.isInstance(error)) {
     const status = error.statusCode;
     if (status === 429) return true;
     if (typeof status === 'number' && status >= 500) return true;
+    if (isFormatRejection(error)) return true;
     return /RESOURCE_EXHAUSTED/i.test(error.message ?? '');
   }
   if (/RESOURCE_EXHAUSTED/i.test(error?.message ?? '')) return true;
