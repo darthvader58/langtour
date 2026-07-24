@@ -60,8 +60,8 @@ Target words: ${words}${pronScoreLines(pronScore)}
 The reply passes ONLY if ALL three hold:
 1. It is a meaningful, contextually appropriate answer to what was just asked. A bare word fails (bare-word). A filler or generic sentence that merely contains a target word fails (too-vague). An answer to a different question fails (off-topic).
 2. It is grammatically correct ${lang} for this everyday register. Broken structure fails (grammar); wrong formality fails (wrong-register). Tolerate accent and minor STT noise.
-3. A target word is used correctly and purposefully in that sentence. Misused or wrong word fails (wrong-word).
-Weigh context and grammar as heavily as vocabulary — saying the word is not enough.
+3. At least ONE target word that naturally fits this reply is used correctly. A target word that is actually MISused fails (wrong-word). But never fail a reply merely for omitting the other target words — the remaining words are practiced across later turns, one per turn. Do not tell the learner to add a specific missing word, "complete the set", or cram unrelated words into a single sentence.
+Weigh context and grammar as heavily as vocabulary — saying the word is not enough, and a relevant, grammatical reply that uses one fitting word is a pass even if other target words are absent.
 
 teachingNote: in English, name what went wrong and nudge toward the fix (e.g. which part to rethink). NEVER write out the full correct sentence. When pass is true, one line on what made it work.
 

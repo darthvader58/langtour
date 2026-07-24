@@ -236,6 +236,7 @@ export default function LandingPage({ tokens, unlockedCountries, glowCountry, le
     resetPasswordForEmail,
     updateUserPassword,
     signOut,
+    isAdmin,
   } = auth
   const avatarUrl = user?.user_metadata?.avatar_url || user?.user_metadata?.picture
   const avatarLabel = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || 'Player'
@@ -821,17 +822,22 @@ export default function LandingPage({ tokens, unlockedCountries, glowCountry, le
         <div className="absolute inset-0 bg-white animate-cinematic-flash pointer-events-none" />
       )}
 
-      <button
-        onClick={async () => {
-          if (window.confirm("Reset your progress? This wipes your unlocked countries, completed scenarios, LangCoins, and XP.")) {
-            const ok = await auth.resetProgress();
-            if (ok) window.location.reload();
-          }
-        }}
-        className="pointer-events-auto absolute bottom-6 right-7 z-20 flex items-center justify-center rounded-xl border border-white/[0.08] bg-[#091525]/70 px-3 py-2 text-[9px] font-bold uppercase tracking-[0.16em] text-slate-600 backdrop-blur-lg transition-colors hover:border-red-400/20 hover:text-red-300 max-sm:hidden"
-      >
-        Reset
-      </button>
+      {/* Reset wipes all progress — a dev/admin affordance, gated to admins.
+          The reset_user_progress RPC is auth.uid()-scoped so a non-admin could
+          only ever reset their own account, but the control stays admin-only. */}
+      {isAdmin && (
+        <button
+          onClick={async () => {
+            if (window.confirm("Reset your progress? This wipes your unlocked countries, completed scenarios, LangCoins, and XP.")) {
+              const ok = await auth.resetProgress();
+              if (ok) window.location.reload();
+            }
+          }}
+          className="pointer-events-auto absolute bottom-6 right-7 z-20 flex items-center justify-center rounded-xl border border-white/[0.08] bg-[#091525]/70 px-3 py-2 text-[9px] font-bold uppercase tracking-[0.16em] text-slate-600 backdrop-blur-lg transition-colors hover:border-red-400/20 hover:text-red-300 max-sm:hidden"
+        >
+          Reset
+        </button>
+      )}
 
       <div className="pointer-events-none absolute bottom-6 left-1/2 z-10 -translate-x-1/2 text-[9px] font-semibold uppercase tracking-[0.18em] text-slate-600 max-sm:hidden">
         Drag to explore <span className="mx-2 text-slate-700">·</span> Scroll to zoom <span className="mx-2 text-slate-700">·</span> Select a destination

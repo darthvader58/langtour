@@ -103,7 +103,10 @@ export default function GameplayPhase({ scenario, countryCode, langCode, firstTu
           countryCode,
           scenarioId,
           transcript,
-          priorTurns: recentPriorTurns(priorTurns),
+          // The line on screen (npcLine) is only appended to priorTurns after a
+          // pass, in handleNextTurn. Include it here so the evaluator grades the
+          // reply against the question actually being shown — not the prior turn.
+          priorTurns: recentPriorTurns([...priorTurns, { speaker: 'npc', text: npcLine.text }]),
           turnIndex,
         }),
       });
