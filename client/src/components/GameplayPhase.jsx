@@ -14,6 +14,7 @@ const ERROR_KIND_LABEL = {
   grammar: 'Grammar slip',
   'wrong-word': 'Wrong word',
   'wrong-register': 'Wrong register',
+  mispronunciation: 'Mispronounced',
 };
 
 // Keep the context sent to the server lean (token-economy rule in CLAUDE.md) —
@@ -91,7 +92,7 @@ export default function GameplayPhase({ scenario, countryCode, langCode, firstTu
     window.speechSynthesis.speak(utterance);
   };
 
-  const handleRecordingComplete = async (transcript) => {
+  const handleRecordingComplete = async (transcript, projectId) => {
     setUserResponse(transcript);
     setState('evaluating');
 
@@ -103,6 +104,9 @@ export default function GameplayPhase({ scenario, countryCode, langCode, firstTu
           countryCode,
           scenarioId,
           transcript,
+          // Lets the server score this take's pronunciation from the audio it
+          // stored; the route cleans the temp project up afterward.
+          projectId,
           // The line on screen (npcLine) is only appended to priorTurns after a
           // pass, in handleNextTurn. Include it here so the evaluator grades the
           // reply against the question actually being shown — not the prior turn.

@@ -36,16 +36,14 @@ export default function MicrophoneRecorder({ onRecordingComplete, disabled, lang
       if (mediaStreamRef.current) {
         mediaStreamRef.current.getTracks().forEach(t => t.stop());
       }
+      // Safety net for an abandoned take: normally /api/scenario/evaluate deletes
+      // the temp project after scoring its audio, but if the user quit mid-turn
+      // that never ran. Idempotent — a project already cleaned up server-side
+      // 404s harmlessly.
+      const pid = projectIdRef.current;
+      if (pid) fetch(`${API}/api/voice/projects/${encodeURIComponent(pid)}`, { method: 'DELETE' }).catch(() => {});
     };
   }, []);
-
-  const deleteTempProject = async (pid) => {
-    try {
-      await fetch(`${API}/api/voice/projects/${encodeURIComponent(pid)}`, { method: 'DELETE' });
-    } catch (e) {
-      console.error('Failed to cleanup temp project', e);
-    }
-  };
 
   const startRecording = async () => {
     if (disabled) return;
@@ -102,8 +100,11 @@ export default function MicrophoneRecorder({ onRecordingComplete, disabled, lang
           if (msg.type === 'final') {
             setIsRecording(false);
             setStatus('idle');
-            onRecordingComplete(fullText);
-            deleteTempProject(pid);
+            // Hand the project id up so /api/scenario/evaluate can score this
+            // take's audio server-side. That route deletes the temp project once
+            // scored — we no longer delete it here, which would drop the audio
+            // before it can be scored.
+            onRecordingComplete(fullText, pid);
           }
         }
       };

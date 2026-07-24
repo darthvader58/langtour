@@ -8,6 +8,9 @@ export const ERROR_KINDS = [
   'grammar',
   'wrong-word',
   'wrong-register',
+  // Set by the route from the server-side pronunciation scorer, not the model:
+  // a target word pronounced badly enough to be a real mispronunciation.
+  'mispronunciation',
 ];
 
 // Structured-output schema for the verdict. usedExpressions carries surface

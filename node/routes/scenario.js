@@ -27,13 +27,14 @@ const COUNTRY_BY_CODE = new Map(COUNTRIES.map((c) => [c.code, c]));
 const KNOWN_LANG_CODES = new Set(COUNTRIES.map((c) => c.langCode));
 
 async function loadDefaultDeps() {
-  const [auth, ai, forest, dbApi, srs, graph] = await Promise.all([
+  const [auth, ai, forest, dbApi, srs, graph, pron] = await Promise.all([
     import('../lib/auth.js'),
     import('../lib/ai/index.js'),
     import('../lib/memory/forest.js'),
     import('../lib/db/db.js'),
     import('../lib/srs/fsrs_update.js'),
     import('../lib/graph/graph.js'),
+    import('../lib/voice/turnPronunciation.js'),
   ]);
   return {
     requireUser: auth.requireUser,
@@ -62,6 +63,13 @@ async function loadDefaultDeps() {
     // Email comes from the auth-verified token (req.authUser), set by
     // requireUser — never from the client, and no service-role Admin API hop.
     identity: { getUserEmail: (req) => req.authUser?.email ?? null },
+    // Server-side pronunciation gate. assessTurn scores the audio the voice
+    // pipeline stored for the given project id; cleanup removes that temp
+    // project once scored. The client never sends a score — only the id.
+    pron: {
+      assessTurn: pron.assessTurnPronunciation,
+      cleanup: pron.cleanupTurnAudio,
+    },
   };
 }
 
@@ -308,7 +316,7 @@ export function mountScenarioRoutes(app, injectedDeps = null) {
   // completion RPC. The client sends only its transcript; no flag in the body
   // can force any of those effects.
   app.post('/api/scenario/evaluate', withAuth, handle(async (req, res, deps) => {
-    const { countryCode, scenarioId, transcript, pronScore, priorTurns, turnIndex } = req.body ?? {};
+    const { countryCode, scenarioId, transcript, projectId, priorTurns, turnIndex } = req.body ?? {};
     const country = resolveCountry(countryCode);
     if (!country) {
       res.status(400).json({ error: 'Unknown countryCode' });
@@ -340,7 +348,37 @@ export function mountScenarioRoutes(app, injectedDeps = null) {
       turnIndex,
     });
 
-    const result = await deps.ai.evaluateResponse(ctx, transcript.trim(), pronScore ?? null);
+    // Server-side pronunciation pass, computed from the audio the voice pipeline
+    // stored under projectId. Returns null when scoring is unavailable, so the
+    // turn degrades to Deepgram-only. We clean up the temp audio as soon as it is
+    // scored — it is not needed past this point, pass or fail.
+    const assessment = await deps.pron.assessTurn({
+      projectId,
+      langCode: country.langCode,
+      transcript: transcript.trim(),
+      targetWords,
+    });
+    deps.pron.cleanup(projectId);
+
+    // A genuine mispronunciation of a target word fails the turn and teaches —
+    // an accent-level wobble scores above the threshold and never reaches here.
+    // No FSRS/forest/completion effect, just as any other failed verdict.
+    const mispron = assessment?.majorMispronunciations ?? [];
+    if (mispron.length > 0) {
+      const worst = mispron.reduce((a, b) => (b.accuracy < a.accuracy ? b : a));
+      res.json({
+        pass: false,
+        errorKind: 'mispronunciation',
+        teachingNote: `"${worst.expression}" came out badly mispronounced — that was more than an accent. Tap the speaker to hear it again, then say it clearly and try once more.`,
+        sidekickLine: { text: "Careful — that word didn't land. Give it another go." },
+        usedWords: [],
+        scenarioComplete: false,
+        growth: growthPayload(row, targetWords),
+      });
+      return;
+    }
+
+    const result = await deps.ai.evaluateResponse(ctx, transcript.trim(), assessment?.pronScore ?? null);
 
     if (!result.pass) {
       res.json({
