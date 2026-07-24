@@ -116,6 +116,12 @@ export default function MicrophoneRecorder({ onRecordingComplete, disabled, lang
     }
   };
 
+  // Tap to start, tap again to end — a toggle, not press-and-hold.
+  const toggleRecording = () => {
+    if (isRecording) stopRecording();
+    else startRecording();
+  };
+
   const stopRecording = async () => {
     if (!isRecording) return;
     setStatus('transcribing');
@@ -170,11 +176,7 @@ export default function MicrophoneRecorder({ onRecordingComplete, disabled, lang
           </>
         )}
         <button
-          onMouseDown={startRecording}
-          onMouseUp={stopRecording}
-          onMouseLeave={stopRecording}
-          onTouchStart={() => startRecording()}
-          onTouchEnd={() => stopRecording()}
+          onClick={toggleRecording}
           disabled={disabled || status === 'transcribing' || status === 'initializing'}
           className={`relative flex h-20 w-20 touch-none items-center justify-center rounded-[1.6rem] border transition-all sm:h-24 sm:w-24 sm:rounded-[2rem] [@media(max-height:650px)]:h-16 [@media(max-height:650px)]:w-16 ${
             disabled ? 'bg-[#37464F] opacity-50 cursor-not-allowed' :
@@ -189,7 +191,7 @@ export default function MicrophoneRecorder({ onRecordingComplete, disabled, lang
         </button>
       </div>
       <span className="mt-1 font-display text-[10px] font-extrabold uppercase tracking-[.25em] text-slate-500">
-        {isRecording ? 'Release to Send' : 'Hold to Speak'}
+        {isRecording ? 'Tap to Send' : 'Tap to Speak'}
       </span>
     </div>
   );
